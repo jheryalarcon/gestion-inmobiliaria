@@ -1,0 +1,11 @@
+# Ignorar carpeta de WebStorm
+.idea/
+
+# Ignorar node_modules globales si hubiera
+node_modules/
+
+# Ignorar logs
+*.log
+
+# Ignorar .env
+**/.env

@@ -1,0 +1,74 @@
+import { Link, useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { jwtDecode } from 'jwt-decode';
+
+export default function Navbar() {
+    const navigate = useNavigate();
+    const [usuario, setUsuario] = useState(null);
+
+    useEffect(() => {
+        const token = localStorage.getItem('token');
+        if (token) {
+            try {
+                const decoded = jwtDecode(token);
+                setUsuario(decoded);
+            } catch (e) {
+                localStorage.removeItem('token');
+            }
+        }
+    }, []);
+
+    const cerrarSesion = () => {
+        localStorage.removeItem('token');
+        setUsuario(null);
+        navigate('/');
+    };
+
+    return (
+        <nav className="bg-blue-600 text-white px-6 py-3 flex justify-between items-center shadow">
+            <Link to="/" className="text-lg font-bold">InmobiliariaApp</Link>
+
+            <div className="flex gap-4 items-center">
+                {usuario && usuario.rol === 'admin' && (
+                    <>
+                        <Link to="/admin" className="hover:underline">Panel admin</Link>
+                        <Link to="/admin/registrar-propiedad" className="hover:underline">Registrar propiedad</Link>
+                        <Link to="/admin/panel-propiedades" className="hover:underline">Ver propiedades</Link>
+                    </>
+                )}
+
+                {usuario && usuario.rol === 'agente' && (
+                    <>
+                        <Link to="/agente" className="hover:underline">Panel agente</Link>
+                        <Link to="/agente/registrar-propiedad" className="hover:underline">Registrar propiedad</Link>
+                        <Link to="/agente/panel-propiedades" className="hover:underline">Mis propiedades</Link>
+                    </>
+                )}
+
+                {usuario && usuario.rol === 'cliente' && (
+                    <>
+                        <Link to="/cliente" className="hover:underline">Inicio cliente</Link>
+                    </>
+                )}
+
+                {!usuario && (
+                    <>
+                        <Link to="/login" className="hover:underline">Iniciar sesión</Link>
+                        <Link to="/registro" className="hover:underline">Registrarse</Link>
+                    </>
+                )}
+
+                {usuario && (
+                    <>
+                        <button
+                            onClick={cerrarSesion}
+                            className="ml-3 bg-white text-blue-600 px-3 py-1 rounded hover:bg-gray-100 text-sm"
+                        >
+                            Cerrar sesión
+                        </button>
+                    </>
+                )}
+            </div>
+        </nav>
+    );
+}

@@ -1,0 +1,135 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// MODELO de Usuarios
+model Usuario {
+  id          Int         @id @default(autoincrement())
+  name        String // nombre de la persona
+  email       String      @unique
+  password    String
+  rol         Rol // "cliente", "agente", "admin"
+  activo      Boolean     @default(true) //permite desactivar cuentas sin borrarlas
+  propiedades Propiedad[]
+  createdAt   DateTime    @default(now())
+}
+
+// Roles que puede tener un usuario
+enum Rol {
+  cliente
+  agente
+  admin
+}
+
+// MODELO de propiedades inmobiliarias
+model Propiedad {
+  id               Int             @id @default(autoincrement())
+  titulo           String //nombre atractivo o breve descripción, ej. “Casa de 3 habitaciones en Quito”
+  descripcion      String? //detalle completo de la propiedad
+  tipo_propiedad   TipoPropiedad //casa, departamento, terreno, local comercial, finca, quinta
+  estado_propiedad EstadoFisico //nueva, usada, en construcción
+  transaccion      TipoTransaccion //venta, alquiler
+  precio           Decimal         @db.Decimal(12, 2) //valor en dólares u otra moneda
+  moneda           String          @default("USD") //USD, EUR, etc.
+
+  direccion     String
+  ciudad        String
+  provincia     Provincia
+  pais          String    @default("Ecuador")
+  codigo_postal String?
+  latitud       Decimal?  @db.Decimal(10, 7) //para mapas
+  longitud      Decimal?  @db.Decimal(10, 7) //para mapas
+
+  area_terreno      Decimal @db.Decimal(10, 2)
+  area_construccion Decimal @db.Decimal(10, 2)
+  nro_habitaciones  Int
+  nro_banos         Int
+  nro_parqueaderos  Int
+  nro_pisos         Int
+  anio_construccion Int?
+
+  estado_publicacion EstadoPropiedad @default(disponible) // disponible, vendida, arrendada, reservada, inactiva.
+
+  imagenes Imagen[] //Enlaces web de las imagenes
+
+  agenteId Int
+  agente   Usuario @relation(fields: [agenteId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Posibles estados que puede tener una propiedad inmobiliaria
+enum EstadoPropiedad {
+  disponible
+  vendida
+  arrendada
+  reservada
+  inactiva //Para soft delete de la propiedad (evitar eliminar realmente de la base de datos)
+}
+
+enum TipoPropiedad {
+  casa
+  departamento
+  terreno
+  local_comercial
+  finca
+  quinta
+}
+
+enum EstadoFisico {
+  nueva
+  usada
+  en_construccion
+}
+
+enum TipoTransaccion {
+  venta
+  alquiler
+}
+
+enum Provincia {
+  Azuay
+  Bolivar
+  Canar
+  Carchi
+  Chimborazo
+  Cotopaxi
+  El_Oro
+  Esmeraldas
+  Galapagos
+  Guayas
+  Imbabura
+  Loja
+  Los_Rios
+  Manabi
+  Morona_Santiago
+  Napo
+  Orellana
+  Pastaza
+  Pichincha
+  Santa_Elena
+  Santo_Domingo
+  Sucumbios
+  Tungurahua
+  Zamora_Chinchipe
+}
+
+//MODELO de imagenes (por cada propiedad habrá una o más imagenes)
+model Imagen {
+  id          Int       @id @default(autoincrement())
+  url         String
+  propiedadId Int
+  propiedad   Propiedad @relation(fields: [propiedadId], references: [id])
+}
