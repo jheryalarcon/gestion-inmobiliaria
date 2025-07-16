@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate, Link } from 'react-router-dom';
 import { EnvelopeIcon, LockClosedIcon, UserIcon } from  '@heroicons/react/24/solid';
+import { jwtDecode } from 'jwt-decode';
 
 export default function Registro() {
     const [name, setName] = useState('');
@@ -10,6 +11,22 @@ export default function Registro() {
     const [mensaje, setMensaje] = useState('');
     const [errores, setErrores] = useState({});
     const navigate = useNavigate();
+    const [checkingAuth, setCheckingAuth] = useState(true);
+
+    useEffect(() => {
+        const token = localStorage.getItem('token');
+        if (token) {
+            try {
+                const usuario = jwtDecode(token);
+                if (usuario.rol === 'admin') return navigate('/admin');
+                if (usuario.rol === 'agente') return navigate('/agente');
+                if (usuario.rol === 'cliente') return navigate('/cliente');
+            } catch (e) {
+                // Token inválido, no hacer nada
+            }
+        }
+        setCheckingAuth(false);
+    }, []);
 
     const handleRegistro = async (e) => {
         e.preventDefault();
@@ -49,6 +66,8 @@ export default function Registro() {
         }
 
     };
+
+    if (checkingAuth) return <div className="text-center mt-10">Cargando...</div>;
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-100 via-white to-blue-200 px-4">

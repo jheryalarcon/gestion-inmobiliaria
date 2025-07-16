@@ -51,12 +51,12 @@ model Propiedad {
   latitud       Decimal?  @db.Decimal(10, 7) //para mapas
   longitud      Decimal?  @db.Decimal(10, 7) //para mapas
 
-  area_terreno      Decimal @db.Decimal(10, 2)
-  area_construccion Decimal @db.Decimal(10, 2)
-  nro_habitaciones  Int
-  nro_banos         Int
-  nro_parqueaderos  Int
-  nro_pisos         Int
+  area_terreno      Decimal  @db.Decimal(10, 2)
+  area_construccion Decimal?  @db.Decimal(10, 2)
+  nro_habitaciones  Int?
+  nro_banos         Int?
+  nro_parqueaderos  Int?
+  nro_pisos         Int?
   anio_construccion Int?
 
   estado_publicacion EstadoPropiedad @default(disponible) // disponible, vendida, arrendada, reservada, inactiva.

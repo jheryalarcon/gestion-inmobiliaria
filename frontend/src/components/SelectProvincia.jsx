@@ -1,25 +1,46 @@
 const provincias = [
-    'Azuay', 'Bolívar', 'Cañar', 'Carchi', 'Chimborazo', 'Cotopaxi',
-    'El Oro', 'Esmeraldas', 'Galápagos', 'Guayas', 'Imbabura', 'Loja',
-    'Los Ríos', 'Manabí', 'Morona Santiago', 'Napo', 'Orellana', 'Pastaza',
-    'Pichincha', 'Santa Elena', 'Santo Domingo', 'Sucumbíos', 'Tungurahua',
-    'Zamora Chinchipe'
+    { label: 'Azuay', value: 'Azuay' },
+    { label: 'Bolívar', value: 'Bolivar' },
+    { label: 'Cañar', value: 'Canar' },
+    { label: 'Carchi', value: 'Carchi' },
+    { label: 'Chimborazo', value: 'Chimborazo' },
+    { label: 'Cotopaxi', value: 'Cotopaxi' },
+    { label: 'El Oro', value: 'El_Oro' },
+    { label: 'Esmeraldas', value: 'Esmeraldas' },
+    { label: 'Galápagos', value: 'Galapagos' },
+    { label: 'Guayas', value: 'Guayas' },
+    { label: 'Imbabura', value: 'Imbabura' },
+    { label: 'Loja', value: 'Loja' },
+    { label: 'Los Ríos', value: 'Los_Rios' },
+    { label: 'Manabí', value: 'Manabi' },
+    { label: 'Morona Santiago', value: 'Morona_Santiago' },
+    { label: 'Napo', value: 'Napo' },
+    { label: 'Orellana', value: 'Orellana' },
+    { label: 'Pastaza', value: 'Pastaza' },
+    { label: 'Pichincha', value: 'Pichincha' },
+    { label: 'Santa Elena', value: 'Santa_Elena' },
+    { label: 'Santo Domingo', value: 'Santo_Domingo' },
+    { label: 'Sucumbíos', value: 'Sucumbios' },
+    { label: 'Tungurahua', value: 'Tungurahua' },
+    { label: 'Zamora Chinchipe', value: 'Zamora_Chinchipe' },
 ];
 
-export default function SelectProvincia({ value, onChange }) {
+export default function SelectProvincia({ value, onChange, error }) {
     return (
-        <select
-            className="w-full border rounded px-3 py-2"
-            value={value}
-            onChange={onChange}
-            required
-        >
-            <option value="">Selecciona una provincia</option>
-            {provincias.map((prov) => (
-                <option key={prov} value={prov.replace(/ /g, '_')}>
-                    {prov}
-                </option>
-            ))}
-        </select>
+        <>
+            <select
+                className={`w-full border-2 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300 bg-white shadow-sm transition ${error ? 'border-red-400' : 'border-blue-100'}`}
+                value={value}
+                onChange={onChange}
+            >
+                <option value="" disabled hidden>Seleccione una provincia</option>
+                {provincias.map((prov) => (
+                    <option key={prov.value} value={prov.value}>
+                        {prov.label}
+                    </option>
+                ))}
+            </select>
+            {error && <p className="text-red-600 text-sm mt-1 font-medium">{error}</p>}
+        </>
     );
 }

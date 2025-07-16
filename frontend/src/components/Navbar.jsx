@@ -24,10 +24,24 @@ export default function Navbar() {
         navigate('/');
     };
 
+    // Nueva función para redirigir según el rol
+    const irAInicioRol = () => {
+        if (!usuario) return navigate('/');
+        if (usuario.rol === 'admin') return navigate('/admin');
+        if (usuario.rol === 'agente') return navigate('/agente');
+        if (usuario.rol === 'cliente') return navigate('/cliente');
+        return navigate('/');
+    };
+
     return (
         <nav className="bg-blue-600 text-white px-6 py-3 flex justify-between items-center shadow">
-            <Link to="/" className="text-lg font-bold">InmobiliariaApp</Link>
-
+            {/* Cambia el Link por un span/button con onClick */}
+            <span
+                className="text-lg font-bold cursor-pointer"
+                onClick={irAInicioRol}
+            >
+                InmobiliariaApp
+            </span>
             <div className="flex gap-4 items-center">
                 {usuario && usuario.rol === 'admin' && (
                     <>

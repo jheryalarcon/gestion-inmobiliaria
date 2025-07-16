@@ -32,34 +32,54 @@ export const crearPropiedad = async (req, res) => {
     const errores = [];
 
     if (!titulo?.trim()) errores.push('El título es obligatorio');
-    if (!descripcion?.trim()) errores.push('La descripción es obligatoria');
     if (!tipo_propiedad) errores.push('El tipo de propiedad es obligatorio');
     if (!estado_propiedad) errores.push('El estado físico de la propiedad es obligatorio');
     if (!transaccion) errores.push('El tipo de transacción es obligatorio');
-    if (isNaN(Number(precio)) || Number(precio) <= 0) errores.push('El precio es obligatorio y debe ser un número positivo');
+    if (isNaN(Number(precio)) || Number(precio) <= 0) errores.push('El precio debe ser un número positivo');
 
     if (!direccion?.trim()) errores.push('La dirección es obligatoria');
     if (!ciudad?.trim()) errores.push('La ciudad es obligatoria');
     if (!provincia) errores.push('La provincia es obligatoria');
 
-    if (isNaN(Number(area_terreno)) || Number(area_terreno) <= 0)
+    if (isNaN(Number(area_terreno)) || Number(area_terreno) <= 0) {
         errores.push('Área del terreno inválida');
-    if (isNaN(Number(area_construccion)) || Number(area_construccion) <= 0)
-        errores.push('Área de construcción inválida');
+    }
 
-    if (isNaN(Number(nro_habitaciones)) || Number(nro_habitaciones) <= 0)
-        errores.push('Número de habitaciones inválido');
-    if (isNaN(Number(nro_banos)) || Number(nro_banos) <= 0)
-        errores.push('Número de baños inválido');
-    if (isNaN(Number(nro_parqueaderos)) || Number(nro_parqueaderos) < 0)
-        errores.push('Número de parqueaderos inválido');
-    if (isNaN(Number(nro_pisos)) || Number(nro_pisos) <= 0)
-        errores.push('Número de pisos inválido');
+    // VALIDACIONES CONDICIONALES
+    if (descripcion !== undefined && descripcion.trim().length === 0) {
+        errores.push('Si proporciona una descripción, no puede estar vacía');
+    }
+
+    if (area_construccion !== undefined && area_construccion !== '') {
+        const val = Number(area_construccion);
+        if (isNaN(val) || val < 0) errores.push('Área de construcción inválida');
+    }
+
+    if (nro_habitaciones !== undefined && nro_habitaciones !== '') {
+        const val = Number(nro_habitaciones);
+        if (isNaN(val) || val < 0) errores.push('Número de habitaciones inválido');
+    }
+
+    if (nro_banos !== undefined && nro_banos !== '') {
+        const val = Number(nro_banos);
+        if (isNaN(val) || val < 0) errores.push('Número de baños inválido');
+    }
+
+    if (nro_parqueaderos !== undefined && nro_parqueaderos !== '') {
+        const val = Number(nro_parqueaderos);
+        if (isNaN(val) || val < 0) errores.push('Número de parqueaderos inválido');
+    }
+
+    if (nro_pisos !== undefined && nro_pisos !== '') {
+        const val = Number(nro_pisos);
+        if (isNaN(val) || val < 0) errores.push('Número de pisos inválido');
+    }
 
     if (!archivos || archivos.length === 0) {
         errores.push('Debe subir al menos una imagen');
     }
 
+    // VALIDACIÓN DE AGENTE
     let agenteId;
     if (usuario.rol === 'admin') {
         if (!agenteIdEnviado) {
@@ -77,12 +97,11 @@ export const crearPropiedad = async (req, res) => {
         return res.status(400).json({ mensaje: 'Validación fallida', errores });
     }
 
-
     try {
         const propiedad = await prisma.propiedad.create({
             data: {
                 titulo,
-                descripcion,
+                descripcion: descripcion?.trim() || null,
                 tipo_propiedad,
                 estado_propiedad,
                 transaccion,
@@ -92,15 +111,15 @@ export const crearPropiedad = async (req, res) => {
                 ciudad,
                 provincia,
                 pais: 'Ecuador',
-                codigo_postal,
+                codigo_postal: codigo_postal || null,
                 latitud: latitud ? parseFloat(latitud) : null,
                 longitud: longitud ? parseFloat(longitud) : null,
                 area_terreno: parseFloat(area_terreno),
-                area_construccion: parseFloat(area_construccion),
-                nro_habitaciones: parseInt(nro_habitaciones),
-                nro_banos: parseInt(nro_banos),
-                nro_parqueaderos: parseInt(nro_parqueaderos),
-                nro_pisos: parseInt(nro_pisos),
+                area_construccion: area_construccion ? parseFloat(area_construccion) : null,
+                nro_habitaciones: nro_habitaciones ? parseInt(nro_habitaciones) : null,
+                nro_banos: nro_banos ? parseInt(nro_banos) : null,
+                nro_parqueaderos: nro_parqueaderos ? parseInt(nro_parqueaderos) : null,
+                nro_pisos: nro_pisos ? parseInt(nro_pisos) : null,
                 anio_construccion: anio_construccion ? parseInt(anio_construccion) : null,
                 estado_publicacion: estado_publicacion || 'disponible',
                 agenteId,
@@ -112,7 +131,7 @@ export const crearPropiedad = async (req, res) => {
             propiedadId: propiedad.id,
         }));
 
-        await prisma.imagen.createMany({data: imagenes});
+        await prisma.imagen.createMany({ data: imagenes });
 
         res.status(201).json({
             mensaje: 'Propiedad registrada correctamente',
@@ -120,7 +139,7 @@ export const crearPropiedad = async (req, res) => {
         });
     } catch (error) {
         console.error(error);
-        res.status(500).json({mensaje: 'Error al registrar la propiedad'});
+        res.status(500).json({ mensaje: 'Error al registrar la propiedad' });
     }
 };
 
@@ -233,21 +252,43 @@ export const actualizarPropiedad = async (req, res) => {
     const archivos = req.files;
     const errores = [];
 
-    // Validación general
+    // Validación general (igual que crearPropiedad)
     if (!titulo?.trim()) errores.push('El título es obligatorio');
-    if (!tipo_propiedad) errores.push('Debe seleccionar un tipo de propiedad');
-    if (!estado_propiedad) errores.push('Debe seleccionar estado físico');
-    if (!transaccion) errores.push('Debe seleccionar tipo de transacción');
-    if (!precio || isNaN(precio)) errores.push('El precio debe ser un número válido');
+    if (!tipo_propiedad) errores.push('El tipo de propiedad es obligatorio');
+    if (!estado_propiedad) errores.push('El estado físico de la propiedad es obligatorio');
+    if (!transaccion) errores.push('El tipo de transacción es obligatorio');
+    if (isNaN(Number(precio)) || Number(precio) <= 0) errores.push('El precio debe ser un número positivo');
     if (!direccion?.trim()) errores.push('La dirección es obligatoria');
     if (!ciudad?.trim()) errores.push('La ciudad es obligatoria');
     if (!provincia) errores.push('La provincia es obligatoria');
-    if (!area_terreno || isNaN(area_terreno)) errores.push('Área del terreno inválida');
-    if (!area_construccion || isNaN(area_construccion)) errores.push('Área de construcción inválida');
-    if (!nro_habitaciones || isNaN(nro_habitaciones)) errores.push('Número de habitaciones inválido');
-    if (!nro_banos || isNaN(nro_banos)) errores.push('Número de baños inválido');
-    if (!nro_parqueaderos || isNaN(nro_parqueaderos)) errores.push('Número de parqueaderos inválido');
-    if (!nro_pisos || isNaN(nro_pisos)) errores.push('Número de pisos inválido');
+    if (isNaN(Number(area_terreno)) || Number(area_terreno) <= 0) {
+        errores.push('Área del terreno inválida');
+    }
+
+    // VALIDACIONES CONDICIONALES (solo si se envían)
+    if (descripcion !== undefined && descripcion.trim().length === 0) {
+        errores.push('Si proporciona una descripción, no puede estar vacía');
+    }
+    if (area_construccion !== undefined && area_construccion !== '') {
+        const val = Number(area_construccion);
+        if (isNaN(val) || val < 0) errores.push('Área de construcción inválida');
+    }
+    if (nro_habitaciones !== undefined && nro_habitaciones !== '') {
+        const val = Number(nro_habitaciones);
+        if (isNaN(val) || val < 0) errores.push('Número de habitaciones inválido');
+    }
+    if (nro_banos !== undefined && nro_banos !== '') {
+        const val = Number(nro_banos);
+        if (isNaN(val) || val < 0) errores.push('Número de baños inválido');
+    }
+    if (nro_parqueaderos !== undefined && nro_parqueaderos !== '') {
+        const val = Number(nro_parqueaderos);
+        if (isNaN(val) || val < 0) errores.push('Número de parqueaderos inválido');
+    }
+    if (nro_pisos !== undefined && nro_pisos !== '') {
+        const val = Number(nro_pisos);
+        if (isNaN(val) || val < 0) errores.push('Número de pisos inválido');
+    }
 
     // Agente responsable
     let agenteId;
@@ -286,7 +327,7 @@ export const actualizarPropiedad = async (req, res) => {
             where: { id: parseInt(id) },
             data: {
                 titulo,
-                descripcion,
+                descripcion: descripcion?.trim() || null,
                 tipo_propiedad,
                 estado_propiedad,
                 transaccion,
@@ -296,15 +337,15 @@ export const actualizarPropiedad = async (req, res) => {
                 ciudad,
                 provincia,
                 pais: 'Ecuador',
-                codigo_postal,
+                codigo_postal: codigo_postal || null,
                 latitud: latitud ? parseFloat(latitud) : null,
                 longitud: longitud ? parseFloat(longitud) : null,
                 area_terreno: parseFloat(area_terreno),
-                area_construccion: parseFloat(area_construccion),
-                nro_habitaciones: parseInt(nro_habitaciones),
-                nro_banos: parseInt(nro_banos),
-                nro_parqueaderos: parseInt(nro_parqueaderos),
-                nro_pisos: parseInt(nro_pisos),
+                area_construccion: area_construccion ? parseFloat(area_construccion) : null,
+                nro_habitaciones: nro_habitaciones ? parseInt(nro_habitaciones) : null,
+                nro_banos: nro_banos ? parseInt(nro_banos) : null,
+                nro_parqueaderos: nro_parqueaderos ? parseInt(nro_parqueaderos) : null,
+                nro_pisos: nro_pisos ? parseInt(nro_pisos) : null,
                 anio_construccion: anio_construccion ? parseInt(anio_construccion) : null,
                 estado_publicacion: estado_publicacion || 'disponible',
                 agenteId,

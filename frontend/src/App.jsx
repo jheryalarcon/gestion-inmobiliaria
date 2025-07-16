@@ -20,7 +20,7 @@ import { Toaster } from 'sonner';
 function App() {
     return (
         <>
-            <Toaster richColors position="top-center" />
+            <Toaster richColors position="top-right" />
             <Routes>
                 <Route path="/" element={<Login/>}/>
                 <Route path="/registro" element={<Registro/>}/>
