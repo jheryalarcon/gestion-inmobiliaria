@@ -22,6 +22,7 @@ model Usuario {
   rol         Rol // "cliente", "agente", "admin"
   activo      Boolean     @default(true) //permite desactivar cuentas sin borrarlas
   propiedades Propiedad[]
+  favoritos Favorito[]
   createdAt   DateTime    @default(now())
 }
 
@@ -66,6 +67,8 @@ model Propiedad {
   agenteId Int
   agente   Usuario @relation(fields: [agenteId], references: [id])
 
+  favoritos Favorito[]
+  
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -132,4 +135,17 @@ model Imagen {
   url         String
   propiedadId Int
   propiedad   Propiedad @relation(fields: [propiedadId], references: [id])
+}
+
+
+// MODELO de favoritos (relación muchos a muchos entre Usuario y Propiedad)
+model Favorito {
+  id          Int        @id @default(autoincrement())
+  usuario     Usuario    @relation(fields: [usuarioId], references: [id])
+  usuarioId   Int
+  propiedad   Propiedad  @relation(fields: [propiedadId], references: [id])
+  propiedadId Int
+  createdAt   DateTime   @default(now())
+
+  @@unique([usuarioId, propiedadId]) // No permite duplicados
 }

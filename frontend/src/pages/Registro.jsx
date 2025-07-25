@@ -3,6 +3,7 @@ import axios from 'axios';
 import { useNavigate, Link } from 'react-router-dom';
 import { EnvelopeIcon, LockClosedIcon, UserIcon } from  '@heroicons/react/24/solid';
 import { jwtDecode } from 'jwt-decode';
+import { toast } from 'sonner';
 
 export default function Registro() {
     const [name, setName] = useState('');
@@ -57,7 +58,10 @@ export default function Registro() {
 
             if (token) {
                 localStorage.setItem('token', token); // Guarda el token
-                navigate('/cliente'); // Redirige al panel cliente
+                toast.success('¡Cuenta creada exitosamente! Serás redirigido a tu panel en unos segundos...', { duration: 2000 });
+                setTimeout(() => {
+                    navigate('/cliente'); // Redirige al panel cliente
+                }, 2000);
             } else {
                 setMensaje('Registro exitoso, pero no se pudo iniciar sesión automáticamente');
             }
