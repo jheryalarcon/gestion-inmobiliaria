@@ -180,8 +180,17 @@ export default function RegistrarPropiedad() {
         const files = Array.from(e.target.files);
         const maxSizeMB = 5;
         const maxSizeBytes = maxSizeMB * 1024 * 1024;
+        const maxImagenes = 5;
 
         const erroresImagenes = [];
+
+        // Validar número máximo de imágenes
+        if (imagenes.length + files.length > maxImagenes) {
+            toast.error(`❌ Solo puedes subir un máximo de ${maxImagenes} imágenes. Ya tienes ${imagenes.length} y estás intentando agregar ${files.length} más.`, {
+                duration: 4000,
+            });
+            return;
+        }
 
         const archivosValidos = files.filter((file) => {
             if (file.size > maxSizeBytes) {
@@ -197,14 +206,42 @@ export default function RegistrarPropiedad() {
             });
         }
 
-        setImagenes(archivosValidos);
-        setVistaPrevia(archivosValidos.map(file => URL.createObjectURL(file)));
+        // Agregar nuevas imágenes a las existentes
+        const nuevasImagenes = [...imagenes, ...archivosValidos];
+        setImagenes(nuevasImagenes);
+        
+        // Crear URLs para vista previa de las nuevas imágenes
+        const nuevasVistasPrevias = archivosValidos.map(file => URL.createObjectURL(file));
+        setVistaPrevia([...vistaPrevia, ...nuevasVistasPrevias]);
 
         // Limpiar errores si el usuario ya subió válidas
         setErrores((prev) => {
             const nuevos = { ...prev };
-            if (archivosValidos.length > 0) delete nuevos.imagenes;
+            if (nuevasImagenes.length > 0) delete nuevos.imagenes;
             else nuevos.imagenes = 'Debe subir al menos una imagen válida';
+            return nuevos;
+        });
+    };
+
+    const eliminarImagen = (index) => {
+        const nuevasImagenes = [...imagenes];
+        const imagenEliminada = nuevasImagenes.splice(index, 1)[0];
+        setImagenes(nuevasImagenes);
+
+        // Liberar la URL del objeto para evitar memory leaks
+        const nuevasVistasPrevias = [...vistaPrevia];
+        URL.revokeObjectURL(nuevasVistasPrevias[index]);
+        nuevasVistasPrevias.splice(index, 1);
+        setVistaPrevia(nuevasVistasPrevias);
+
+        // Actualizar errores si no quedan imágenes
+        setErrores((prev) => {
+            const nuevos = { ...prev };
+            if (nuevasImagenes.length === 0) {
+                nuevos.imagenes = 'Debe subir al menos una imagen válida';
+            } else {
+                delete nuevos.imagenes;
+            }
             return nuevos;
         });
     };
@@ -584,11 +621,15 @@ export default function RegistrarPropiedad() {
                 )}
                 {/* IMÁGENES */}
                 <section className="bg-gray-50 rounded-xl p-6 shadow-sm border border-gray-200">
-                    <h3 className="text-xl font-bold text-blue-800 mb-4">Imágenes</h3>
+                    <h3 className="text-xl font-bold text-blue-800 mb-4">Imágenes <span className="text-red-500">*</span></h3>
                     <div>
                         <label
                             htmlFor="imagenes"
-                            className="block w-full cursor-pointer bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold px-4 py-2 rounded-lg border-2 border-indigo-200 shadow-sm transition text-center"
+                            className={`block w-full cursor-pointer font-semibold px-4 py-2 rounded-lg border-2 shadow-sm transition text-center ${
+                                errores.imagenes 
+                                    ? 'bg-red-50 hover:bg-red-100 text-red-700 border-red-300' 
+                                    : 'bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border-indigo-200'
+                            }`}
                         >
                             Seleccione imágenes de la propiedad
                         </label>
@@ -601,14 +642,35 @@ export default function RegistrarPropiedad() {
                             className="hidden"
                             onChange={handleImagenes}
                         />
-                        {imagenes && imagenes.length > 0 && (
-                            <p className="mt-2 text-sm text-gray-600">
-                                {imagenes.length} imagen{imagenes.length > 1 ? 'es' : ''} seleccionada{imagenes.length > 1 ? 's' : ''}
-                            </p>
-                        )}
+                                                 {errores.imagenes && <p className="text-red-600 text-sm mt-1 font-medium">{errores.imagenes}</p>}
+                         <div className="mt-2 flex justify-between items-center">
+                             <p className="text-sm text-gray-600">
+                                 {imagenes.length} de 5 imágenes seleccionadas
+                             </p>
+                             <div className="w-24 bg-gray-200 rounded-full h-2">
+                                 <div 
+                                     className="bg-blue-600 h-2 rounded-full transition-all duration-300" 
+                                     style={{ width: `${(imagenes.length / 5) * 100}%` }}
+                                 ></div>
+                             </div>
+                         </div>
                         <div className="flex gap-2 mt-2 flex-wrap">
                             {vistaPrevia.map((src, idx) => (
-                                <img key={idx} src={src} alt={`preview-${idx}`} className="h-24 w-24 object-cover rounded shadow border" />
+                                <div key={idx} className="relative group">
+                                    <img 
+                                        src={src} 
+                                        alt={`preview-${idx}`} 
+                                        className="h-24 w-24 object-cover rounded shadow border" 
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => eliminarImagen(idx)}
+                                        className="absolute -top-2 -right-2 bg-red-600 hover:bg-red-700 text-white text-sm w-6 h-6 rounded-full flex items-center justify-center opacity-90 hover:opacity-100 transition-all duration-200 shadow-lg"
+                                        title="Eliminar imagen"
+                                    >
+                                        ×
+                                    </button>
+                                </div>
                             ))}
                         </div>
                     </div>
