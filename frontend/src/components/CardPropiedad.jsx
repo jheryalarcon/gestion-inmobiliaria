@@ -1,16 +1,15 @@
 import { Link } from 'react-router-dom';
-import { jwtDecode } from 'jwt-decode';
 import { useState } from 'react';
 import ModalActualizarEstado from './ModalActualizarEstado';
 import ModalConfirmarEliminar from './ModalConfirmarEliminar';
+import { obtenerUsuario } from '../utils/tokenUtils';
 
 export default function CardPropiedad({ propiedad, onActualizarPropiedad }) {
     const img = propiedad.imagenes?.[0]?.url
         ? `http://localhost:3000${propiedad.imagenes[0].url}`
         : 'https://via.placeholder.com/300x200?text=Sin+Imagen';
 
-    const token = localStorage.getItem('token');
-    const usuario = token ? jwtDecode(token) : null;
+    const usuario = obtenerUsuario();
     const puedeEditar = usuario?.rol === 'admin' || usuario?.id === propiedad.agenteId;
 
     const [mostrarModal, setMostrarModal] = useState(false);
@@ -110,6 +109,7 @@ export default function CardPropiedad({ propiedad, onActualizarPropiedad }) {
                     estadoActual={propiedad.estado_publicacion}
                     onClose={() => setMostrarModal(false)}
                     onSuccess={(nuevoEstado) => {
+                        console.log('Estado actualizado exitosamente:', nuevoEstado);
                         onActualizarPropiedad({ ...propiedad, estado_publicacion: nuevoEstado });
                         setMostrarModal(false);
                     }}

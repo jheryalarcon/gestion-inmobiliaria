@@ -384,11 +384,33 @@ export const actualizarEstadoPropiedad = async (req, res) => {
     const { nuevoEstado } = req.body;
     const estadosPermitidos = ['disponible', 'vendida', 'arrendada', 'reservada', 'inactiva'];
 
+    console.log('Actualizando estado de propiedad:', { id, nuevoEstado, usuario: req.usuario });
+
+    // Validar que el ID sea un número válido
+    if (!id || isNaN(parseInt(id))) {
+        return res.status(400).json({ mensaje: 'ID de propiedad inválido' });
+    }
+
+    // Validar que se proporcione un nuevo estado
+    if (!nuevoEstado) {
+        return res.status(400).json({ mensaje: 'Nuevo estado es requerido' });
+    }
+
     if (!estadosPermitidos.includes(nuevoEstado)) {
+        console.log('Estado no válido:', nuevoEstado);
         return res.status(400).json({ mensaje: 'Estado no válido' });
     }
 
     try {
+        // Verificar que la propiedad existe
+        const propiedadExistente = await prisma.propiedad.findUnique({
+            where: { id: parseInt(id) }
+        });
+
+        if (!propiedadExistente) {
+            return res.status(404).json({ mensaje: 'Propiedad no encontrada' });
+        }
+
         const propiedad = await prisma.propiedad.update({
             where: { id: parseInt(id) },
             data: {
@@ -396,9 +418,10 @@ export const actualizarEstadoPropiedad = async (req, res) => {
             }
         });
 
+        console.log('Estado actualizado correctamente:', propiedad.id);
         return res.json({ mensaje: 'Estado actualizado', propiedad });
     } catch (error) {
-        console.error(error);
+        console.error('Error al actualizar estado:', error);
         return res.status(500).json({ mensaje: 'Error al actualizar el estado' });
     }
 };
@@ -416,5 +439,149 @@ export const eliminarPropiedad = async (req, res) => {
     } catch (error) {
         console.error(error);
         return res.status(500).json({ mensaje: 'Error al eliminar la propiedad' });
+    }
+};
+
+export const obtenerPropiedadesPublicas = async (req, res) => {
+    try {
+        const {
+            tipo_propiedad,
+            ciudad,
+            minPrecio,
+            maxPrecio,
+            nro_habitaciones,
+            nro_banos,
+            area_construccion_min,
+            area_construccion_max,
+            transaccion,
+            sortBy = 'createdAt', // Default sort by creation date
+            sortOrder = 'desc',   // Default sort order descending
+            limit, // Nuevo parámetro para limitar resultados
+        } = req.query;
+
+        const where = {
+            estado_publicacion: 'disponible',
+        };
+
+        if (tipo_propiedad) {
+            where.tipo_propiedad = tipo_propiedad;
+        }
+        if (ciudad) {
+            where.ciudad = {
+                contains: ciudad,
+                mode: 'insensitive',
+            };
+        }
+        if (minPrecio) {
+            where.precio = { ...where.precio,
+                gte: parseFloat(minPrecio)
+            };
+        }
+        if (maxPrecio) {
+            where.precio = { ...where.precio,
+                lte: parseFloat(maxPrecio)
+            };
+        }
+        if (nro_habitaciones) {
+            where.nro_habitaciones = {
+                gte: parseInt(nro_habitaciones)
+            };
+        }
+        if (nro_banos) {
+            where.nro_banos = {
+                gte: parseInt(nro_banos)
+            };
+        }
+        if (area_construccion_min) {
+            where.area_construccion = { ...where.area_construccion,
+                gte: parseFloat(area_construccion_min)
+            };
+        }
+        if (area_construccion_max) {
+            where.area_construccion = { ...where.area_construccion,
+                lte: parseFloat(area_construccion_max)
+            };
+        }
+        if (transaccion) {
+            where.transaccion = transaccion;
+        }
+
+        const orderBy = {};
+        if (sortBy === 'precio') {
+            orderBy.precio = sortOrder;
+        } else {
+            orderBy.createdAt = sortOrder;
+        }
+
+        const propiedades = await prisma.propiedad.findMany({
+            where,
+            include: {
+                imagenes: true,
+                agente: {
+                    select: {
+                        id: true,
+                        name: true,
+                    },
+                },
+            },
+            orderBy,
+            ...(limit && { take: parseInt(limit) }), // Aplicar límite si se proporciona
+        });
+
+        return res.json(propiedades);
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ mensaje: 'Error al obtener propiedades públicas' });
+    }
+}
+
+export const obtenerPropiedadPublicaPorId = async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        const propiedad = await prisma.propiedad.findFirst({
+            where: { 
+                id: parseInt(id),
+                estado_publicacion: 'disponible'
+            },
+            include: {
+                imagenes: true,
+                agente: {
+                    select: { 
+                        id: true, 
+                        name: true, 
+                        email: true 
+                    }
+                }
+            },
+        });
+
+        if (!propiedad) {
+            return res.status(404).json({ mensaje: 'Propiedad no encontrada o no disponible' });
+        }
+
+        res.json(propiedad);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ mensaje: 'Error al obtener la propiedad' });
+    }
+};
+
+// Función añadida: devuelve las últimas N propiedades públicas (por defecto 6)
+export const obtenerUltimasPropiedades = async (req, res) => {
+    try {
+        const limit = req.query.limit ? parseInt(req.query.limit) : 6;
+
+        const propiedades = await prisma.propiedad.findMany({
+            where: { estado_publicacion: 'disponible' },
+            include: { imagenes: true },
+            orderBy: { createdAt: 'desc' },
+            take: limit,
+        });
+
+        return res.json(propiedades);
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ mensaje: 'Error al obtener las últimas propiedades' });
     }
 };

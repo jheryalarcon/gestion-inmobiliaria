@@ -1,0 +1,276 @@
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import { toast } from 'sonner';
+import NavbarPublica from '../components/NavbarPublica';
+import CardPropiedadPublica from '../components/CardPropiedadPublica';
+import Footer from '../components/Footer';
+
+export default function MisFavoritos() {
+    const navigate = useNavigate();
+    const [favoritos, setFavoritos] = useState([]);
+    const [propiedades, setPropiedades] = useState([]);
+    const [cargando, setCargando] = useState(true); // Iniciar en true para evitar parpadeo
+    const [error, setError] = useState('');
+    const [ordenarPor, setOrdenarPor] = useState('fecha');
+    const [orden, setOrden] = useState('desc');
+
+    // Verificar autenticación
+    const token = localStorage.getItem('token');
+    const usuario = token ? JSON.parse(localStorage.getItem('usuario')) : null;
+
+    // Verificar autenticación antes de renderizar
+    if (!token || !usuario || usuario.rol !== 'cliente') {
+        return (
+            <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 flex items-center justify-center">
+                <div className="text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-200 border-t-blue-600 mx-auto mb-4"></div>
+                    <p className="text-gray-600">Verificando autenticación...</p>
+                </div>
+            </div>
+        );
+    }
+
+    useEffect(() => {
+        // Cargar favoritos solo una vez al montar el componente
+        cargarFavoritos();
+    }, []); // Solo ejecutar una vez al montar
+
+    const cargarFavoritos = async () => {
+        try {
+            setError('');
+            
+            const response = await axios.get('http://localhost:3000/api/favoritos', {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            
+            // Extraer las propiedades de los favoritos y verificar que existan
+            const propiedadesFavoritas = response.data
+                .filter(fav => fav.propiedad)
+                .map(fav => fav.propiedad);
+            
+            setFavoritos(response.data);
+            setPropiedades(propiedadesFavoritas);
+        } catch (error) {
+            setError('Error al cargar tus favoritos. Por favor, intenta de nuevo.');
+        } finally {
+            setCargando(false);
+        }
+    };
+
+    const handleFavoritoToggle = (propiedadId, isFavorito) => {
+        if (!isFavorito) {
+            setFavoritos(prev => prev.filter(fav => fav.propiedadId !== propiedadId));
+            setPropiedades(prev => prev.filter(prop => prop.id !== propiedadId));
+        }
+    };
+
+    const ordenarPropiedades = (propiedades) => {
+        return [...propiedades].sort((a, b) => {
+            let valorA, valorB;
+
+            switch (ordenarPor) {
+                case 'precio':
+                    valorA = Number(a.precio);
+                    valorB = Number(b.precio);
+                    break;
+                case 'titulo':
+                    valorA = a.titulo.toLowerCase();
+                    valorB = b.titulo.toLowerCase();
+                    break;
+                case 'fecha':
+                default:
+                    valorA = new Date(a.createdAt);
+                    valorB = new Date(b.createdAt);
+                    break;
+            }
+
+            if (orden === 'asc') {
+                return valorA > valorB ? 1 : -1;
+            } else {
+                return valorA < valorB ? 1 : -1;
+            }
+        });
+    };
+
+    const propiedadesOrdenadas = ordenarPropiedades(propiedades);
+
+    return (
+        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
+            <NavbarPublica />
+            
+            {/* Header Section con diseño mejorado */}
+            <section className="relative bg-gradient-to-r from-blue-600 via-blue-700 to-blue-800 text-white py-20 overflow-hidden">
+                {/* Elementos decorativos */}
+                <div className="absolute inset-0 bg-black opacity-10"></div>
+                <div className="absolute top-0 left-0 w-full h-full">
+                    <div className="absolute top-10 left-10 w-20 h-20 bg-white opacity-10 rounded-full"></div>
+                    <div className="absolute top-20 right-20 w-16 h-16 bg-white opacity-10 rounded-full"></div>
+                    <div className="absolute bottom-10 left-1/4 w-12 h-12 bg-white opacity-10 rounded-full"></div>
+                </div>
+                
+                <div className="relative max-w-7xl mx-auto px-4 text-center">
+                    <div className="mb-6">
+                        <svg className="mx-auto h-16 w-16 text-blue-200" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                        </svg>
+                    </div>
+                    <h1 className="text-5xl md:text-6xl font-bold mb-6">
+                        Mis Favoritos
+                    </h1>
+                    <p className="text-xl md:text-2xl text-blue-100 mb-4">
+                        Tus propiedades guardadas para consultar fácilmente
+                    </p>
+                    <div className="flex justify-center items-center space-x-4 text-blue-200">
+                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        </svg>
+                        <span>Acceso rápido a tus propiedades preferidas</span>
+                    </div>
+                </div>
+            </section>
+
+            {/* Favoritos Section */}
+            <section className="py-16">
+                <div className="max-w-7xl mx-auto px-4">
+                    {cargando ? (
+                        <div className="flex flex-col justify-center items-center py-20">
+                            <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-200 border-t-blue-600 mb-4"></div>
+                            <p className="text-gray-600 text-lg">Cargando tus favoritos...</p>
+                        </div>
+                    ) : error ? (
+                        <div className="text-center py-20">
+                            <div className="mb-6">
+                                <svg className="mx-auto h-16 w-16 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                                </svg>
+                            </div>
+                            <p className="text-red-600 text-lg mb-4">{error}</p>
+                            <button 
+                                onClick={cargarFavoritos}
+                                className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition shadow-lg"
+                            >
+                                Intentar de nuevo
+                            </button>
+                        </div>
+                    ) : propiedades.length === 0 ? (
+                        <div className="text-center py-20">
+                            <div className="mb-8">
+                                <div className="relative mx-auto w-32 h-32 bg-gradient-to-br from-blue-100 to-blue-200 rounded-full flex items-center justify-center">
+                                    <svg className="h-16 w-16 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                                    </svg>
+                                </div>
+                            </div>
+                            <h3 className="text-2xl font-bold text-gray-900 mb-4">
+                                No tienes favoritos aún
+                            </h3>
+                            <p className="text-gray-600 mb-8 text-lg max-w-md mx-auto">
+                                Guarda propiedades que te interesen haciendo clic en el corazón. 
+                                Podrás consultarlas fácilmente desde aquí.
+                            </p>
+                            <button 
+                                onClick={() => navigate('/propiedades')}
+                                className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-8 py-4 rounded-lg hover:from-blue-700 hover:to-blue-800 transition shadow-lg font-semibold text-lg"
+                            >
+                                Explorar propiedades
+                            </button>
+                        </div>
+                    ) : (
+                        <>
+                            {/* Header con estadísticas y ordenamiento */}
+                            <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
+                                <div className="flex flex-col md:flex-row md:items-center md:justify-between">
+                                    <div className="mb-4 md:mb-0">
+                                        <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                                            Tus Propiedades Favoritas
+                                        </h2>
+                                        <div className="flex items-center space-x-4 text-gray-600">
+                                            <div className="flex items-center space-x-2">
+                                                <svg className="w-5 h-5 text-red-500" fill="currentColor" viewBox="0 0 24 24">
+                                                    <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                                                </svg>
+                                                <span className="font-semibold">{propiedades.length} propiedad{propiedades.length !== 1 ? 'es' : ''}</span>
+                                            </div>
+                                            <div className="flex items-center space-x-2">
+                                                <svg className="w-5 h-5 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+                                                </svg>
+                                                <span>Guardadas recientemente</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    {/* Controles de ordenamiento */}
+                                    <div className="flex items-center space-x-4">
+                                        <div className="flex items-center space-x-2">
+                                            <label className="text-sm font-medium text-gray-700">Ordenar por:</label>
+                                            <select 
+                                                value={ordenarPor}
+                                                onChange={(e) => setOrdenarPor(e.target.value)}
+                                                className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            >
+                                                <option value="fecha">Fecha</option>
+                                                <option value="precio">Precio</option>
+                                                <option value="titulo">Título</option>
+                                            </select>
+                                        </div>
+                                        <button
+                                            onClick={() => setOrden(orden === 'asc' ? 'desc' : 'asc')}
+                                            className="p-2 rounded-lg border border-gray-300 hover:bg-gray-50 transition"
+                                            title={orden === 'asc' ? 'Orden descendente' : 'Orden ascendente'}
+                                        >
+                                            <svg className={`w-5 h-5 text-gray-600 transition-transform ${orden === 'desc' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Grid de propiedades favoritas */}
+                            <div className="grid gap-8 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+                                {propiedadesOrdenadas.map((propiedad) => (
+                                    <CardPropiedadPublica 
+                                        key={propiedad.id} 
+                                        propiedad={propiedad}
+                                        favoritos={favoritos}
+                                        onFavoritoToggle={handleFavoritoToggle}
+                                    />
+                                ))}
+                            </div>
+
+                            {/* Footer con acciones */}
+                            <div className="text-center mt-16">
+                                <div className="bg-white rounded-xl shadow-lg p-8">
+                                    <h3 className="text-xl font-semibold text-gray-900 mb-4">
+                                        ¿Buscas más propiedades?
+                                    </h3>
+                                    <p className="text-gray-600 mb-6">
+                                        Explora nuestro catálogo completo y encuentra tu hogar ideal
+                                    </p>
+                                    <div className="flex flex-col sm:flex-row justify-center space-y-3 sm:space-y-0 sm:space-x-4">
+                                        <button 
+                                            onClick={() => navigate('/propiedades')}
+                                            className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-8 py-3 rounded-lg hover:from-blue-700 hover:to-blue-800 transition shadow-lg font-semibold"
+                                        >
+                                            Explorar más propiedades
+                                        </button>
+                                        <button 
+                                            onClick={() => navigate('/')}
+                                            className="bg-gray-100 text-gray-700 px-8 py-3 rounded-lg hover:bg-gray-200 transition font-semibold"
+                                        >
+                                            Volver al inicio
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </>
+                    )}
+                </div>
+            </section>
+
+            <Footer />
+        </div>
+    );
+}

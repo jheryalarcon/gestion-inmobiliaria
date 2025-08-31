@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import axios from 'axios';
+import { verificarToken } from '../utils/tokenUtils';
 
 export default function ModalActualizarEstado({
                                                   propiedadId,
@@ -10,11 +11,20 @@ export default function ModalActualizarEstado({
     const [nuevoEstado, setNuevoEstado] = useState(estadoActual);
     const [mensaje, setMensaje] = useState('');
     const [cargando, setCargando] = useState(false);
+    const tokenInfo = verificarToken();
+    
+    if (!tokenInfo.valido) {
+        setMensaje(`Error de autenticación: ${tokenInfo.mensaje}`);
+        return;
+    }
+    
     const token = localStorage.getItem('token');
 
-    const estadosPermitidos = ['disponible', 'vendida', 'arrendada', 'reservada'];
+    const estadosPermitidos = ['disponible', 'vendida', 'arrendada', 'reservada', 'inactiva'];
 
     const handleActualizar = async () => {
+        console.log('Intentando actualizar estado:', { propiedadId, nuevoEstado, token: token ? 'Presente' : 'Ausente' });
+        
         if (!estadosPermitidos.includes(nuevoEstado)) {
             setMensaje('Estado no válido.');
             return;
@@ -22,20 +32,29 @@ export default function ModalActualizarEstado({
 
         setCargando(true);
         try {
-            await axios.patch(
+            console.log('Enviando petición a:', `http://localhost:3000/api/propiedades/${propiedadId}/estado`);
+            console.log('Datos enviados:', { nuevoEstado });
+            console.log('Headers:', { Authorization: `Bearer ${token}` });
+            
+            const response = await axios.patch(
                 `http://localhost:3000/api/propiedades/${propiedadId}/estado`,
                 { nuevoEstado },
                 {
                     headers: {
-                        Authorization: `Bearer ${token}`
+                        Authorization: `Bearer ${token}`,
+                        'Content-Type': 'application/json'
                     }
                 }
             );
+            console.log('Respuesta del servidor:', response.data);
             setMensaje('Estado actualizado correctamente');
             onSuccess(nuevoEstado);
             setTimeout(onClose, 1000); // autocierra el modal después de 1 segundo
         } catch (error) {
-            console.error(error);
+            console.error('Error completo:', error);
+            console.error('Status del error:', error.response?.status);
+            console.error('Respuesta del error:', error.response?.data);
+            console.error('Headers del error:', error.response?.headers);
             setMensaje(error.response?.data?.mensaje || 'Error al actualizar estado');
         } finally {
             setCargando(false);

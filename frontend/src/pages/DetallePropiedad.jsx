@@ -3,27 +3,96 @@ import 'react-photo-view/dist/react-photo-view.css';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import axios from 'axios';
-import Navbar from '../components/Navbar';
+import NavbarPublica from '../components/NavbarPublica';
+import { toast } from 'sonner';
+
 export default function DetallePropiedad() {
     const { id } = useParams();
     const navigate = useNavigate();
     const [propiedad, setPropiedad] = useState(null);
     const [error, setError] = useState('');
     const [imagenSeleccionada, setImagenSeleccionada] = useState(0);
+    const [formData, setFormData] = useState({
+        nombre: '',
+        email: '',
+        mensaje: '',
+    });
+    const [formErrors, setFormErrors] = useState({});
+    const [formSubmitted, setFormSubmitted] = useState(false);
 
     useEffect(() => {
-        const token = localStorage.getItem('token');
-        axios.get(`http://localhost:3000/api/propiedades/${id}`, {
-            headers: { Authorization: `Bearer ${token}` },
-        })
+        // Usar endpoint público sin autenticación
+        axios.get(`http://localhost:3000/api/propiedades/publica/${id}`)
             .then(res => setPropiedad(res.data))
             .catch(err => {
                 setError(err.response?.data?.mensaje || 'Error al cargar la propiedad');
             });
     }, [id]);
 
-    if (error) return <p className="text-center text-red-600 mt-6 text-lg">{error}</p>;
-    if (!propiedad) return <p className="text-center mt-6 text-lg">Cargando propiedad...</p>;
+    const handleFormChange = (e) => {
+        setFormData({
+            ...formData,
+            [e.target.name]: e.target.value,
+        });
+    };
+
+    const validateForm = () => {
+        const errors = {};
+        if (!formData.nombre.trim()) errors.nombre = 'El nombre es obligatorio';
+        if (!formData.email.trim()) {
+            errors.email = 'El email es obligatorio';
+        } else if (!/^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$/.test(formData.email)) {
+            errors.email = 'Formato de email inválido';
+        }
+        if (!formData.mensaje.trim()) errors.mensaje = 'El mensaje es obligatorio';
+        return errors;
+    };
+
+    const handleFormSubmit = async (e) => {
+        e.preventDefault();
+        const errors = validateForm();
+        if (Object.keys(errors).length > 0) {
+            setFormErrors(errors);
+            toast.error('Por favor, corrige los errores en el formulario.');
+            return;
+        }
+
+        setFormErrors({});
+        // Simular envío de formulario
+        console.log('Datos del formulario de contacto:', formData);
+        toast.success('¡Mensaje enviado con éxito! El agente se pondrá en contacto contigo pronto.');
+        setFormSubmitted(true);
+        setFormData({
+            nombre: '',
+            email: '',
+            mensaje: '',
+        });
+    };
+
+    if (error) return (
+        <>
+            <NavbarPublica />
+            <div className="text-center py-20">
+                <p className="text-red-600 text-lg">{error}</p>
+                <button 
+                    onClick={() => navigate('/')}
+                    className="mt-4 bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition"
+                >
+                    Volver al inicio
+                </button>
+            </div>
+        </>
+    );
+    
+    if (!propiedad) return (
+        <>
+            <NavbarPublica />
+            <div className="text-center py-20">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+                <p className="mt-4 text-lg">Cargando propiedad...</p>
+            </div>
+        </>
+    );
 
     const badgeColor = {
         disponible: 'bg-green-500/90 text-white',
@@ -53,10 +122,10 @@ export default function DetallePropiedad() {
     };
 
     return (
-        <>
-        <Navbar/>
-        <div className="flex flex-col min-h-screen bg-gradient-to-br from-blue-100 via-white to-indigo-100 py-8">
-          <div className="flex justify-center items-start w-full">
+        <div className="min-h-screen bg-gradient-to-br from-blue-100 via-white to-indigo-100">
+            <NavbarPublica />
+            <div className="py-8">
+                <div className="flex justify-center items-start w-full">
             {/* Botón volver fuera del card, alineado con el card */}
             <button
               onClick={() => navigate(-1)}
@@ -179,11 +248,67 @@ export default function DetallePropiedad() {
                 </div>
                 </section>
               )}
+
+              {/* Formulario de Contacto */}
+              <section className="mt-6 bg-white p-6 rounded-lg shadow-md border border-gray-100">
+                  <h2 className="text-2xl font-bold text-gray-800 mb-4">Contactar al Agente</h2>
+                  {formSubmitted ? (
+                      <p className="text-green-600 font-semibold">¡Gracias por tu mensaje! El agente se pondrá en contacto contigo pronto.</p>
+                  ) : (
+                      <form onSubmit={handleFormSubmit} className="space-y-4">
+                          <div>
+                              <label htmlFor="nombre" className="block text-gray-700 text-sm font-bold mb-2">Tu Nombre</label>
+                              <input
+                                  type="text"
+                                  id="nombre"
+                                  name="nombre"
+                                  value={formData.nombre}
+                                  onChange={handleFormChange}
+                                  className={`shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline ${formErrors.nombre ? 'border-red-500' : ''}`}
+                                  placeholder="Tu nombre completo"
+                              />
+                              {formErrors.nombre && <p className="text-red-500 text-xs italic mt-1">{formErrors.nombre}</p>}
+                          </div>
+                          <div>
+                              <label htmlFor="email" className="block text-gray-700 text-sm font-bold mb-2">Tu Email</label>
+                              <input
+                                  type="email"
+                                  id="email"
+                                  name="email"
+                                  value={formData.email}
+                                  onChange={handleFormChange}
+                                  className={`shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline ${formErrors.email ? 'border-red-500' : ''}`}
+                                  placeholder="tu@ejemplo.com"
+                              />
+                              {formErrors.email && <p className="text-red-500 text-xs italic mt-1">{formErrors.email}</p>}
+                          </div>
+                          <div>
+                              <label htmlFor="mensaje" className="block text-gray-700 text-sm font-bold mb-2">Mensaje</label>
+                              <textarea
+                                  id="mensaje"
+                                  name="mensaje"
+                                  value={formData.mensaje}
+                                  onChange={handleFormChange}
+                                  rows="5"
+                                  className={`shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline ${formErrors.mensaje ? 'border-red-500' : ''}`}
+                                  placeholder="Me gustaría obtener más información sobre esta propiedad..."
+                              ></textarea>
+                              {formErrors.mensaje && <p className="text-red-500 text-xs italic mt-1">{formErrors.mensaje}</p>}
+                          </div>
+                          <button
+                              type="submit"
+                              className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline w-full"
+                          >
+                              Enviar Mensaje
+                          </button>
+                      </form>
+                  )}
+              </section>
+
+                </div>
+            </div>
                 </div>
             </div>
         </div>
-      </div>
-      </>
     );
 }
-

@@ -61,8 +61,12 @@ export default function Login() {
             localStorage.setItem('token', token);
             localStorage.setItem('usuario', JSON.stringify(usuario));
 
+            // Disparar evento para actualizar navbar
+            window.dispatchEvent(new Event('authChange'));
+
             if (usuario.rol === 'admin') navigate('/admin');
             else if (usuario.rol === 'agente') navigate('/agente');
+            else if (usuario.rol === 'cliente') navigate('/propiedades');
             else navigate('/cliente');
         } catch (error) {
             setMensaje(error.response?.data?.mensaje || 'Error al iniciar sesión');

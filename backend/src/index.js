@@ -8,8 +8,16 @@ import usuariosRoutes from './routes/usuarios.routes.js';
 import favoriteRoutes from './routes/favorite.routes.js';
 
 const app = express();
-app.use(cors());
-app.use(morgan('dev'))
+
+// Configuración de CORS más específica
+app.use(cors({
+    origin: ['http://localhost:5173', 'http://localhost:3000', 'http://127.0.0.1:5173'],
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+}));
+
+// app.use(morgan('dev')) // Comentado para limpiar la consola
 app.use(express.json());
 app.use('/uploads', express.static('uploads'));
 
@@ -22,24 +30,4 @@ app.use('/api/favoritos', favoriteRoutes);
 app.listen(3000, () => {
     console.log('Servidor corriendo en http://localhost:3000');
 });
-
-/*import prisma from './prisma/client.js';
-import bcrypt from 'bcrypt';
-
-const crearUsuario = async () => {
-    const hash = await bcrypt.hash('123456', 10);
-
-    await prisma.usuario.create({
-        data: {
-            name: 'Jhery',
-            email: 'jhery@email.com',
-            password: hash,
-            rol: 'admin'
-        }
-    });
-
-    console.log('Usuario creado');
-};
-
-crearUsuario();*/
 

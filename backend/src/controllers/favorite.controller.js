@@ -49,9 +49,21 @@ async function getFavorites(req, res) {
     const usuarioId = req.usuario.id;
     const favoritos = await prisma.favorito.findMany({
       where: { usuarioId },
-      include: { propiedad: true }
+      include: { 
+        propiedad: {
+          include: {
+            imagenes: true,
+            agente: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          }
+        } 
+      }
     });
-    res.status(200).json(favoritos.map(f => f.propiedad));
+    res.status(200).json(favoritos);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

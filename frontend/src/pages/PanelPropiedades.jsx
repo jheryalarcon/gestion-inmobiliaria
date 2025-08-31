@@ -48,9 +48,12 @@ export default function PanelPropiedades() {
     const propiedadesFiltradas = propiedades.filter(filtrar);
 
     const actualizarPropiedadLocal = (propiedadActualizada) => {
-        setPropiedades(prev =>
-            prev.map(p => p.id === propiedadActualizada.id ? propiedadActualizada : p)
-        );
+        console.log('Actualizando propiedad local:', propiedadActualizada);
+        setPropiedades(prev => {
+            const nuevasPropiedades = prev.map(p => p.id === propiedadActualizada.id ? propiedadActualizada : p);
+            console.log('Propiedades actualizadas:', nuevasPropiedades.length);
+            return nuevasPropiedades;
+        });
     };
 
 
