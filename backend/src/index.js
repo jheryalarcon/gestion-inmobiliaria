@@ -6,6 +6,7 @@ import authRoutes from './routes/auth.routes.js';
 import propiedadRoutes from './routes/propiedad.routes.js';
 import usuariosRoutes from './routes/usuarios.routes.js';
 import favoriteRoutes from './routes/favorite.routes.js';
+import clienteRoutes from './routes/cliente.routes.js';
 
 const app = express();
 
@@ -26,6 +27,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/propiedades', propiedadRoutes);
 app.use('/api/usuarios', usuariosRoutes);
 app.use('/api/favoritos', favoriteRoutes);
+app.use('/api/clientes', clienteRoutes);
 
 app.listen(3000, () => {
     console.log('Servidor corriendo en http://localhost:3000');

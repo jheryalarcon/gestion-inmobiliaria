@@ -160,20 +160,39 @@ function PanelAgente() {
                         </div>
                     </Link>
 
-                    <div className="bg-white rounded-lg shadow p-6 border-l-4 border-orange-500">
+                    <Link 
+                        to="/agente/registrar-cliente"
+                        className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow border-l-4 border-orange-500"
+                    >
                         <div className="flex items-center">
                             <div className="p-2 bg-orange-100 rounded-lg">
                                 <svg className="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                                </svg>
+                            </div>
+                            <div className="ml-4">
+                                <h3 className="text-lg font-semibold text-gray-900">Registrar Cliente</h3>
+                                <p className="text-gray-600">Agregar nuevo cliente</p>
+                            </div>
+                        </div>
+                    </Link>
+
+                    <Link 
+                        to="/agente/panel-clientes"
+                        className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow border-l-4 border-purple-500"
+                    >
+                        <div className="flex items-center">
+                            <div className="p-2 bg-purple-100 rounded-lg">
+                                <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                                 </svg>
                             </div>
                             <div className="ml-4">
-                                <h3 className="text-lg font-semibold text-gray-900">Gestionar Clientes</h3>
-                                <p className="text-gray-600">Ver clientes interesados</p>
-                                <p className="text-sm text-gray-500 mt-1">Próximamente</p>
+                                <h3 className="text-lg font-semibold text-gray-900">Mis Clientes</h3>
+                                <p className="text-gray-600">Gestionar mis clientes</p>
                             </div>
                         </div>
-                    </div>
+                    </Link>
                 </div>
 
                 {/* Acciones del Sistema */}

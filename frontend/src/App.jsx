@@ -11,6 +11,9 @@ import DetallePropiedad from './pages/DetallePropiedad';
 import Home from './pages/Home';
 import Propiedades from './pages/Propiedades'; // Importar el nuevo componente
 import MisFavoritos from './pages/MisFavoritos';
+import RegistrarCliente from './pages/RegistrarCliente';
+import EditarCliente from './pages/EditarCliente';
+import PanelClientes from './pages/PanelClientes';
 
 import RutaPrivada from './components/RutaPrivada';
 import LayoutAdmin from './layouts/LayoutAdmin';
@@ -47,6 +50,9 @@ function App() {
                     <Route path="registrar-propiedad" element={<RegistrarPropiedad/>}/>
                     <Route path="panel-propiedades" element={<PanelPropiedades/>}/>
                     <Route path="editar-propiedad/:id" element={<EditarPropiedad/>}/>
+                    <Route path="registrar-cliente" element={<RegistrarCliente/>}/>
+                    <Route path="editar-cliente/:id" element={<EditarCliente/>}/>
+                    <Route path="panel-clientes" element={<PanelClientes/>}/>
                 </Route>
 
                 {/* Rutas privadas - Agente */}
@@ -62,6 +68,9 @@ function App() {
                     <Route path="registrar-propiedad" element={<RegistrarPropiedad/>}/>
                     <Route path="panel-propiedades" element={<PanelPropiedades/>}/>
                     <Route path="editar-propiedad/:id" element={<EditarPropiedad/>}/>
+                    <Route path="registrar-cliente" element={<RegistrarCliente/>}/>
+                    <Route path="editar-cliente/:id" element={<EditarCliente/>}/>
+                    <Route path="panel-clientes" element={<PanelClientes/>}/>
                 </Route>
 
                 {/* Rutas privadas - Cliente */}
@@ -82,6 +91,32 @@ function App() {
                     element={
                         <RutaPrivada rolRequerido={['admin', 'agente']}>
                             <EditarPropiedad/>
+                        </RutaPrivada>
+                    }
+                />
+
+                {/* Rutas globales para clientes (accesibles desde cualquier panel) */}
+                <Route
+                    path="/registrar-cliente"
+                    element={
+                        <RutaPrivada rolRequerido={['admin', 'agente']}>
+                            <RegistrarCliente/>
+                        </RutaPrivada>
+                    }
+                />
+                <Route
+                    path="/editar-cliente/:id"
+                    element={
+                        <RutaPrivada rolRequerido={['admin', 'agente']}>
+                            <EditarCliente/>
+                        </RutaPrivada>
+                    }
+                />
+                <Route
+                    path="/panel-clientes"
+                    element={
+                        <RutaPrivada rolRequerido={['admin', 'agente']}>
+                            <PanelClientes/>
                         </RutaPrivada>
                     }
                 />

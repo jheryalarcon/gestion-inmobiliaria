@@ -23,6 +23,8 @@ model Usuario {
   activo      Boolean     @default(true) //permite desactivar cuentas sin borrarlas
   propiedades Propiedad[]
   favoritos Favorito[]
+  clientes    Cliente[]   // Relación con clientes asignados
+  clientes_desactivados Cliente[] @relation("ClienteDesactivador") // Clientes desactivados por este usuario
   createdAt   DateTime    @default(now())
 }
 
@@ -148,4 +150,35 @@ model Favorito {
   createdAt   DateTime   @default(now())
 
   @@unique([usuarioId, propiedadId]) // No permite duplicados
+}
+
+// MODELO de clientes (personas interesadas en propiedades)
+model Cliente {
+  id          Int       @id @default(autoincrement())
+  nombre      String    // Nombre completo del cliente
+  telefono    String    // Teléfono de contacto
+  email       String    @unique // Correo electrónico único
+  tipo_cliente TipoCliente // Tipo de cliente (comprador, arrendatario, etc.)
+  observaciones String? // Observaciones opcionales
+  activo      Boolean     @default(true) //permite desactivar cuentas sin borrarlas
+  agenteId    Int?      // Agente responsable (opcional, solo para admin)
+  agente      Usuario?  @relation(fields: [agenteId], references: [id])
+  
+  // Campos de auditoría para desactivación
+  fecha_desactivacion DateTime? // Fecha cuando fue desactivado
+  desactivado_por     Int?      // ID del usuario que desactivó el cliente
+  usuario_desactivador Usuario? @relation("ClienteDesactivador", fields: [desactivado_por], references: [id])
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+// Tipos de cliente
+enum TipoCliente {
+  comprador
+  arrendatario
+  propietario
+  vendedor
+  inversionista
+  consultor
 }
