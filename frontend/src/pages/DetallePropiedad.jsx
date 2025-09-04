@@ -139,7 +139,9 @@ export default function DetallePropiedad() {
               <div className="md:w-2/5 w-full flex flex-col items-center bg-gradient-to-b from-indigo-50 to-white p-4 relative">
                 {/* Imagen principal sin PhotoView */}
                         <img
-                            src={`http://localhost:3000${propiedad.imagenes[imagenSeleccionada]?.url}`}
+                            src={propiedad.imagenes[imagenSeleccionada]?.url.startsWith('http') 
+                    ? propiedad.imagenes[imagenSeleccionada].url 
+                    : `http://localhost:3000${propiedad.imagenes[imagenSeleccionada]?.url}`}
                             alt="principal"
                   className="w-full h-60 md:h-96 object-cover rounded-xl shadow-md border-2 border-indigo-100 cursor-pointer select-none"
                   onClick={handleMainImageClick}

@@ -50,6 +50,7 @@ export default function Navbar() {
                         <Link to="/admin/panel-propiedades" className="hover:underline">Ver propiedades</Link>
                         <Link to="/admin/registrar-cliente" className="hover:underline">Registrar cliente</Link>
                         <Link to="/admin/panel-clientes" className="hover:underline">Ver clientes</Link>
+                        <Link to="/admin/panel-negociaciones" className="hover:underline">Negociaciones</Link>
                     </>
                 )}
 
@@ -60,6 +61,7 @@ export default function Navbar() {
                         <Link to="/agente/panel-propiedades" className="hover:underline">Mis propiedades</Link>
                         <Link to="/agente/registrar-cliente" className="hover:underline">Registrar cliente</Link>
                         <Link to="/agente/panel-clientes" className="hover:underline">Mis clientes</Link>
+                        <Link to="/agente/panel-negociaciones" className="hover:underline">Mis negociaciones</Link>
                     </>
                 )}
 

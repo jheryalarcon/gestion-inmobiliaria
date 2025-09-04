@@ -1,4 +1,5 @@
 import prisma from '../prisma/client.js'
+import imageConfig from '../config/images.js'
 
 export const crearPropiedad = async (req, res) => {
     const {
@@ -145,6 +146,7 @@ export const crearPropiedad = async (req, res) => {
 
 export const obtenerPropiedades = async (req, res) => {
     const usuario = req.usuario;
+    const { includeAgente } = req.query; // Nuevo parámetro para incluir info del agente
 
     try {
         let propiedades;
@@ -156,7 +158,14 @@ export const obtenerPropiedades = async (req, res) => {
                         not: 'inactiva',
                     },
                 },
-                include: { imagenes: true },
+                include: { 
+                    imagenes: true,
+                    ...(includeAgente === 'true' && {
+                        agente: {
+                            select: { id: true, name: true, email: true }
+                        }
+                    })
+                },
                 orderBy: { createdAt: 'desc' },
             });
         } else if (usuario.rol === 'agente') {
@@ -167,7 +176,14 @@ export const obtenerPropiedades = async (req, res) => {
                         not: 'inactiva',
                     },
                 },
-                include: { imagenes: true },
+                include: { 
+                    imagenes: true,
+                    ...(includeAgente === 'true' && {
+                        agente: {
+                            select: { id: true, name: true, email: true }
+                        }
+                    })
+                },
                 orderBy: { createdAt: 'desc' },
             });
         } else {
@@ -175,10 +191,57 @@ export const obtenerPropiedades = async (req, res) => {
             propiedades = [];
         }
 
-        return res.json(propiedades);
+        // 🖼️ Convertir URLs de imágenes a absolutas
+        console.log('🔍 Backend - Propiedades antes de procesar:', propiedades);
+        const propiedadesProcesadas = imageConfig.procesarImagenes(propiedades);
+        console.log('🔍 Backend - Propiedades después de procesar:', propiedadesProcesadas);
+        return res.json(propiedadesProcesadas);
     } catch (error) {
         console.error(error);
         return res.status(500).json({ mensaje: 'Error al obtener propiedades' });
+    }
+};
+
+// 🏠 NUEVA FUNCIÓN: Obtener propiedades disponibles para negociaciones
+// Permite a admin y agente ver todas las propiedades disponibles del sistema
+export const obtenerPropiedadesParaNegociaciones = async (req, res) => {
+    const usuario = req.usuario;
+    const { includeAgente = 'true' } = req.query;
+
+    try {
+        // Solo admin y agente pueden acceder
+        if (usuario.rol !== 'admin' && usuario.rol !== 'agente') {
+            return res.status(403).json({ 
+                mensaje: 'Acceso solo para administradores y agentes' 
+            });
+        }
+
+        // ✅ Obtener SOLO propiedades DISPONIBLES del sistema
+        const propiedades = await prisma.propiedad.findMany({
+            where: {
+                estado_publicacion: 'disponible', // Solo propiedades disponibles
+            },
+            include: { 
+                imagenes: true,
+                ...(includeAgente === 'true' && {
+                    agente: {
+                        select: { id: true, name: true, email: true }
+                    }
+                })
+            },
+            orderBy: { createdAt: 'desc' },
+        });
+
+        // 🖼️ Convertir URLs de imágenes a absolutas
+        console.log('🔍 Backend - Propiedades para negociaciones antes de procesar:', propiedades);
+        const propiedadesProcesadas = imageConfig.procesarImagenes(propiedades);
+        console.log('🔍 Backend - Propiedades para negociaciones después de procesar:', propiedadesProcesadas);
+        return res.json(propiedadesProcesadas);
+    } catch (error) {
+        console.error('Error al obtener propiedades para negociaciones:', error);
+        return res.status(500).json({ 
+            mensaje: 'Error al obtener propiedades para negociaciones' 
+        });
     }
 };
 
@@ -209,7 +272,8 @@ export const obtenerPropiedadPorId = async (req, res) => {
             return res.status(403).json({ mensaje: 'No tiene permiso para ver esta propiedad' });
         }
 
-        res.json(propiedad);
+        // 🖼️ Convertir URLs de imágenes a absolutas
+        res.json(imageConfig.procesarImagenes(propiedad));
     } catch (error) {
         console.error(error);
         res.status(500).json({ mensaje: 'Error al obtener la propiedad' });

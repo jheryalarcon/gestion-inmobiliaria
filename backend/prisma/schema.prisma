@@ -1,3 +1,4 @@
+
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
@@ -25,6 +26,9 @@ model Usuario {
   favoritos Favorito[]
   clientes    Cliente[]   // Relación con clientes asignados
   clientes_desactivados Cliente[] @relation("ClienteDesactivador") // Clientes desactivados por este usuario
+  negociaciones Negociacion[] // Negociaciones gestionadas por este agente
+  seguimientos Seguimiento[] // Seguimientos registrados por este agente
+  notasInternas NotaInterna[] // Notas internas creadas por este agente
   createdAt   DateTime    @default(now())
 }
 
@@ -70,6 +74,7 @@ model Propiedad {
   agente   Usuario @relation(fields: [agenteId], references: [id])
 
   favoritos Favorito[]
+  negociaciones Negociacion[] // Negociaciones de esta propiedad
   
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -171,6 +176,8 @@ model Cliente {
   
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+  
+  negociaciones Negociacion[] // Negociaciones de este cliente
 }
 
 // Tipos de cliente
@@ -181,4 +188,85 @@ enum TipoCliente {
   vendedor
   inversionista
   consultor
+}
+
+// MODELO de negociaciones (vínculo entre cliente y propiedad)
+model Negociacion {
+  id          Int       @id @default(autoincrement())
+  clienteId   Int
+  cliente     Cliente   @relation(fields: [clienteId], references: [id])
+  propiedadId Int
+  propiedad   Propiedad @relation(fields: [propiedadId], references: [id])
+  agenteId    Int
+  agente      Usuario   @relation(fields: [agenteId], references: [id])
+  etapa       EtapaNegociacion @default(interes)
+  fecha_inicio DateTime @default(now())
+  fecha_cambio_etapa DateTime @default(now()) // Fecha del último cambio de etapa
+  activo      Boolean   @default(true) // Soft delete
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  seguimientos Seguimiento[] // Historial de seguimientos
+  notasInternas NotaInterna[] // Notas internas privadas del agente
+
+  @@unique([clienteId, propiedadId]) // Evita duplicados
+}
+
+// Etapas de una negociación
+enum EtapaNegociacion {
+  interes      // Cliente ha mostrado interés por una propiedad
+  negociacion  // Cliente ha visto la propiedad o ha solicitado más información
+  cierre       // Las condiciones están casi acordadas, gestionando documentación
+  finalizada   // La operación terminó satisfactoriamente
+  cancelada    // El cliente desistió o no se concretó la operación
+}
+
+// Tipos de seguimiento
+enum TipoSeguimiento {
+  llamada
+  visita
+  mensaje
+  email
+  reunion
+  documento
+  otro
+}
+
+// MODELO de seguimientos (historial de interacciones por negociación)
+model Seguimiento {
+  id             Int             @id @default(autoincrement())
+  negociacionId  Int
+  agenteId       Int
+  fecha          DateTime        @default(now())
+  comentario     String
+  tipo           TipoSeguimiento @default(otro)
+  activo         Boolean         @default(true) // Soft delete
+  
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  // Relaciones
+  negociacion    Negociacion     @relation(fields: [negociacionId], references: [id])
+  agente         Usuario         @relation(fields: [agenteId], references: [id])
+
+  @@map("Seguimiento")
+}
+
+// MODELO de notas internas privadas del agente
+model NotaInterna {
+  id             Int       @id @default(autoincrement())
+  negociacionId  Int
+  agenteId       Int
+  fecha          DateTime  @default(now())
+  contenido      String    // Texto de la nota interna
+  
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  // Relaciones
+  negociacion    Negociacion @relation(fields: [negociacionId], references: [id])
+  agente         Usuario     @relation(fields: [agenteId], references: [id])
+
+  @@map("NotaInterna")
 }

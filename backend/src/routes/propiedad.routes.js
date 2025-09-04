@@ -8,7 +8,8 @@ import {
     obtenerPropiedadPorId,
     obtenerPropiedadesPublicas,
     obtenerPropiedadPublicaPorId,
-    obtenerUltimasPropiedades
+    obtenerUltimasPropiedades,
+    obtenerPropiedadesParaNegociaciones
 } from '../controllers/propiedad.controller.js';
 import verificarToken from '../middlewares/verificarToken.js';
 import esPropietarioOAdmin from '../middlewares/esPropietarioOAdmin.js';
@@ -32,6 +33,8 @@ router.post(
 );
 
 router.get('/', verificarToken, obtenerPropiedades);
+// 🏠 NUEVA RUTA: Propiedades para negociaciones (solo disponibles)
+router.get('/negociaciones/disponibles', verificarToken, obtenerPropiedadesParaNegociaciones);
 router.get('/:id', verificarToken, obtenerPropiedadPorId);
 router.put('/:id', verificarToken, esPropietarioOAdmin, upload.array('imagenes', 5), actualizarPropiedad);
 router.patch('/:id/estado', verificarToken, esPropietarioOAdmin, actualizarEstadoPropiedad);

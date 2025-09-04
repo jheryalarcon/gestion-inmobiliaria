@@ -13,6 +13,7 @@ import Propiedades from './pages/Propiedades'; // Importar el nuevo componente
 import MisFavoritos from './pages/MisFavoritos';
 import RegistrarCliente from './pages/RegistrarCliente';
 import EditarCliente from './pages/EditarCliente';
+import PanelNegociaciones from './pages/PanelNegociaciones';
 import PanelClientes from './pages/PanelClientes';
 
 import RutaPrivada from './components/RutaPrivada';
@@ -53,6 +54,7 @@ function App() {
                     <Route path="registrar-cliente" element={<RegistrarCliente/>}/>
                     <Route path="editar-cliente/:id" element={<EditarCliente/>}/>
                     <Route path="panel-clientes" element={<PanelClientes/>}/>
+                    <Route path="panel-negociaciones" element={<PanelNegociaciones/>}/>
                 </Route>
 
                 {/* Rutas privadas - Agente */}
@@ -71,6 +73,7 @@ function App() {
                     <Route path="registrar-cliente" element={<RegistrarCliente/>}/>
                     <Route path="editar-cliente/:id" element={<EditarCliente/>}/>
                     <Route path="panel-clientes" element={<PanelClientes/>}/>
+                    <Route path="panel-negociaciones" element={<PanelNegociaciones/>}/>
                 </Route>
 
                 {/* Rutas privadas - Cliente */}
@@ -117,6 +120,14 @@ function App() {
                     element={
                         <RutaPrivada rolRequerido={['admin', 'agente']}>
                             <PanelClientes/>
+                        </RutaPrivada>
+                    }
+                />
+                <Route
+                    path="/panel-negociaciones"
+                    element={
+                        <RutaPrivada rolRequerido={['admin', 'agente']}>
+                            <PanelNegociaciones/>
                         </RutaPrivada>
                     }
                 />

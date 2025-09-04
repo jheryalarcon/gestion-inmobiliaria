@@ -3,7 +3,9 @@ import FavoritoIcon from './FavoritoIcon';
 
 export default function CardPropiedadPublica({ propiedad, className = '', favoritos = [], onFavoritoToggle }) {
     const img = propiedad.imagenes?.[0]?.url
-        ? `http://localhost:3000${propiedad.imagenes[0].url}`
+        ? propiedad.imagenes[0].url.startsWith('http') 
+        ? propiedad.imagenes[0].url 
+        : `http://localhost:3000${propiedad.imagenes[0].url}`
         : 'https://via.placeholder.com/300x200?text=Sin+Imagen';
 
     // Verificar si la propiedad está en favoritos

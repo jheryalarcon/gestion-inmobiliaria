@@ -7,6 +7,9 @@ import propiedadRoutes from './routes/propiedad.routes.js';
 import usuariosRoutes from './routes/usuarios.routes.js';
 import favoriteRoutes from './routes/favorite.routes.js';
 import clienteRoutes from './routes/cliente.routes.js';
+import negociacionRoutes from './routes/negociacion.routes.js';
+import seguimientoRoutes from './routes/seguimiento.routes.js';
+import notaInternaRoutes from './routes/notaInterna.routes.js';
 
 const app = express();
 
@@ -28,6 +31,9 @@ app.use('/api/propiedades', propiedadRoutes);
 app.use('/api/usuarios', usuariosRoutes);
 app.use('/api/favoritos', favoriteRoutes);
 app.use('/api/clientes', clienteRoutes);
+app.use('/api/negociaciones', negociacionRoutes);
+app.use('/api/seguimientos', seguimientoRoutes);
+app.use('/api/notas-internas', notaInternaRoutes);
 
 app.listen(3000, () => {
     console.log('Servidor corriendo en http://localhost:3000');
