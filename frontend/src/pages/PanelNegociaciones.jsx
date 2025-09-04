@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import CrearNegociacion from '../components/CrearNegociacion';
 import ActualizarEtapaForm from '../components/ActualizarEtapaForm';
 import HistorialSeguimientos from '../components/HistorialSeguimientos';
+import ModalArchivosAdjuntos from '../components/ModalArchivosAdjuntos';
 
 const PanelNegociaciones = () => {
     const navigate = useNavigate();
@@ -15,6 +16,7 @@ const PanelNegociaciones = () => {
     const [showDesactivarModal, setShowDesactivarModal] = useState(false);
     const [showActualizarEtapaModal, setShowActualizarEtapaModal] = useState(false);
     const [showHistorialModal, setShowHistorialModal] = useState(false);
+    const [showArchivosModal, setShowArchivosModal] = useState(false);
     const [negociacionSeleccionada, setNegociacionSeleccionada] = useState(null);
     const [filtros, setFiltros] = useState({
         search: '',
@@ -100,6 +102,11 @@ const PanelNegociaciones = () => {
     const handleVerHistorial = (negociacion) => {
         setNegociacionSeleccionada(negociacion);
         setShowHistorialModal(true);
+    };
+
+    const handleVerArchivos = (negociacion) => {
+        setNegociacionSeleccionada(negociacion);
+        setShowArchivosModal(true);
     };
 
     const confirmarDesactivar = async () => {
@@ -337,6 +344,17 @@ const PanelNegociaciones = () => {
                                                 >
                                                     📋 Historial
                                                 </button>
+                                                
+                                                {/* Botón Ver Archivos - solo para agentes responsables y admin */}
+                                                {(usuario?.rol === 'admin' || (usuario?.rol === 'agente' && negociacion.agenteId === usuario?.id)) && (
+                                                    <button
+                                                        onClick={() => handleVerArchivos(negociacion)}
+                                                        className="text-purple-600 hover:text-purple-900 transition duration-200"
+                                                        title="Ver archivos adjuntos"
+                                                    >
+                                                        📎 Archivos
+                                                    </button>
+                                                )}
                                                 
                                                 {/* Botón Actualizar Etapa - solo para agentes responsables */}
                                                 {usuario?.rol === 'agente' && negociacion.agenteId === usuario?.id && (
@@ -582,6 +600,20 @@ const PanelNegociaciones = () => {
                         </div>
                     </div>
                 </div>
+            )}
+
+            {/* Modal de Archivos Adjuntos */}
+            {showArchivosModal && negociacionSeleccionada && (
+                <ModalArchivosAdjuntos
+                    isOpen={showArchivosModal}
+                    onClose={() => {
+                        setShowArchivosModal(false);
+                        setNegociacionSeleccionada(null);
+                    }}
+                    negociacion={negociacionSeleccionada}
+                    esAgenteResponsable={usuario?.rol === 'agente' && negociacionSeleccionada?.agenteId === usuario?.id}
+                    esAdmin={usuario?.rol === 'admin'}
+                />
             )}
         </div>
     );

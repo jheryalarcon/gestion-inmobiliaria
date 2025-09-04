@@ -16,6 +16,7 @@ import EditarCliente from './pages/EditarCliente';
 import PanelNegociaciones from './pages/PanelNegociaciones';
 import PanelClientes from './pages/PanelClientes';
 
+
 import RutaPrivada from './components/RutaPrivada';
 import LayoutAdmin from './layouts/LayoutAdmin';
 import LayoutAgente from './layouts/LayoutAgente';
@@ -131,6 +132,8 @@ function App() {
                         </RutaPrivada>
                     }
                 />
+
+
 
                 {/* Ruta 404 */}
                 <Route path="*" element={<h1 className="text-center mt-10 text-red-600">404 - Página no encontrada</h1>}/>

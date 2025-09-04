@@ -29,6 +29,7 @@ model Usuario {
   negociaciones Negociacion[] // Negociaciones gestionadas por este agente
   seguimientos Seguimiento[] // Seguimientos registrados por este agente
   notasInternas NotaInterna[] // Notas internas creadas por este agente
+  archivosNegociacion ArchivoNegociacion[] // Archivos adjuntos por este agente
   createdAt   DateTime    @default(now())
 }
 
@@ -209,6 +210,7 @@ model Negociacion {
 
   seguimientos Seguimiento[] // Historial de seguimientos
   notasInternas NotaInterna[] // Notas internas privadas del agente
+  archivosNegociacion ArchivoNegociacion[] // Archivos adjuntos a esta negociación
 
   @@unique([clienteId, propiedadId]) // Evita duplicados
 }
@@ -269,4 +271,34 @@ model NotaInterna {
   agente         Usuario     @relation(fields: [agenteId], references: [id])
 
   @@map("NotaInterna")
+}
+
+// MODELO de archivos adjuntos por negociación
+model ArchivoNegociacion {
+  id              Int       @id @default(autoincrement())
+  negociacionId   Int
+  agenteId        Int
+  nombre_archivo  String    // Nombre original del archivo
+  nombre_guardado String    // Nombre del archivo en el servidor
+  tipo            TipoArchivo? // Tipo de archivo para categorización
+  fecha_subida    DateTime  @default(now())
+  url             String    // Ruta del archivo en el servidor
+  tamano          Int       // Tamaño en bytes
+  activo          Boolean   @default(true) // Soft delete
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Relaciones
+  negociacion     Negociacion @relation(fields: [negociacionId], references: [id])
+  agente          Usuario     @relation(fields: [agenteId], references: [id])
+
+  @@map("ArchivoNegociacion")
+}
+
+// Tipos de archivo para categorización
+enum TipoArchivo {
+  contrato
+  cedula
+  otros
 }
