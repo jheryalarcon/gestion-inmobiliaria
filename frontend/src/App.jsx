@@ -15,6 +15,9 @@ import RegistrarCliente from './pages/RegistrarCliente';
 import EditarCliente from './pages/EditarCliente';
 import PanelNegociaciones from './pages/PanelNegociaciones';
 import PanelClientes from './pages/PanelClientes';
+import RegistrarAgente from './pages/RegistrarAgente';
+import EditarAgente from './pages/EditarAgente';
+import PanelAgentes from './pages/PanelAgentes';
 
 
 import RutaPrivada from './components/RutaPrivada';
@@ -133,6 +136,31 @@ function App() {
                     }
                 />
 
+                {/* Rutas específicas para administradores - Gestión de Agentes */}
+                <Route
+                    path="/registrar-agente"
+                    element={
+                        <RutaPrivada rolRequerido="admin">
+                            <RegistrarAgente/>
+                        </RutaPrivada>
+                    }
+                />
+                <Route
+                    path="/editar-agente/:id"
+                    element={
+                        <RutaPrivada rolRequerido="admin">
+                            <EditarAgente/>
+                        </RutaPrivada>
+                    }
+                />
+                <Route
+                    path="/panel-agentes"
+                    element={
+                        <RutaPrivada rolRequerido="admin">
+                            <PanelAgentes/>
+                        </RutaPrivada>
+                    }
+                />
 
 
                 {/* Ruta 404 */}

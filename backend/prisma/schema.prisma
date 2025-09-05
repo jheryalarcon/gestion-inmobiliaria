@@ -19,6 +19,7 @@ model Usuario {
   id          Int         @id @default(autoincrement())
   name        String // nombre de la persona
   email       String      @unique
+  telefono    String // teléfono de contacto (obligatorio)
   password    String
   rol         Rol // "cliente", "agente", "admin"
   activo      Boolean     @default(true) //permite desactivar cuentas sin borrarlas
@@ -31,6 +32,7 @@ model Usuario {
   notasInternas NotaInterna[] // Notas internas creadas por este agente
   archivosNegociacion ArchivoNegociacion[] // Archivos adjuntos por este agente
   createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
 }
 
 // Roles que puede tener un usuario

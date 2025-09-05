@@ -11,6 +11,7 @@ import negociacionRoutes from './routes/negociacion.routes.js';
 import seguimientoRoutes from './routes/seguimiento.routes.js';
 import notaInternaRoutes from './routes/notaInterna.routes.js';
 import archivoNegociacionRoutes from './routes/archivoNegociacion.routes.js';
+import agentesRoutes from './routes/agentes.routes.js';
 
 const app = express();
 
@@ -36,6 +37,7 @@ app.use('/api/negociaciones', negociacionRoutes);
 app.use('/api/seguimientos', seguimientoRoutes);
 app.use('/api/notas-internas', notaInternaRoutes);
 app.use('/api/archivos-negociacion', archivoNegociacionRoutes);
+app.use('/api/agentes', agentesRoutes);
 
 app.listen(3000, () => {
     console.log('Servidor corriendo en http://localhost:3000');
