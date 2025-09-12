@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import LayoutPublic from '../components/LayoutPublic';
 import CardPropiedadPublica from '../components/CardPropiedadPublica';
+import Recomendaciones from '../components/Recomendaciones';
 
 export default function Home() {
     const navigate = useNavigate();
@@ -159,6 +160,12 @@ export default function Home() {
                     </div>
                 </div>
             </section>
+
+            {/* Sección de Recomendaciones */}
+            <Recomendaciones 
+                favoritos={favoritos}
+                onFavoritoToggle={handleFavoritoToggle}
+            />
             </div>
         </LayoutPublic>
     );

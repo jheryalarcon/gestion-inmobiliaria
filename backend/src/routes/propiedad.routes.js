@@ -9,7 +9,9 @@ import {
     obtenerPropiedadesPublicas,
     obtenerPropiedadPublicaPorId,
     obtenerUltimasPropiedades,
-    obtenerPropiedadesParaNegociaciones
+    obtenerPropiedadesParaNegociaciones,
+    obtenerPropiedadesRelacionadas,
+    obtenerRecomendaciones
 } from '../controllers/propiedad.controller.js';
 import verificarToken from '../middlewares/verificarToken.js';
 import esPropietarioOAdmin from '../middlewares/esPropietarioOAdmin.js';
@@ -21,6 +23,7 @@ const router = express.Router();
 // Rutas públicas (sin autenticación)
 router.get('/publicas', obtenerPropiedadesPublicas);
 router.get('/publica/:id', obtenerPropiedadPublicaPorId);
+router.get('/relacionadas', obtenerPropiedadesRelacionadas);
 
 // Ruta para obtener las últimas propiedades
 router.get('/ultimas', obtenerUltimasPropiedades);
@@ -35,6 +38,8 @@ router.post(
 router.get('/', verificarToken, obtenerPropiedades);
 // 🏠 NUEVA RUTA: Propiedades para negociaciones (solo disponibles)
 router.get('/negociaciones/disponibles', verificarToken, obtenerPropiedadesParaNegociaciones);
+// 🎯 RUTA: Recomendaciones basadas en favoritos (requiere autenticación)
+router.get('/recomendaciones', verificarToken, obtenerRecomendaciones);
 router.get('/:id', verificarToken, obtenerPropiedadPorId);
 router.put('/:id', verificarToken, esPropietarioOAdmin, upload.array('imagenes', 5), actualizarPropiedad);
 router.patch('/:id/estado', verificarToken, esPropietarioOAdmin, actualizarEstadoPropiedad);

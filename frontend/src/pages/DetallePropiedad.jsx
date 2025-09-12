@@ -4,6 +4,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import LayoutPublic from '../components/LayoutPublic';
+import CardPropiedadPublica from '../components/CardPropiedadPublica';
+import Recomendaciones from '../components/Recomendaciones';
 import { toast } from 'sonner';
 
 export default function DetallePropiedad() {
@@ -12,6 +14,7 @@ export default function DetallePropiedad() {
     const [propiedad, setPropiedad] = useState(null);
     const [error, setError] = useState('');
     const [imagenSeleccionada, setImagenSeleccionada] = useState(0);
+    const [favoritos, setFavoritos] = useState([]);
     const [formData, setFormData] = useState({
         nombre: '',
         email: '',
@@ -23,11 +26,42 @@ export default function DetallePropiedad() {
     useEffect(() => {
         // Usar endpoint público sin autenticación
         axios.get(`http://localhost:3000/api/propiedades/publica/${id}`)
-            .then(res => setPropiedad(res.data))
+            .then(res => {
+                setPropiedad(res.data);
+            })
             .catch(err => {
                 setError(err.response?.data?.mensaje || 'Error al cargar la propiedad');
             });
+        
+        // Cargar favoritos si el usuario está logueado
+        cargarFavoritos();
     }, [id]);
+
+
+
+    const cargarFavoritos = async () => {
+        const token = localStorage.getItem('token');
+        const usuario = token ? JSON.parse(localStorage.getItem('usuario')) : null;
+        
+        if (token && usuario && usuario.rol === 'cliente') {
+            try {
+                const response = await axios.get('http://localhost:3000/api/favoritos', {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                setFavoritos(response.data);
+            } catch (error) {
+                // Error silencioso para favoritos
+            }
+        }
+    };
+
+    const handleFavoritoToggle = (propiedadId, isFavorito) => {
+        if (isFavorito) {
+            setFavoritos(prev => [...prev, { propiedadId }]);
+        } else {
+            setFavoritos(prev => prev.filter(fav => fav.propiedadId !== propiedadId));
+        }
+    };
 
     const handleFormChange = (e) => {
         setFormData({
@@ -510,6 +544,13 @@ export default function DetallePropiedad() {
             </div>
                 </div>
             </div>
+
+
+            {/* Sección de Recomendaciones Personalizadas */}
+            <Recomendaciones 
+                favoritos={favoritos}
+                onFavoritoToggle={handleFavoritoToggle}
+            />
             </div>
         </LayoutPublic>
     );

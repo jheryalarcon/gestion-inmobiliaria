@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import LayoutPublic from '../components/LayoutPublic';
 import CardPropiedadPublica from '../components/CardPropiedadPublica';
 import Spinner from '../components/Spinner';
+import Recomendaciones from '../components/Recomendaciones';
 
 export default function MisFavoritos() {
     const navigate = useNavigate();
@@ -264,6 +265,12 @@ export default function MisFavoritos() {
                     )}
                 </div>
             </section>
+
+            {/* Sección de Recomendaciones */}
+            <Recomendaciones 
+                favoritos={favoritos}
+                onFavoritoToggle={handleFavoritoToggle}
+            />
             </div>
         </LayoutPublic>
     );

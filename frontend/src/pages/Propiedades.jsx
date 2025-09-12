@@ -5,6 +5,7 @@ import LayoutPublic from '../components/LayoutPublic';
 import CardPropiedadPublica from '../components/CardPropiedadPublica';
 import FiltrosPropiedades from '../components/FiltrosPropiedades';
 import Spinner from '../components/Spinner';
+import Recomendaciones from '../components/Recomendaciones';
 
 export default function Propiedades() {
     const location = useLocation();
@@ -231,6 +232,12 @@ export default function Propiedades() {
                         )}
                 </div>
             </section>
+
+            {/* Sección de Recomendaciones */}
+            <Recomendaciones 
+                favoritos={favoritos}
+                onFavoritoToggle={handleFavoritoToggle}
+            />
             </div>
         </LayoutPublic>
     );
