@@ -8,6 +8,7 @@ import {
     EyeSlashIcon
 } from '@heroicons/react/24/solid';
 import { jwtDecode } from 'jwt-decode';
+import LayoutPublic from '../components/LayoutPublic';
 
 export default function Login() {
     const [email, setEmail] = useState('');
@@ -25,7 +26,7 @@ export default function Login() {
                 const usuario = jwtDecode(token);
                 if (usuario.rol === 'admin') return navigate('/admin');
                 if (usuario.rol === 'agente') return navigate('/agente');
-                if (usuario.rol === 'cliente') return navigate('/cliente');
+                if (usuario.rol === 'cliente') return navigate('/');
             } catch (e) {
                 // Token inválido, no hacer nada
             }
@@ -66,8 +67,8 @@ export default function Login() {
 
             if (usuario.rol === 'admin') navigate('/admin');
             else if (usuario.rol === 'agente') navigate('/agente');
-            else if (usuario.rol === 'cliente') navigate('/propiedades');
-            else navigate('/cliente');
+            else if (usuario.rol === 'cliente') navigate('/');
+            else navigate('/');
         } catch (error) {
             setMensaje(error.response?.data?.mensaje || 'Error al iniciar sesión');
         }
@@ -76,78 +77,80 @@ export default function Login() {
     if (checkingAuth) return <div className="text-center mt-10">Cargando...</div>;
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-100 via-white to-blue-200 px-4">
-            <div className="bg-white shadow-xl rounded-lg p-8 w-full max-w-md">
-                <h2 className="text-2xl font-semibold text-center mb-6 text-gray-800">Iniciar Sesión</h2>
+        <LayoutPublic>
+            <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-100 via-white to-blue-200 px-4 py-12">
+                <div className="bg-white shadow-xl rounded-lg p-8 w-full max-w-md">
+                    <h2 className="text-2xl font-semibold text-center mb-6 text-gray-800">Iniciar Sesión</h2>
 
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    {/* Correo */}
-                    <div className="relative">
-                        <EnvelopeIcon className="w-5 h-5 text-gray-400 absolute left-3 top-3.5" />
-                        <input
-                            type="email"
-                            placeholder="Correo electrónico"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            className={`w-full pl-10 pr-3 py-2 border rounded focus:outline-none focus:ring-2 ${
-                                errores.email ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-500'
-                            }`}
-                        />
-                        {errores.email && <p className="text-xs text-red-600 mt-1">{errores.email}</p>}
-                    </div>
+                    <form onSubmit={handleSubmit} className="space-y-4">
+                        {/* Correo */}
+                        <div className="relative">
+                            <EnvelopeIcon className="w-5 h-5 text-gray-400 absolute left-3 top-3.5" />
+                            <input
+                                type="email"
+                                placeholder="Correo electrónico"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                className={`w-full pl-10 pr-3 py-2 border rounded focus:outline-none focus:ring-2 ${
+                                    errores.email ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-500'
+                                }`}
+                            />
+                            {errores.email && <p className="text-xs text-red-600 mt-1">{errores.email}</p>}
+                        </div>
 
-                    {/* Contraseña con icono para mostrar/ocultar */}
-                    <div className="relative">
-                        <LockClosedIcon className="w-5 h-5 text-gray-400 absolute left-3 top-3.5" />
-                        <input
-                            type={verPassword ? 'text' : 'password'}
-                            placeholder="Contraseña"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            className={`w-full pl-10 pr-10 py-2 border rounded focus:outline-none focus:ring-2 ${
-                                errores.password ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-500'
-                            }`}
-                        />
+                        {/* Contraseña con icono para mostrar/ocultar */}
+                        <div className="relative">
+                            <LockClosedIcon className="w-5 h-5 text-gray-400 absolute left-3 top-3.5" />
+                            <input
+                                type={verPassword ? 'text' : 'password'}
+                                placeholder="Contraseña"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                className={`w-full pl-10 pr-10 py-2 border rounded focus:outline-none focus:ring-2 ${
+                                    errores.password ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-500'
+                                }`}
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setVerPassword(!verPassword)}
+                                className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600"
+                                tabIndex={-1}
+                            >
+                                {verPassword ? (
+                                    <EyeSlashIcon className="w-5 h-5" />
+                                ) : (
+                                    <EyeIcon className="w-5 h-5" />
+                                )}
+                            </button>
+                            {errores.password && <p className="text-xs text-red-600 mt-1">{errores.password}</p>}
+                        </div>
+
+                        {/* Mensaje global de error */}
+                        {mensaje && (
+                            <div className="text-sm text-center text-red-600 font-medium">{mensaje}</div>
+                        )}
+
+                        {/* Botón */}
                         <button
-                            type="button"
-                            onClick={() => setVerPassword(!verPassword)}
-                            className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600"
-                            tabIndex={-1}
+                            type="submit"
+                            className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded shadow-md transition duration-200 font-semibold"
                         >
-                            {verPassword ? (
-                                <EyeSlashIcon className="w-5 h-5" />
-                            ) : (
-                                <EyeIcon className="w-5 h-5" />
-                            )}
+                            Ingresar
                         </button>
-                        {errores.password && <p className="text-xs text-red-600 mt-1">{errores.password}</p>}
-                    </div>
+                    </form>
 
-                    {/* Mensaje global de error */}
-                    {mensaje && (
-                        <div className="text-sm text-center text-red-600 font-medium">{mensaje}</div>
-                    )}
-
-                    {/* Botón */}
-                    <button
-                        type="submit"
-                        className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded shadow-md transition duration-200 font-semibold"
-                    >
-                        Ingresar
-                    </button>
-                </form>
-
-                {/* No tiene cuenta */}
-                <p className="text-center text-sm text-gray-600 mt-4">
-                    ¿No tienes una cuenta?{' '}
-                    <Link
-                        to="/registro"
-                        className="text-blue-600 font-medium hover:underline transition duration-150"
-                    >
-                        Regístrate aquí
-                    </Link>
-                </p>
+                    {/* No tiene cuenta */}
+                    <p className="text-center text-sm text-gray-600 mt-4">
+                        ¿No tienes una cuenta?{' '}
+                        <Link
+                            to="/registro"
+                            className="text-blue-600 font-medium hover:underline transition duration-150"
+                        >
+                            Regístrate aquí
+                        </Link>
+                    </p>
+                </div>
             </div>
-        </div>
+        </LayoutPublic>
     );
 }

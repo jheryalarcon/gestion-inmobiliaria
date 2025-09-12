@@ -1,26 +1,30 @@
 import { Navigate } from 'react-router-dom';
-import { jwtDecode } from 'jwt-decode';
+import { verificarToken } from '../utils/tokenUtils';
 
 export default function RutaPrivada({ rolRequerido, children }) {
-    const token = localStorage.getItem('token');
+    const resultado = verificarToken();
 
-    if (!token) return <Navigate to="/" replace/>;
+    if (!resultado.valido) {
+        return <Navigate to="/login" replace/>;
+    }
 
+    const usuario = resultado.usuario;
     const rutasPorRol = {
         admin: '/admin',
         agente: '/agente',
-        cliente: '/cliente'
+        cliente: '/'
     };
 
-    try {
-        const usuario = jwtDecode(token);
-        if (Array.isArray(rolRequerido)) {
-            if (!rolRequerido.includes(usuario.rol)) return <Navigate to={rutasPorRol[usuario.rol] || '/'} />;
-        } else {
-            if (usuario.rol !== rolRequerido) return <Navigate to={rutasPorRol[usuario.rol] || '/'} />;
+    // Verificar si el usuario tiene el rol requerido
+    if (Array.isArray(rolRequerido)) {
+        if (!rolRequerido.includes(usuario.rol)) {
+            return <Navigate to={rutasPorRol[usuario.rol] || '/'} replace/>;
         }
-        return children;
-    } catch (e) {
-        return <Navigate to="/" />;
+    } else {
+        if (usuario.rol !== rolRequerido) {
+            return <Navigate to={rutasPorRol[usuario.rol] || '/'} replace/>;
+        }
     }
+
+    return children;
 }

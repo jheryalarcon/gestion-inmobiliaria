@@ -212,7 +212,7 @@ function PanelAdmin() {
                     </Link>
 
                     <Link 
-                        to="/registrar-agente"
+                        to="/admin/registrar-agente"
                         className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow border-l-4 border-teal-500"
                     >
                         <div className="flex items-center">
@@ -229,7 +229,7 @@ function PanelAdmin() {
                     </Link>
 
                     <Link 
-                        to="/panel-agentes"
+                        to="/admin/panel-agentes"
                         className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow border-l-4 border-cyan-500"
                     >
                         <div className="flex items-center">

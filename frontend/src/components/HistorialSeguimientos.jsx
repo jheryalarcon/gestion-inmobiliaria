@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
 import NotasInternas from './NotasInternas.jsx';
+import Spinner, { ButtonSpinner } from './Spinner';
 
 const HistorialSeguimientos = ({ negociacion, usuario, onSeguimientoCreado }) => {
     const [seguimientos, setSeguimientos] = useState([]);
@@ -123,7 +124,7 @@ const HistorialSeguimientos = ({ negociacion, usuario, onSeguimientoCreado }) =>
     if (loading) {
         return (
             <div className="flex justify-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                <Spinner size="md" text="Cargando seguimientos..." />
             </div>
         );
     }
@@ -219,8 +220,8 @@ const HistorialSeguimientos = ({ negociacion, usuario, onSeguimientoCreado }) =>
                             >
                                 {submitting ? (
                                     <span className="flex items-center">
-                                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                                        Guardando...
+                                        <ButtonSpinner size="sm" color="white" />
+                                        <span className="ml-2">Guardando...</span>
                                     </span>
                                 ) : (
                                     '💾 Guardar Seguimiento'

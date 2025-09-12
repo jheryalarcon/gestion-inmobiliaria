@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'sonner';
+import Spinner from './Spinner';
 
 const ModalArchivosAdjuntos = ({ 
     isOpen, 
@@ -284,8 +285,7 @@ const ModalArchivosAdjuntos = ({
 
                         {cargando ? (
                             <div className="p-8 text-center">
-                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto mb-4"></div>
-                                <p className="text-gray-600">Cargando archivos...</p>
+                                <Spinner size="md" text="Cargando archivos..." color="purple" />
                             </div>
                         ) : archivos.length === 0 ? (
                             <div className="p-8 text-center text-gray-500">

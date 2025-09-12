@@ -29,7 +29,7 @@ export default function Navbar() {
         if (!usuario) return navigate('/');
         if (usuario.rol === 'admin') return navigate('/admin');
         if (usuario.rol === 'agente') return navigate('/agente');
-        if (usuario.rol === 'cliente') return navigate('/cliente');
+        if (usuario.rol === 'cliente') return navigate('/');
         return navigate('/');
     };
 
@@ -67,7 +67,7 @@ export default function Navbar() {
 
                 {usuario && usuario.rol === 'cliente' && (
                     <>
-                        <Link to="/cliente" className="hover:underline">Inicio cliente</Link>
+                        <Link to="/" className="hover:underline">Inicio</Link>
                     </>
                 )}
 

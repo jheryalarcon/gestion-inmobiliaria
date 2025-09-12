@@ -19,6 +19,13 @@ export const login = async (req, res) => {
             return res.status(401).json({ mensaje: 'Contraseña incorrecta' });
         }
 
+        // Validar que el usuario esté activo
+        if (!usuario.activo) {
+            return res.status(403).json({ 
+                mensaje: 'Tu cuenta está inactiva, contacta al administrador' 
+            });
+        }
+
         const token = jwt.sign(
             { id: usuario.id, rol: usuario.rol },
             process.env.JWT_SECRET,
@@ -30,7 +37,7 @@ export const login = async (req, res) => {
             token,
             usuario: {
                 id: usuario.id,
-                nombre: usuario.nombre,
+                nombre: usuario.name,
                 email: usuario.email,
                 rol: usuario.rol
             }

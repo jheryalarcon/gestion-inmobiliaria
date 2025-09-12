@@ -4,6 +4,7 @@ import axios from 'axios';
 import { jwtDecode } from 'jwt-decode';
 import { toast } from 'sonner';
 import SelectTipoCliente from '../components/SelectTipoCliente';
+import { PageSpinner } from '../components/Spinner';
 
 export default function PanelClientes() {
     const navigate = useNavigate();
@@ -168,11 +169,7 @@ export default function PanelClientes() {
     };
 
     if (loading) {
-        return (
-            <div className="flex justify-center items-center h-64">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-            </div>
-        );
+        return <PageSpinner text="Cargando clientes..." />;
     }
 
     return (
@@ -187,7 +184,7 @@ export default function PanelClientes() {
                         </p>
                     </div>
                     <button
-                        onClick={() => navigate('/registrar-cliente')}
+                        onClick={() => navigate('/admin/registrar-cliente')}
                         className="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition duration-200 flex items-center gap-2"
                     >
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -357,7 +354,7 @@ export default function PanelClientes() {
                                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                             <div className="flex justify-end gap-2">
                                                 <button
-                                                    onClick={() => navigate(`/editar-cliente/${cliente.id}`)}
+                                                    onClick={() => navigate(`/admin/editar-cliente/${cliente.id}`)}
                                                     className="text-blue-600 hover:text-blue-900 transition duration-200"
                                                 >
                                                     Editar

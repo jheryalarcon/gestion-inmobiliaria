@@ -6,6 +6,7 @@ import CrearNegociacion from '../components/CrearNegociacion';
 import ActualizarEtapaForm from '../components/ActualizarEtapaForm';
 import HistorialSeguimientos from '../components/HistorialSeguimientos';
 import ModalArchivosAdjuntos from '../components/ModalArchivosAdjuntos';
+import { PageSpinner } from '../components/Spinner';
 
 const PanelNegociaciones = () => {
     const navigate = useNavigate();
@@ -186,11 +187,7 @@ const PanelNegociaciones = () => {
     };
 
     if (loading && negociaciones.length === 0) {
-        return (
-            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-            </div>
-        );
+        return <PageSpinner text="Cargando negociaciones..." />;
     }
 
     return (

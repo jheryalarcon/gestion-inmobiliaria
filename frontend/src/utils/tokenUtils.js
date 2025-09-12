@@ -25,5 +25,18 @@ export const verificarToken = () => {
 
 export const obtenerUsuario = () => {
     const resultado = verificarToken();
-    return resultado.valido ? resultado.usuario : null;
+    if (resultado.valido) {
+        // Intentar obtener datos completos del localStorage
+        const usuarioCompleto = localStorage.getItem('usuario');
+        if (usuarioCompleto) {
+            try {
+                return JSON.parse(usuarioCompleto);
+            } catch (error) {
+                console.error('Error al parsear usuario del localStorage:', error);
+            }
+        }
+        // Si no hay datos completos, devolver solo los datos del token
+        return resultado.usuario;
+    }
+    return null;
 };

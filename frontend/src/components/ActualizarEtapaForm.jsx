@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
+import { ButtonSpinner } from './Spinner';
 
 const ActualizarEtapaForm = ({ negociacion, onSuccess, onCancel }) => {
     const [etapa, setEtapa] = useState(negociacion?.etapa || 'interes');
@@ -144,8 +145,8 @@ const ActualizarEtapaForm = ({ negociacion, onSuccess, onCancel }) => {
                 >
                     {loading ? (
                         <span className="flex items-center">
-                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                            Actualizando...
+                            <ButtonSpinner size="sm" color="white" />
+                            <span className="ml-2">Actualizando...</span>
                         </span>
                     ) : (
                         'Actualizar Etapa'

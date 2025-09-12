@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { jwtDecode } from 'jwt-decode';
+import { PageSpinner } from '../components/Spinner';
 
 export default function RegistrarAgente() {
     const navigate = useNavigate();
@@ -193,7 +194,7 @@ export default function RegistrarAgente() {
                 
                 // Redirigir al panel de agentes después de 2 segundos
                 setTimeout(() => {
-                    navigate('/panel-agentes');
+                    navigate('/admin/panel-agentes');
                 }, 2000);
             } else {
                 toast.error(data.error || 'Error al crear el agente');
@@ -228,11 +229,7 @@ export default function RegistrarAgente() {
     };
 
     if (loading) {
-        return (
-            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-            </div>
-        );
+        return <PageSpinner text="Cargando formulario..." />;
     }
 
     return (

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
+import Spinner, { ButtonSpinner } from './Spinner';
 
 const CrearNegociacion = ({ isOpen, onClose, onSuccess, usuario }) => {
     const [formData, setFormData] = useState({
@@ -157,8 +158,7 @@ const CrearNegociacion = ({ isOpen, onClose, onSuccess, usuario }) => {
 
                 {loadingData ? (
                     <div className="flex justify-center items-center py-8">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                        <span className="ml-2 text-gray-600">Cargando datos...</span>
+                        <Spinner size="md" text="Cargando datos..." />
                     </div>
                 ) : (
                     <form id="form-negociacion" onSubmit={handleSubmit} className="space-y-6">
@@ -440,8 +440,8 @@ const CrearNegociacion = ({ isOpen, onClose, onSuccess, usuario }) => {
                             >
                                 {loading ? (
                                     <span className="flex items-center">
-                                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                                        Creando...
+                                        <ButtonSpinner size="sm" color="white" />
+                                        <span className="ml-2">Creando...</span>
                                     </span>
                                 ) : (
                                     'Crear Negociación'

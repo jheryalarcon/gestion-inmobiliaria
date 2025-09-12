@@ -1,9 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import NavbarPublica from '../components/NavbarPublica';
+import LayoutPublic from '../components/LayoutPublic';
 import CardPropiedadPublica from '../components/CardPropiedadPublica';
-import Footer from '../components/Footer';
 
 export default function Home() {
     const navigate = useNavigate();
@@ -59,31 +58,30 @@ export default function Home() {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50">
-            <NavbarPublica />
-            
-            {/* Hero Section */}
-            <section className="bg-gradient-to-r from-blue-600 to-blue-800 text-white py-20">
-                <div className="max-w-7xl mx-auto px-4 text-center">
-                    <h1 className="text-4xl md:text-6xl font-bold mb-6">
-                        Encuentra tu hogar ideal
-                    </h1>
-                    <p className="text-xl md:text-2xl mb-8 text-blue-100">
-                        Las mejores propiedades en las ubicaciones más exclusivas
-                    </p>
-                    <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                        <button 
-                            onClick={() => navigate('/propiedades')}
-                            className="bg-white text-blue-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition"
-                        >
-                            Ver todas las propiedades
-                        </button>
-                        <Link to="/login" className="border-2 border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-white hover:text-blue-600 transition">
-                            Contactar
-                        </Link>
+        <LayoutPublic>
+            <div className="min-h-screen bg-gray-50">
+                {/* Hero Section */}
+                <section className="bg-gradient-to-r from-blue-600 to-blue-800 text-white py-20">
+                    <div className="max-w-7xl mx-auto px-4 text-center">
+                        <h1 className="text-4xl md:text-6xl font-bold mb-6">
+                            Encuentra tu hogar ideal
+                        </h1>
+                        <p className="text-xl md:text-2xl mb-8 text-blue-100">
+                            Las mejores propiedades en las ubicaciones más exclusivas
+                        </p>
+                        <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                            <button 
+                                onClick={() => navigate('/propiedades')}
+                                className="bg-white text-blue-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition"
+                            >
+                                Ver todas las propiedades
+                            </button>
+                            <Link to="/login" className="border-2 border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-white hover:text-blue-600 transition">
+                                Contactar
+                            </Link>
+                        </div>
                     </div>
-                </div>
-            </section>
+                </section>
 
             {/* Últimas Propiedades Section */}
             <section className="py-16">
@@ -161,8 +159,7 @@ export default function Home() {
                     </div>
                 </div>
             </section>
-
-            <Footer />
-        </div>
+            </div>
+        </LayoutPublic>
     );
 }

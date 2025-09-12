@@ -62,7 +62,7 @@ export default function CardPropiedad({ propiedad, onActualizarPropiedad }) {
 
                 <div className="flex gap-2 items-center">
                     <Link
-                        to={`/propiedad/${propiedad.id}`}
+                        to={`${usuario?.rol === 'admin' ? '/admin' : usuario?.rol === 'agente' ? '/agente' : ''}/propiedad/${propiedad.id}`}
                         className="text-gray-700 hover:text-black text-xs border px-3 py-1 rounded shadow-sm hover:shadow transition"
                     >
                         👁
@@ -71,7 +71,7 @@ export default function CardPropiedad({ propiedad, onActualizarPropiedad }) {
                     {puedeEditar && (
                         <>
                             <Link
-                                to={`/editar-propiedad/${propiedad.id}`}
+                                to={`${usuario?.rol === 'admin' ? '/admin' : '/agente'}/editar-propiedad/${propiedad.id}`}
                                 className="text-blue-700 hover:text-blue-900 text-xs border border-blue-500 px-3 py-1 rounded shadow-sm hover:shadow transition"
                             >
                                 ✏️

@@ -5,7 +5,6 @@ import SelectProvincia from '../components/SelectProvincia';
 import SelectTipoPropiedad from '../components/SelectTipoPropiedad';
 import { jwtDecode } from 'jwt-decode';
 import { toast } from 'sonner';
-import Navbar from '../components/Navbar';
 
 export default function EditarPropiedad() {
     const {id} = useParams();
@@ -305,9 +304,7 @@ export default function EditarPropiedad() {
 
     if (!loading && usuario?.rol === 'agente' && datos && usuario.id !== datos.agenteId) {
       return (
-        <>
-          <Navbar />
-          <div className="max-w-xl mx-auto mt-20 p-8 bg-white rounded-2xl shadow text-center border border-red-200">
+        <div className="max-w-xl mx-auto mt-20 p-8 bg-white rounded-2xl shadow text-center border border-red-200">
             <h2 className="text-2xl font-bold text-red-600 mb-4">Acceso denegado</h2>
             <p className="text-gray-700">No tienes permisos para editar esta propiedad.</p>
             <button
@@ -317,14 +314,11 @@ export default function EditarPropiedad() {
               ← Volver
             </button>
           </div>
-        </>
       );
     }
 
     if (loading || !datos) return null;
     return (
-        <>
-        <Navbar/>
         <div className="max-w-3xl mx-auto mt-10 p-4 md:p-8 bg-white shadow-lg rounded-2xl border border-gray-100">
             <h2 className="text-3xl font-extrabold text-center mb-2 text-blue-900 tracking-tight">Editar Propiedad</h2>
             <p className="text-center text-gray-600 mb-8">Modifica los datos de la propiedad y guarda los cambios</p>
@@ -688,7 +682,6 @@ export default function EditarPropiedad() {
                     </div>
                 )}
             </form>
-        </div> 
-        </>
+        </div>
     );
 }

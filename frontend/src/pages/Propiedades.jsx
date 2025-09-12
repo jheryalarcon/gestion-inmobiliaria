@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import axios from 'axios';
-import NavbarPublica from '../components/NavbarPublica';
+import LayoutPublic from '../components/LayoutPublic';
 import CardPropiedadPublica from '../components/CardPropiedadPublica';
 import FiltrosPropiedades from '../components/FiltrosPropiedades';
-import Footer from '../components/Footer';
+import Spinner from '../components/Spinner';
 
 export default function Propiedades() {
     const location = useLocation();
@@ -145,20 +145,19 @@ export default function Propiedades() {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50">
-            <NavbarPublica />
-
-            {/* Header Section */}
-            <section id="top" className="bg-gradient-to-r from-blue-600 to-blue-800 text-white py-16">
-                <div className="max-w-7xl mx-auto px-4 text-center">
-                    <h1 className="text-4xl md:text-5xl font-bold mb-4">
-                        Propiedades disponibles
-                    </h1>
-                    <p className="text-xl text-blue-100">
-                        Encuentra tu hogar ideal con nuestros filtros avanzados
-                    </p>
-                </div>
-            </section>
+        <LayoutPublic>
+            <div className="min-h-screen bg-gray-50">
+                {/* Header Section */}
+                <section id="top" className="bg-gradient-to-r from-blue-600 to-blue-800 text-white py-16">
+                    <div className="max-w-7xl mx-auto px-4 text-center">
+                        <h1 className="text-4xl md:text-5xl font-bold mb-4">
+                            Propiedades disponibles
+                        </h1>
+                        <p className="text-xl text-blue-100">
+                            Encuentra tu hogar ideal con nuestros filtros avanzados
+                        </p>
+                    </div>
+                </section>
 
             {/* Propiedades Section */}
             <section className="py-16">
@@ -181,7 +180,7 @@ export default function Propiedades() {
 
                         {cargando ? (
                             <div className="flex justify-center items-center py-20">
-                                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                                <Spinner size="md" text="Cargando propiedades..." />
                             </div>
                         ) : error ? (
                             <div className="text-center py-20">
@@ -232,8 +231,7 @@ export default function Propiedades() {
                         )}
                 </div>
             </section>
-
-            <Footer />
-        </div>
+            </div>
+        </LayoutPublic>
     );
 }

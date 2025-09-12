@@ -2,9 +2,9 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'sonner';
-import NavbarPublica from '../components/NavbarPublica';
+import LayoutPublic from '../components/LayoutPublic';
 import CardPropiedadPublica from '../components/CardPropiedadPublica';
-import Footer from '../components/Footer';
+import Spinner from '../components/Spinner';
 
 export default function MisFavoritos() {
     const navigate = useNavigate();
@@ -23,10 +23,7 @@ export default function MisFavoritos() {
     if (!token || !usuario || usuario.rol !== 'cliente') {
         return (
             <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 flex items-center justify-center">
-                <div className="text-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-200 border-t-blue-600 mx-auto mb-4"></div>
-                    <p className="text-gray-600">Verificando autenticación...</p>
-                </div>
+                <Spinner size="md" text="Verificando autenticación..." />
             </div>
         );
     }
@@ -96,47 +93,45 @@ export default function MisFavoritos() {
     const propiedadesOrdenadas = ordenarPropiedades(propiedades);
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
-            <NavbarPublica />
-            
-            {/* Header Section con diseño mejorado */}
-            <section className="relative bg-gradient-to-r from-blue-600 via-blue-700 to-blue-800 text-white py-20 overflow-hidden">
-                {/* Elementos decorativos */}
-                <div className="absolute inset-0 bg-black opacity-10"></div>
-                <div className="absolute top-0 left-0 w-full h-full">
-                    <div className="absolute top-10 left-10 w-20 h-20 bg-white opacity-10 rounded-full"></div>
-                    <div className="absolute top-20 right-20 w-16 h-16 bg-white opacity-10 rounded-full"></div>
-                    <div className="absolute bottom-10 left-1/4 w-12 h-12 bg-white opacity-10 rounded-full"></div>
-                </div>
-                
-                <div className="relative max-w-7xl mx-auto px-4 text-center">
-                    <div className="mb-6">
-                        <svg className="mx-auto h-16 w-16 text-blue-200" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
-                        </svg>
+        <LayoutPublic>
+            <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
+                {/* Header Section con diseño mejorado */}
+                <section className="relative bg-gradient-to-r from-blue-600 via-blue-700 to-blue-800 text-white py-20 overflow-hidden">
+                    {/* Elementos decorativos */}
+                    <div className="absolute inset-0 bg-black opacity-10"></div>
+                    <div className="absolute top-0 left-0 w-full h-full">
+                        <div className="absolute top-10 left-10 w-20 h-20 bg-white opacity-10 rounded-full"></div>
+                        <div className="absolute top-20 right-20 w-16 h-16 bg-white opacity-10 rounded-full"></div>
+                        <div className="absolute bottom-10 left-1/4 w-12 h-12 bg-white opacity-10 rounded-full"></div>
                     </div>
-                    <h1 className="text-5xl md:text-6xl font-bold mb-6">
-                        Mis Favoritos
-                    </h1>
-                    <p className="text-xl md:text-2xl text-blue-100 mb-4">
-                        Tus propiedades guardadas para consultar fácilmente
-                    </p>
-                    <div className="flex justify-center items-center space-x-4 text-blue-200">
-                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                        </svg>
-                        <span>Acceso rápido a tus propiedades preferidas</span>
+                    
+                    <div className="relative max-w-7xl mx-auto px-4 text-center">
+                        <div className="mb-6">
+                            <svg className="mx-auto h-16 w-16 text-blue-200" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                            </svg>
+                        </div>
+                        <h1 className="text-5xl md:text-6xl font-bold mb-6">
+                            Mis Favoritos
+                        </h1>
+                        <p className="text-xl md:text-2xl text-blue-100 mb-4">
+                            Tus propiedades guardadas para consultar fácilmente
+                        </p>
+                        <div className="flex justify-center items-center space-x-4 text-blue-200">
+                            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                            </svg>
+                            <span>Acceso rápido a tus propiedades preferidas</span>
+                        </div>
                     </div>
-                </div>
-            </section>
+                </section>
 
             {/* Favoritos Section */}
             <section className="py-16">
                 <div className="max-w-7xl mx-auto px-4">
                     {cargando ? (
                         <div className="flex flex-col justify-center items-center py-20">
-                            <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-200 border-t-blue-600 mb-4"></div>
-                            <p className="text-gray-600 text-lg">Cargando tus favoritos...</p>
+                            <Spinner size="lg" text="Cargando tus favoritos..." />
                         </div>
                     ) : error ? (
                         <div className="text-center py-20">
@@ -269,8 +264,7 @@ export default function MisFavoritos() {
                     )}
                 </div>
             </section>
-
-            <Footer />
-        </div>
+            </div>
+        </LayoutPublic>
     );
 }

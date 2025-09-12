@@ -33,9 +33,10 @@ const config = {
         if (!Array.isArray(propiedades)) {
             // Si es una sola propiedad
             console.log('🔧 Helper - Procesando propiedad individual');
+            const propiedad = propiedades;
             const resultado = {
-                ...propiedades,
-                imagenes: propiedades.imagenes?.map(imagen => {
+                ...propiedad,
+                imagenes: propiedad.imagenes?.map(imagen => {
                     const urlAbsoluta = config.convertirUrlAbsoluta(imagen.url);
                     console.log('🔧 Helper - URL relativa:', imagen.url, '→ URL absoluta:', urlAbsoluta);
                     return {

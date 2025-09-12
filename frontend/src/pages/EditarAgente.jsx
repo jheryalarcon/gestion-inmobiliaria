@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { jwtDecode } from 'jwt-decode';
+import { PageSpinner } from '../components/Spinner';
 
 export default function EditarAgente() {
     const navigate = useNavigate();
@@ -82,12 +83,12 @@ export default function EditarAgente() {
             } else {
                 const errorData = await response.json();
                 toast.error(errorData.error || 'Error al cargar el agente');
-                navigate('/panel-agentes');
+                navigate('/admin/panel-agentes');
             }
         } catch (error) {
             console.error('Error:', error);
             toast.error('Error al cargar el agente');
-            navigate('/panel-agentes');
+            navigate('/admin/panel-agentes');
         } finally {
             setLoading(false);
         }
@@ -168,7 +169,7 @@ export default function EditarAgente() {
             if (response.ok) {
                 const data = await response.json();
                 toast.success(data.mensaje);
-                navigate('/panel-agentes');
+                navigate('/admin/panel-agentes');
             } else {
                 const errorData = await response.json();
                 toast.error(errorData.error || 'Error al actualizar el agente');
@@ -186,21 +187,17 @@ export default function EditarAgente() {
         if (hasChanges) {
             setShowConfirmModal(true);
         } else {
-            navigate('/panel-agentes');
+            navigate('/admin/panel-agentes');
         }
     };
 
     const confirmarCancelar = () => {
         setShowConfirmModal(false);
-        navigate('/panel-agentes');
+        navigate('/admin/panel-agentes');
     };
 
     if (loading) {
-        return (
-            <div className="flex justify-center items-center h-64">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-            </div>
-        );
+        return <PageSpinner text="Cargando datos del agente..." />;
     }
 
     return (
