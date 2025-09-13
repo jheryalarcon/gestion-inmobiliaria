@@ -235,31 +235,6 @@ export default function MisFavoritos() {
                                 ))}
                             </div>
 
-                            {/* Footer con acciones */}
-                            <div className="text-center mt-16">
-                                <div className="bg-white rounded-xl shadow-lg p-8">
-                                    <h3 className="text-xl font-semibold text-gray-900 mb-4">
-                                        ¿Buscas más propiedades?
-                                    </h3>
-                                    <p className="text-gray-600 mb-6">
-                                        Explora nuestro catálogo completo y encuentra tu hogar ideal
-                                    </p>
-                                    <div className="flex flex-col sm:flex-row justify-center space-y-3 sm:space-y-0 sm:space-x-4">
-                                        <button 
-                                            onClick={() => navigate('/propiedades')}
-                                            className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-8 py-3 rounded-lg hover:from-blue-700 hover:to-blue-800 transition shadow-lg font-semibold"
-                                        >
-                                            Explorar más propiedades
-                                        </button>
-                                        <button 
-                                            onClick={() => navigate('/')}
-                                            className="bg-gray-100 text-gray-700 px-8 py-3 rounded-lg hover:bg-gray-200 transition font-semibold"
-                                        >
-                                            Volver al inicio
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
                         </>
                     )}
                 </div>

@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
-import { jwtDecode } from 'jwt-decode';
 import BotonLogout from '../components/BotonLogout';
 
 function PanelAgente() {
@@ -16,24 +15,43 @@ function PanelAgente() {
 
     useEffect(() => {
         const token = localStorage.getItem('token');
-        if (token) {
-            const decoded = jwtDecode(token);
-            setUsuario(decoded);
-            cargarEstadisticas(token);
+        const usuarioData = localStorage.getItem('usuario');
+        
+        if (token && usuarioData) {
+            try {
+                const usuarioCompleto = JSON.parse(usuarioData);
+                
+                // Corregir datos antiguos: si tiene 'nombre' en lugar de 'name'
+                if (usuarioCompleto.nombre && !usuarioCompleto.name) {
+                    usuarioCompleto.name = usuarioCompleto.nombre;
+                    delete usuarioCompleto.nombre;
+                    
+                    // Actualizar localStorage con los datos corregidos
+                    localStorage.setItem('usuario', JSON.stringify(usuarioCompleto));
+                }
+                
+                setUsuario(usuarioCompleto);
+                cargarEstadisticas(token, usuarioCompleto);
+            } catch (error) {
+                console.error('Error al cargar usuario:', error);
+                setUsuario(null);
+            }
         }
     }, []);
 
-    const cargarEstadisticas = async (token) => {
+    const cargarEstadisticas = async (token, usuarioData) => {
         try {
+            // Cargar solo las propiedades del agente actual
             const propiedadesRes = await axios.get('http://localhost:3000/api/propiedades', {
                 headers: { Authorization: `Bearer ${token}` }
             });
             
-            const propiedades = propiedadesRes.data;
-            const totalPropiedades = propiedades.length;
-            const propiedadesDisponibles = propiedades.filter(p => p.estado_publicacion === 'disponible').length;
-            const propiedadesVendidas = propiedades.filter(p => p.estado_publicacion === 'vendida').length;
-            const propiedadesAlquiladas = propiedades.filter(p => p.estado_publicacion === 'alquilada').length;
+            // Filtrar solo las propiedades del agente actual
+            const propiedadesDelAgente = propiedadesRes.data.filter(p => p.agenteId === usuarioData.id);
+            const totalPropiedades = propiedadesDelAgente.length;
+            const propiedadesDisponibles = propiedadesDelAgente.filter(p => p.estado_publicacion === 'disponible').length;
+            const propiedadesVendidas = propiedadesDelAgente.filter(p => p.estado_publicacion === 'vendida').length;
+            const propiedadesAlquiladas = propiedadesDelAgente.filter(p => p.estado_publicacion === 'alquilada').length;
 
             setEstadisticas({
                 totalPropiedades,
@@ -43,6 +61,13 @@ function PanelAgente() {
             });
         } catch (error) {
             console.error('Error al cargar estadísticas:', error);
+            // En caso de error, mostrar datos en 0
+            setEstadisticas({
+                totalPropiedades: 0,
+                propiedadesDisponibles: 0,
+                propiedadesVendidas: 0,
+                propiedadesAlquiladas: 0
+            });
         } finally {
             setCargando(false);
         }
@@ -212,32 +237,6 @@ function PanelAgente() {
                     </Link>
                 </div>
 
-                {/* Acciones del Sistema */}
-                <div className="bg-white rounded-lg shadow p-6">
-                    <h2 className="text-xl font-semibold text-gray-900 mb-4">Acciones del Sistema</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <button className="flex items-center p-3 text-left border rounded-lg hover:bg-gray-50 transition-colors">
-                            <svg className="w-5 h-5 text-gray-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                            </svg>
-                            <div>
-                                <p className="font-medium text-gray-900">Ver Reportes</p>
-                                <p className="text-sm text-gray-600">Estadísticas de ventas</p>
-                            </div>
-                        </button>
-
-                        <button className="flex items-center p-3 text-left border rounded-lg hover:bg-gray-50 transition-colors">
-                            <svg className="w-5 h-5 text-gray-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                            </svg>
-                            <div>
-                                <p className="font-medium text-gray-900">Configuración</p>
-                                <p className="text-sm text-gray-600">Ajustes de perfil</p>
-                            </div>
-                        </button>
-                    </div>
-                </div>
 
                 {/* Botón de Logout */}
                 <div className="mt-8 flex justify-end">

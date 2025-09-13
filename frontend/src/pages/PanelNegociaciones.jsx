@@ -18,6 +18,7 @@ const PanelNegociaciones = () => {
     const [showActualizarEtapaModal, setShowActualizarEtapaModal] = useState(false);
     const [showHistorialModal, setShowHistorialModal] = useState(false);
     const [showArchivosModal, setShowArchivosModal] = useState(false);
+    const [showEtapasInfo, setShowEtapasInfo] = useState(false);
     const [negociacionSeleccionada, setNegociacionSeleccionada] = useState(null);
     const [filtros, setFiltros] = useState({
         search: '',
@@ -208,14 +209,23 @@ const PanelNegociaciones = () => {
                             onClick={() => setShowCrearModal(true)}
                             className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-3 rounded-lg shadow-lg transition-all duration-200 transform hover:scale-105"
                         >
-                            🤝 Crear Negociación
+                            Crear Negociación
                         </button>
                     </div>
                 </div>
 
                 {/* Filtros */}
                 <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Filtros</h3>
+                    <div className="flex justify-between items-center mb-4">
+                        <h3 className="text-lg font-semibold text-gray-900">Filtros</h3>
+                        <button
+                            onClick={() => setShowEtapasInfo(true)}
+                            className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center gap-1"
+                        >
+                            <span>i</span>
+                            ¿Qué significa cada etapa?
+                        </button>
+                    </div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         {/* Búsqueda */}
                         <div>
@@ -276,7 +286,7 @@ const PanelNegociaciones = () => {
                                         Etapa
                                     </th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Fecha Inicio
+                                        Fecha
                                     </th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Agente
@@ -333,43 +343,34 @@ const PanelNegociaciones = () => {
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                             <div className="flex justify-end gap-2">
-                                                {/* Botón Ver Historial - para todos */}
                                                 <button
                                                     onClick={() => handleVerHistorial(negociacion)}
                                                     className="text-green-600 hover:text-green-900 transition duration-200"
                                                     title="Ver historial de seguimientos"
                                                 >
-                                                    📋 Historial
+                                                    Historial
                                                 </button>
                                                 
-                                                {/* Botón Ver Archivos - solo para agentes responsables y admin */}
                                                 {(usuario?.rol === 'admin' || (usuario?.rol === 'agente' && negociacion.agenteId === usuario?.id)) && (
                                                     <button
                                                         onClick={() => handleVerArchivos(negociacion)}
                                                         className="text-purple-600 hover:text-purple-900 transition duration-200"
                                                         title="Ver archivos adjuntos"
                                                     >
-                                                        📎 Archivos
+                                                        Archivos
                                                     </button>
                                                 )}
                                                 
-                                                {/* Botón Actualizar Etapa - solo para agentes responsables */}
                                                 {usuario?.rol === 'agente' && negociacion.agenteId === usuario?.id && (
                                                     <button
                                                         onClick={() => handleActualizarEtapa(negociacion)}
                                                         className="text-indigo-600 hover:text-indigo-900 transition duration-200"
                                                         title="Actualizar etapa de la negociación"
                                                     >
-                                                        🔄 Etapa
+                                                        Etapa
                                                     </button>
                                                 )}
                                                 
-                                                <button
-                                                    onClick={() => navigate(`/editar-negociacion/${negociacion.id}`)}
-                                                    className="text-blue-600 hover:text-blue-900 transition duration-200"
-                                                >
-                                                    Editar
-                                                </button>
                                                 <button
                                                     onClick={() => handleDesactivar(negociacion)}
                                                     className="text-red-600 hover:text-red-900 transition duration-200"
@@ -438,7 +439,6 @@ const PanelNegociaciones = () => {
                 {/* Mensaje cuando no hay negociaciones */}
                 {negociaciones.length === 0 && !loading && (
                     <div className="text-center py-12">
-                        <div className="text-6xl mb-4">🤝</div>
                         <h3 className="text-lg font-medium text-gray-900 mb-2">
                             No hay negociaciones
                         </h3>
@@ -468,7 +468,7 @@ const PanelNegociaciones = () => {
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
                     <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md border border-gray-200 transition-all duration-300">
                         <h3 className="text-xl font-bold text-center text-red-700 mb-4 flex items-center justify-center gap-2">
-                            <span className="text-2xl">⚠️</span> Desactivar Negociación
+                            <span className="text-2xl">!</span> Desactivar Negociación
                         </h3>
                         <div className="text-gray-700 text-center mb-6">
                             <p className="mb-3">
@@ -510,7 +510,7 @@ const PanelNegociaciones = () => {
                         {/* Header */}
                         <div className="flex justify-between items-center p-6 border-b border-gray-200">
                             <h3 className="text-xl font-bold text-blue-800 flex items-center gap-2">
-                                <span className="text-2xl">🔄</span>
+                                <span className="text-2xl">↻</span>
                                 Actualizar Etapa
                             </h3>
                             <button
@@ -564,7 +564,7 @@ const PanelNegociaciones = () => {
                         <div className="flex justify-between items-center p-6 border-b border-gray-200">
                             <div>
                                 <h3 className="text-xl font-bold text-green-800 flex items-center gap-2">
-                                    <span className="text-2xl">📋</span>
+                                    <span className="text-2xl">📄</span>
                                     Historial de Seguimientos
                                 </h3>
                                 <p className="text-sm text-gray-600 mt-1">
@@ -611,6 +611,135 @@ const PanelNegociaciones = () => {
                     esAgenteResponsable={usuario?.rol === 'agente' && negociacionSeleccionada?.agenteId === usuario?.id}
                     esAdmin={usuario?.rol === 'admin'}
                 />
+            )}
+
+            {/* Modal de Información de Etapas */}
+            {showEtapasInfo && (
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] border border-gray-200 flex flex-col">
+                        {/* Header */}
+                        <div className="flex justify-between items-center p-6 border-b border-gray-200 flex-shrink-0">
+                            <h3 className="text-xl font-bold text-blue-800 flex items-center gap-2">
+                                <span className="text-2xl">i</span>
+                                Etapas de Negociación
+                            </h3>
+                            <button
+                                onClick={() => setShowEtapasInfo(false)}
+                                className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-full hover:bg-gray-100"
+                            >
+                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+
+                        {/* Contenido - Scrollable */}
+                        <div className="p-6 overflow-y-auto flex-1">
+                            <div className="space-y-4">
+                                {/* Etapa: Interés */}
+                                <div className="flex items-start gap-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                                    <span className="inline-flex px-3 py-1 text-sm font-semibold rounded-full bg-blue-100 text-blue-800 flex-shrink-0">
+                                        Interés
+                                    </span>
+                                    <div className="flex-1 min-w-0">
+                                        <h4 className="font-semibold text-gray-900 mb-1">Etapa de Interés</h4>
+                                        <p className="text-sm text-gray-600">
+                                            El cliente ha mostrado interés inicial en la propiedad. Se ha establecido contacto y se están recopilando los primeros datos del cliente.
+                                        </p>
+                                        <div className="mt-2 text-xs text-gray-500">
+                                            <strong>Acciones típicas:</strong> Contacto inicial, recopilación de datos, presentación de la propiedad
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Etapa: Negociación */}
+                                <div className="flex items-start gap-4 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                                    <span className="inline-flex px-3 py-1 text-sm font-semibold rounded-full bg-yellow-100 text-yellow-800 flex-shrink-0">
+                                        Negociación
+                                    </span>
+                                    <div className="flex-1 min-w-0">
+                                        <h4 className="font-semibold text-gray-900 mb-1">Etapa de Negociación</h4>
+                                        <p className="text-sm text-gray-600">
+                                            Se están discutiendo los términos de la transacción. Incluye negociación de precio, condiciones de pago, y otros aspectos del acuerdo.
+                                        </p>
+                                        <div className="mt-2 text-xs text-gray-500">
+                                            <strong>Acciones típicas:</strong> Negociación de precio, condiciones, visitas adicionales, documentación
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Etapa: Cierre */}
+                                <div className="flex items-start gap-4 p-4 bg-purple-50 rounded-lg border border-purple-200">
+                                    <span className="inline-flex px-3 py-1 text-sm font-semibold rounded-full bg-purple-100 text-purple-800 flex-shrink-0">
+                                        Cierre
+                                    </span>
+                                    <div className="flex-1 min-w-0">
+                                        <h4 className="font-semibold text-gray-900 mb-1">Etapa de Cierre</h4>
+                                        <p className="text-sm text-gray-600">
+                                            Se han acordado los términos finales y se está procediendo con la documentación legal y los trámites necesarios para completar la transacción.
+                                        </p>
+                                        <div className="mt-2 text-xs text-gray-500">
+                                            <strong>Acciones típicas:</strong> Documentación legal, firmas, trámites bancarios, notarización
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Etapa: Finalizada */}
+                                <div className="flex items-start gap-4 p-4 bg-green-50 rounded-lg border border-green-200">
+                                    <span className="inline-flex px-3 py-1 text-sm font-semibold rounded-full bg-green-100 text-green-800 flex-shrink-0">
+                                        Finalizada
+                                    </span>
+                                    <div className="flex-1 min-w-0">
+                                        <h4 className="font-semibold text-gray-900 mb-1">Negociación Finalizada</h4>
+                                        <p className="text-sm text-gray-600">
+                                            La transacción se ha completado exitosamente. Todos los documentos han sido firmados y la propiedad ha sido transferida.
+                                        </p>
+                                        <div className="mt-2 text-xs text-gray-500">
+                                            <strong>Acciones típicas:</strong> Entrega de llaves, registro de propiedad, seguimiento post-venta
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Etapa: Cancelada */}
+                                <div className="flex items-start gap-4 p-4 bg-red-50 rounded-lg border border-red-200">
+                                    <span className="inline-flex px-3 py-1 text-sm font-semibold rounded-full bg-red-100 text-red-800 flex-shrink-0">
+                                        Cancelada
+                                    </span>
+                                    <div className="flex-1 min-w-0">
+                                        <h4 className="font-semibold text-gray-900 mb-1">Negociación Cancelada</h4>
+                                        <p className="text-sm text-gray-600">
+                                            La negociación ha sido cancelada por alguna razón. Puede ser por decisión del cliente, problemas con la propiedad, o cualquier otra circunstancia.
+                                        </p>
+                                        <div className="mt-2 text-xs text-gray-500">
+                                            <strong>Acciones típicas:</strong> Documentación de cancelación, devolución de documentos, seguimiento de razones
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Información adicional */}
+                            <div className="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                                <h4 className="font-semibold text-gray-900 mb-2">Consejos para el seguimiento</h4>
+                                <ul className="text-sm text-gray-600 space-y-1">
+                                    <li>• Actualiza la etapa cuando haya cambios significativos en la negociación</li>
+                                    <li>• Registra todos los seguimientos y comunicaciones importantes</li>
+                                    <li>• Mantén los archivos y documentos organizados</li>
+                                    <li>• Comunica claramente el estado a todas las partes involucradas</li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        {/* Footer - Fixed */}
+                        <div className="flex justify-end p-6 border-t border-gray-200 flex-shrink-0 bg-white">
+                            <button
+                                onClick={() => setShowEtapasInfo(false)}
+                                className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-2 rounded-lg transition-colors shadow-sm"
+                            >
+                                Entendido
+                            </button>
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     );

@@ -13,16 +13,28 @@ export const subirArchivo = async (req, res) => {
         const { negociacionId, tipo } = req.body;
         const agenteId = req.usuario.id;
 
-        // Verificar que la negociación existe y el usuario es el agente responsable
+        console.log('Debug - Usuario:', req.usuario);
+        console.log('Debug - NegociacionId:', negociacionId);
+        console.log('Debug - AgenteId:', agenteId);
+
+        // Verificar que la negociación existe
         const negociacion = await prisma.negociacion.findFirst({
             where: {
                 id: parseInt(negociacionId),
-                agenteId: agenteId,
                 activo: true
             }
         });
 
+        console.log('Debug - Negociacion encontrada:', negociacion);
+
         if (!negociacion) {
+            return res.status(404).json({
+                error: 'Negociación no encontrada o inactiva'
+            });
+        }
+
+        // Verificar permisos: admin puede subir a cualquier negociación, agente solo a las suyas
+        if (req.usuario.rol !== 'admin' && negociacion.agenteId !== agenteId) {
             return res.status(403).json({
                 error: 'No tienes permisos para subir archivos a esta negociación'
             });

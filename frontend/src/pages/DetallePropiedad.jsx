@@ -6,6 +6,7 @@ import axios from 'axios';
 import LayoutPublic from '../components/LayoutPublic';
 import CardPropiedadPublica from '../components/CardPropiedadPublica';
 import Recomendaciones from '../components/Recomendaciones';
+import FavoritoIcon from '../components/FavoritoIcon';
 import { toast } from 'sonner';
 
 export default function DetallePropiedad() {
@@ -208,6 +209,13 @@ export default function DetallePropiedad() {
                         <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
                             {/* Main Image */}
                             <div className="relative">
+                                {/* Botón de favoritos */}
+                                <FavoritoIcon 
+                                    propiedadId={propiedad.id}
+                                    isFavorito={favoritos.some(fav => fav.propiedadId === propiedad.id)}
+                                    onToggle={handleFavoritoToggle}
+                                />
+                                
                         <img
                             src={propiedad.imagenes[imagenSeleccionada]?.url.startsWith('http') 
                     ? propiedad.imagenes[imagenSeleccionada].url 

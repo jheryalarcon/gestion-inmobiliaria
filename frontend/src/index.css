@@ -166,3 +166,23 @@
   left: 100%;
 }
 
+/* Animación para skeleton loading */
+@keyframes skeleton-loading {
+  0% {
+    opacity: 1;
+    background-color: #e5e7eb;
+  }
+  50% {
+    opacity: 0.5;
+    background-color: #f3f4f6;
+  }
+  100% {
+    opacity: 1;
+    background-color: #e5e7eb;
+  }
+}
+
+.skeleton-loading {
+  animation: skeleton-loading 1.5s ease-in-out infinite;
+}
+

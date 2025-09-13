@@ -100,24 +100,7 @@ export default function LayoutPublic({ children }) {
     };
 
     return (
-        <>
-            <style jsx>{`
-                @keyframes skeleton-loading {
-                    0% {
-                        opacity: 1;
-                        background-color: #e5e7eb;
-                    }
-                    50% {
-                        opacity: 0.5;
-                        background-color: #f3f4f6;
-                    }
-                    100% {
-                        opacity: 1;
-                        background-color: #e5e7eb;
-                    }
-                }
-            `}</style>
-            <div className="min-h-screen flex flex-col bg-gray-50">
+        <div className="min-h-screen flex flex-col bg-gray-50">
             {/* Header */}
             <header className="bg-white shadow-sm border-b border-gray-200">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -166,15 +149,9 @@ export default function LayoutPublic({ children }) {
                             {usuarioCargando ? (
                                 /* Estado de carga - Skeleton que coincide con el dropdown */
                                 <div className="flex items-center space-x-2 text-gray-700 px-3 py-2 rounded-md text-sm font-medium">
-                                    <div className="w-8 h-8 bg-gray-200 rounded-full animate-pulse" style={{
-                                        animation: 'skeleton-loading 1.5s ease-in-out infinite'
-                                    }}></div>
-                                    <div className="hidden md:block w-32 h-4 bg-gray-200 rounded animate-pulse" style={{
-                                        animation: 'skeleton-loading 1.5s ease-in-out infinite 0.2s'
-                                    }}></div>
-                                    <div className="w-4 h-4 bg-gray-200 rounded animate-pulse" style={{
-                                        animation: 'skeleton-loading 1.5s ease-in-out infinite 0.4s'
-                                    }}></div>
+                                    <div className="w-8 h-8 bg-gray-200 rounded-full animate-pulse"></div>
+                                    <div className="hidden md:block w-32 h-4 bg-gray-200 rounded animate-pulse"></div>
+                                    <div className="w-4 h-4 bg-gray-200 rounded animate-pulse"></div>
                                 </div>
                             ) : usuario ? (
                                 /* Usuario logueado - Dropdown */
@@ -197,31 +174,25 @@ export default function LayoutPublic({ children }) {
                                         </svg>
                                     </button>
 
-                                    {/* Dropdown Menu */}
+                                    {/* Dropdown menu */}
                                     {dropdownAbierto && (
-                                        <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg border border-gray-200 z-50">
+                                        <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
+                                            <div className="px-4 py-2 border-b border-gray-100">
+                                                <p className="text-sm font-medium text-gray-900">{usuario.name || 'Usuario'}</p>
+                                                <p className="text-xs text-gray-500">{usuario.email}</p>
+                                            </div>
+                                            
                                             <div className="py-1">
-                                                {/* Información del usuario */}
-                                                <div className="px-4 py-2 border-b border-gray-100">
-                                                    <p className="text-sm font-medium text-gray-900">{usuario.name}</p>
-                                                    <p className="text-xs text-gray-500">{usuario.email}</p>
-                                                    <p className="text-xs text-blue-600 capitalize">{usuario.rol}</p>
-                                                </div>
+                                                <button
+                                                    onClick={handleIrAFavoritos}
+                                                    className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                                                >
+                                                    <svg className="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                                                    </svg>
+                                                    Mis Favoritos
+                                                </button>
 
-                                                {/* Opciones según el rol */}
-                                                {usuario.rol === 'cliente' && (
-                                                    <button
-                                                        onClick={handleIrAFavoritos}
-                                                        className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
-                                                    >
-                                                        <svg className="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                                                        </svg>
-                                                        Mis Favoritos
-                                                    </button>
-                                                )}
-
-                                                {/* Solo mostrar "Mi Panel" para admin y agente */}
                                                 {(usuario.rol === 'admin' || usuario.rol === 'agente') && (
                                                     <button
                                                         onClick={handleIrAPanel}
@@ -277,63 +248,56 @@ export default function LayoutPublic({ children }) {
             </main>
 
             {/* Footer */}
-            <footer className="bg-gray-900 text-white">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+            <footer className="bg-gray-800 text-white py-12">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-                        {/* Información de la empresa */}
                         <div className="col-span-1 md:col-span-2">
                             <div className="flex items-center space-x-3 mb-4">
-                                <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+                                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
                                     </svg>
                                 </div>
                                 <div>
-                                    <h3 className="text-lg font-semibold">Inmobiliaria</h3>
+                                    <h3 className="text-lg font-bold">Inmobiliaria</h3>
                                     <p className="text-sm text-gray-400">Sistema Inmobiliario</p>
                                 </div>
                             </div>
-                            <p className="text-gray-400 text-sm leading-relaxed">
-                                Tu socio confiable en el mercado inmobiliario. Ofrecemos las mejores propiedades 
-                                con un servicio personalizado y profesional.
+                            <p className="text-gray-300 text-sm mb-4">
+                                Encuentra tu hogar ideal con nuestro sistema inmobiliario completo. 
+                                Propiedades de calidad en las mejores ubicaciones.
                             </p>
                         </div>
-
-                        {/* Enlaces rápidos */}
+                        
                         <div>
-                            <h4 className="text-sm font-semibold text-white uppercase tracking-wider mb-4">
-                                Enlaces Rápidos
-                            </h4>
+                            <h4 className="text-lg font-semibold mb-4">Enlaces Rápidos</h4>
                             <ul className="space-y-2">
                                 <li>
-                                    <Link to="/" className="text-gray-400 hover:text-white text-sm transition-colors">
+                                    <Link to="/" className="text-gray-300 hover:text-white text-sm transition-colors">
                                         Inicio
                                     </Link>
                                 </li>
                                 <li>
-                                    <Link to="/propiedades" className="text-gray-400 hover:text-white text-sm transition-colors">
+                                    <Link to="/propiedades" className="text-gray-300 hover:text-white text-sm transition-colors">
                                         Propiedades
                                     </Link>
                                 </li>
                                 <li>
-                                    <Link to="/login" className="text-gray-400 hover:text-white text-sm transition-colors">
+                                    <Link to="/login" className="text-gray-300 hover:text-white text-sm transition-colors">
                                         Iniciar Sesión
                                     </Link>
                                 </li>
                                 <li>
-                                    <Link to="/registro" className="text-gray-400 hover:text-white text-sm transition-colors">
+                                    <Link to="/registro" className="text-gray-300 hover:text-white text-sm transition-colors">
                                         Registrarse
                                     </Link>
                                 </li>
                             </ul>
                         </div>
-
-                        {/* Información de contacto */}
+                        
                         <div>
-                            <h4 className="text-sm font-semibold text-white uppercase tracking-wider mb-4">
-                                Contacto
-                            </h4>
-                            <ul className="space-y-2 text-sm text-gray-400">
+                            <h4 className="text-lg font-semibold mb-4">Contacto</h4>
+                            <ul className="space-y-2 text-sm text-gray-300">
                                 <li className="flex items-center space-x-2">
                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
@@ -351,17 +315,16 @@ export default function LayoutPublic({ children }) {
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                                     </svg>
-                                    <span>Santo Domingo de los Tsachilas, Ecuador</span>
+                                    <span>Cuenca, Ecuador</span>
                                 </li>
                             </ul>
                         </div>
                     </div>
-
-                    {/* Línea divisoria */}
-                    <div className="border-t border-gray-800 mt-8 pt-8">
+                    
+                    <div className="border-t border-gray-700 mt-8 pt-8">
                         <div className="flex flex-col md:flex-row justify-between items-center">
                             <p className="text-gray-400 text-sm">
-                                © 2025 Inmobiliaria. Todos los derechos reservados.
+                                © 2024 Inmobiliaria. Todos los derechos reservados.
                             </p>
                             <div className="flex space-x-6 mt-4 md:mt-0">
                                 <a href="#" className="text-gray-400 hover:text-white text-sm transition-colors">
@@ -376,6 +339,5 @@ export default function LayoutPublic({ children }) {
                 </div>
             </footer>
         </div>
-        </>
     );
 }

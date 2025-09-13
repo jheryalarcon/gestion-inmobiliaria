@@ -99,6 +99,11 @@ export default function Home() {
         }
     };
 
+    // Función para ir al inicio de la página
+    const scrollToTop = () => {
+        window.scrollTo(0, 0);
+    };
+
     return (
         <LayoutPublic>
             <div className="min-h-screen bg-gray-50">
@@ -135,14 +140,20 @@ export default function Home() {
                         )}
                         <div className="flex flex-col sm:flex-row gap-4 justify-center">
                             <button 
-                                onClick={() => navigate('/propiedades')}
+                                onClick={() => {
+                                    navigate('/propiedades');
+                                    scrollToTop();
+                                }}
                                 className="bg-white text-blue-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition"
                             >
                                 Ver todas las propiedades
                             </button>
                             {usuario ? (
                                 <button 
-                                    onClick={() => navigate('/favoritos')}
+                                    onClick={() => {
+                                        navigate('/favoritos');
+                                        scrollToTop();
+                                    }}
                                     className="border-2 border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-white hover:text-blue-600 transition"
                                 >
                                     Mis Favoritos
@@ -202,7 +213,10 @@ export default function Home() {
                             {/* Ver más propiedades */}
                             <div className="text-center mt-12">
                                                             <button 
-                                onClick={() => navigate('/propiedades')}
+                                onClick={() => {
+                                    navigate('/propiedades');
+                                    scrollToTop();
+                                }}
                                 className="bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-700 transition"
                             >
                                 Ver todas las propiedades

@@ -19,6 +19,11 @@ export default function Recomendaciones({ favoritos, onFavoritoToggle }) {
     const [isHovered, setIsHovered] = useState(false);
     const navigate = useNavigate();
 
+    // Función para ir al inicio de la página
+    const scrollToTop = () => {
+        window.scrollTo(0, 0);
+    };
+
     useEffect(() => {
         cargarRecomendaciones();
         
@@ -55,7 +60,7 @@ export default function Recomendaciones({ favoritos, onFavoritoToggle }) {
             } else if (window.innerWidth < 1024) {
                 setItemsPerView(2); // Tablet: 2 elementos
             } else {
-                setItemsPerView(3); // Desktop: 3 elementos
+                setItemsPerView(2); // Desktop: 2 elementos (temporal para mostrar flechas)
             }
         };
 
@@ -263,7 +268,10 @@ export default function Recomendaciones({ favoritos, onFavoritoToggle }) {
                         </div>
 
                         <button 
-                            onClick={() => navigate('/propiedades')}
+                            onClick={() => {
+                                navigate('/propiedades');
+                                scrollToTop();
+                            }}
                             className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-6 py-2 rounded-lg font-semibold transition-all duration-200 shadow-lg"
                         >
                             Explorar propiedades
@@ -292,7 +300,10 @@ export default function Recomendaciones({ favoritos, onFavoritoToggle }) {
                             {mensaje || "No encontramos propiedades similares a tus favoritas"}
                         </p>
                         <button 
-                            onClick={() => navigate('/propiedades')}
+                            onClick={() => {
+                                navigate('/propiedades');
+                                scrollToTop();
+                            }}
                             className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-8 py-3 rounded-lg font-semibold transition-all duration-200 transform hover:scale-105 shadow-lg"
                         >
                             Ver todas las propiedades
@@ -336,8 +347,11 @@ export default function Recomendaciones({ favoritos, onFavoritoToggle }) {
                     
                     <div className="overflow-hidden">
                         <div 
-                            className={`flex gap-6 transition-transform duration-300 ease-in-out ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
-                            style={{ transform: `translateX(-${currentSlide * (100 / itemsPerView)}%)` }}
+                            className={`flex transition-transform duration-300 ease-in-out ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
+                            style={{ 
+                                transform: `translateX(-${currentSlide * (100 / itemsPerView)}%)`,
+                                gap: '1.5rem'
+                            }}
                             onMouseDown={handleMouseDown}
                             onMouseLeave={handleMouseLeave}
                             onMouseUp={handleMouseUp}
@@ -347,7 +361,14 @@ export default function Recomendaciones({ favoritos, onFavoritoToggle }) {
                             onTouchEnd={handleTouchEnd}
                         >
                             {recomendaciones.map((propiedad) => (
-                                <div key={propiedad.id} className="flex-shrink-0" style={{ width: `${100 / itemsPerView}%` }}>
+                                <div 
+                                    key={propiedad.id} 
+                                    className="flex-shrink-0" 
+                                    style={{ 
+                                        width: `calc(${100 / itemsPerView}% - ${1.5 * (itemsPerView - 1) / itemsPerView}rem)`,
+                                        minWidth: '300px'
+                                    }}
+                                >
                                     <CardPropiedadPublica 
                                         propiedad={propiedad}
                                         favoritos={favoritos}

@@ -11,6 +11,11 @@ export default function CardPropiedadPublica({ propiedad, className = '', favori
     // Verificar si la propiedad está en favoritos
     const isFavorito = favoritos.some(fav => fav.propiedadId === propiedad.id);
 
+    // Función para ir al inicio de la página
+    const handleCardClick = () => {
+        window.scrollTo(0, 0);
+    };
+
     return (
         <div className={`${className} relative block bg-white rounded-lg shadow-md hover:shadow-2xl transition-all duration-300 overflow-hidden group border border-gray-100 hover:border-gray-200 h-full flex flex-col`}>
             {/* Icono de favorito */}
@@ -20,7 +25,7 @@ export default function CardPropiedadPublica({ propiedad, className = '', favori
                 onToggle={onFavoritoToggle}
             />
 
-            <Link to={`/propiedad/${propiedad.id}`} className="block">
+            <Link to={`/propiedad/${propiedad.id}`} className="block" onClick={handleCardClick}>
                 {/* Imagen con tamaño fijo */}
                 <div className="relative overflow-hidden bg-gray-100">
                     <div className="w-full h-56 flex items-center justify-center">
