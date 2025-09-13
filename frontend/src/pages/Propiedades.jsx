@@ -155,7 +155,7 @@ export default function Propiedades() {
                             Propiedades disponibles
                         </h1>
                         <p className="text-xl text-blue-100">
-                            Encuentra tu hogar ideal con nuestros filtros avanzados
+                            Encuentra tu inmueble ideal con nuestros filtros avanzados
                         </p>
                     </div>
                 </section>

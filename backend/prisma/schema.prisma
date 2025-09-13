@@ -19,7 +19,7 @@ model Usuario {
   id          Int         @id @default(autoincrement())
   name        String // nombre de la persona
   email       String      @unique
-  telefono    String // teléfono de contacto (obligatorio)
+  telefono    String? // teléfono de contacto (opcional para clientes, obligatorio para admin/agente)
   password    String
   rol         Rol // "cliente", "agente", "admin"
   activo      Boolean     @default(true) //permite desactivar cuentas sin borrarlas

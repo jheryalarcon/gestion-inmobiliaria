@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate, Link } from 'react-router-dom';
-import { EnvelopeIcon, LockClosedIcon, UserIcon } from  '@heroicons/react/24/solid';
+import { EnvelopeIcon, LockClosedIcon, UserIcon, PhoneIcon } from  '@heroicons/react/24/solid';
 import { jwtDecode } from 'jwt-decode';
 import { toast } from 'sonner';
 import LayoutPublic from '../components/LayoutPublic';
@@ -10,6 +10,7 @@ export default function Registro() {
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [telefono, setTelefono] = useState('');
     const [mensaje, setMensaje] = useState('');
     const [errores, setErrores] = useState({});
     const navigate = useNavigate();
@@ -40,6 +41,10 @@ export default function Registro() {
         if (!name.trim()) nuevosErrores.name = 'El nombre es obligatorio';
         if (!email.trim()) nuevosErrores.email = 'El correo es obligatorio';
         else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) nuevosErrores.email = 'Correo inválido';
+        // Validar teléfono solo si se proporciona (opcional)
+        if (telefono.trim() && !/^[0-9]{10}$/.test(telefono.replace(/\s/g, ''))) {
+            nuevosErrores.telefono = 'El teléfono debe tener 10 dígitos';
+        }
         if (!password.trim()) nuevosErrores.password = 'La contraseña es obligatoria';
         else if (password.length < 6) nuevosErrores.password = 'Debe tener al menos 6 carácteres';
 
@@ -53,13 +58,22 @@ export default function Registro() {
                 name: name.trim(),
                 email: email.trim().toLowerCase(),
                 password,
+                telefono: telefono.trim() || undefined, // Enviar undefined si está vacío
             });
 
-            const { token } = res.data;
+            const { token, usuario } = res.data;
 
-            if (token) {
+            if (token && usuario) {
                 localStorage.setItem('token', token); // Guarda el token
-                toast.success('¡Cuenta creada exitosamente! Serás redirigido al inicio en unos segundos...', { duration: 2000 });
+                localStorage.setItem('usuario', JSON.stringify(usuario)); // Guarda los datos del usuario
+                
+                // Disparar evento para actualizar otros componentes
+                window.dispatchEvent(new Event('authChange'));
+                
+                toast.success('¡Cuenta creada exitosamente!', { 
+                    duration: 3000,
+                    description: 'Serás redirigido al inicio en unos segundos...'
+                });
                 setTimeout(() => {
                     navigate('/'); // Redirige al inicio
                 }, 2000);
@@ -109,6 +123,22 @@ export default function Registro() {
                                 }`}
                             />
                             {errores.email && <p className="text-xs text-red-600 mt-1">{errores.email}</p>}
+                        </div>
+
+                        {/* Teléfono */}
+                        <div className="relative">
+                            <PhoneIcon className="w-5 h-5 text-gray-400 absolute left-3 top-3.5" />
+                            <input
+                                type="tel"
+                                placeholder="Teléfono (opcional)"
+                                value={telefono}
+                                onChange={(e) => setTelefono(e.target.value)}
+                                className={`w-full pl-10 pr-3 py-2 border rounded focus:outline-none focus:ring-2 ${
+                                    errores.telefono ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-500'
+                                }`}
+                            />
+                            {errores.telefono && <p className="text-xs text-red-600 mt-1">{errores.telefono}</p>}
+                            
                         </div>
 
                         {/* Contraseña */}

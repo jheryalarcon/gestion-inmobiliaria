@@ -38,7 +38,7 @@ export default function RegistrarAgente() {
         try {
             const decoded = jwtDecode(token);
             if (decoded.rol !== 'admin') {
-                toast.error('No tienes permisos para acceder a esta página');
+                toast.error('No tienes permisos para acceder a esta página', { duration: 3000 });
                 navigate('/admin');
                 return;
             }
@@ -168,16 +168,17 @@ export default function RegistrarAgente() {
             const data = await response.json();
 
             if (response.ok) {
-                toast.success(data.mensaje);
+                toast.success(data.mensaje, { duration: 3000 });
                 
                 // Mostrar credenciales del agente creado
-                toast.success(`Credenciales del agente: ${datos.email} / ${datos.password}`, {
-                    duration: 10000,
+                toast.success('Agente creado exitosamente', {
+                    duration: 6000,
+                    description: `Email: ${datos.email} | Contraseña: ${datos.password}`,
                     action: {
                         label: 'Copiar',
                         onClick: () => {
                             navigator.clipboard.writeText(`Email: ${datos.email}\nContraseña: ${datos.password}`);
-                            toast.success('Credenciales copiadas al portapapeles');
+                            toast.success('Credenciales copiadas', { duration: 2000 });
                         }
                     }
                 });
@@ -197,11 +198,11 @@ export default function RegistrarAgente() {
                     navigate('/admin/panel-agentes');
                 }, 2000);
             } else {
-                toast.error(data.error || 'Error al crear el agente');
+                toast.error(data.error || 'Error al crear el agente', { duration: 4000 });
             }
         } catch (error) {
             console.error('Error:', error);
-            toast.error('Error de conexión al crear el agente');
+            toast.error('Error de conexión al crear el agente', { duration: 4000 });
         } finally {
             setSubmitting(false);
         }

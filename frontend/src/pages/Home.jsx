@@ -11,11 +11,52 @@ export default function Home() {
     const [favoritos, setFavoritos] = useState([]);
     const [cargando, setCargando] = useState(true);
     const [error, setError] = useState('');
+    const [usuario, setUsuario] = useState(null);
+    const [usuarioCargando, setUsuarioCargando] = useState(true);
 
     useEffect(() => {
         cargarPropiedades();
         cargarFavoritos();
+        cargarUsuario();
+
+        // Escuchar cambios de autenticación
+        const handleAuthChange = () => {
+            setUsuarioCargando(true);
+            cargarUsuario();
+            cargarFavoritos();
+        };
+
+        window.addEventListener('authChange', handleAuthChange);
+        return () => window.removeEventListener('authChange', handleAuthChange);
     }, []);
+
+    const cargarUsuario = () => {
+        const token = localStorage.getItem('token');
+        const usuarioData = localStorage.getItem('usuario');
+        
+        if (token && usuarioData) {
+            try {
+                const usuarioCompleto = JSON.parse(usuarioData);
+                
+                // Corregir datos antiguos: si tiene 'nombre' en lugar de 'name'
+                if (usuarioCompleto.nombre && !usuarioCompleto.name) {
+                    usuarioCompleto.name = usuarioCompleto.nombre;
+                    delete usuarioCompleto.nombre;
+                    
+                    // Actualizar localStorage con los datos corregidos
+                    localStorage.setItem('usuario', JSON.stringify(usuarioCompleto));
+                }
+                
+                setUsuario(usuarioCompleto);
+            } catch (error) {
+                console.error('Error al cargar usuario:', error);
+                setUsuario(null);
+            }
+        } else {
+            setUsuario(null);
+        }
+        setUsuarioCargando(false);
+    };
 
     const cargarPropiedades = async () => {
         try {
@@ -64,12 +105,34 @@ export default function Home() {
                 {/* Hero Section */}
                 <section className="bg-gradient-to-r from-blue-600 to-blue-800 text-white py-20">
                     <div className="max-w-7xl mx-auto px-4 text-center">
-                        <h1 className="text-4xl md:text-6xl font-bold mb-6">
-                            Encuentra tu hogar ideal
-                        </h1>
-                        <p className="text-xl md:text-2xl mb-8 text-blue-100">
-                            Las mejores propiedades en las ubicaciones más exclusivas
-                        </p>
+                        {usuarioCargando ? (
+                            <>
+                                <h1 className="text-4xl md:text-6xl font-bold mb-6">
+                                    Cargando...
+                                </h1>
+                                <p className="text-xl md:text-2xl mb-8 text-blue-100">
+                                    Preparando tu experiencia personalizada
+                                </p>
+                            </>
+                        ) : usuario ? (
+                            <>
+                                <h1 className="text-4xl md:text-6xl font-bold mb-6">
+                                    ¡Bienvenido, {usuario.name || usuario.email || 'Usuario'}!
+                                </h1>
+                                <p className="text-xl md:text-2xl mb-8 text-blue-100">
+                                    Explora las mejores propiedades y guarda tus favoritos
+                                </p>
+                            </>
+                        ) : (
+                            <>
+                                <h1 className="text-4xl md:text-6xl font-bold mb-6">
+                                    Encuentra tu hogar ideal
+                                </h1>
+                                <p className="text-xl md:text-2xl mb-8 text-blue-100">
+                                    Las mejores propiedades en las ubicaciones más exclusivas
+                                </p>
+                            </>
+                        )}
                         <div className="flex flex-col sm:flex-row gap-4 justify-center">
                             <button 
                                 onClick={() => navigate('/propiedades')}
@@ -77,9 +140,18 @@ export default function Home() {
                             >
                                 Ver todas las propiedades
                             </button>
-                            <Link to="/login" className="border-2 border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-white hover:text-blue-600 transition">
-                                Contactar
-                            </Link>
+                            {usuario ? (
+                                <button 
+                                    onClick={() => navigate('/favoritos')}
+                                    className="border-2 border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-white hover:text-blue-600 transition"
+                                >
+                                    Mis Favoritos
+                                </button>
+                            ) : (
+                                <Link to="/login" className="border-2 border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-white hover:text-blue-600 transition">
+                                    Contactar
+                                </Link>
+                            )}
                         </div>
                     </div>
                 </section>
@@ -141,25 +213,27 @@ export default function Home() {
                 </div>
             </section>
 
-            {/* CTA Section */}
-            <section className="bg-gray-100 py-16">
-                <div className="max-w-4xl mx-auto text-center px-4">
-                    <h3 className="text-2xl font-bold text-gray-800 mb-4">
-                        ¿Buscas algo específico?
-                    </h3>
-                    <p className="text-gray-600 mb-8">
-                        Regístrate para guardar tus propiedades favoritas y recibir notificaciones de nuevas ofertas
-                    </p>
-                    <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                        <Link to="/registro" className="bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-700 transition">
-                            Registrarse
-                        </Link>
-                        <Link to="/login" className="border-2 border-blue-600 text-blue-600 px-8 py-3 rounded-lg font-semibold hover:bg-blue-600 hover:text-white transition">
-                            Iniciar sesión
-                        </Link>
+            {/* CTA Section - Solo para usuarios no logueados */}
+            {!usuario && (
+                <section className="bg-gray-100 py-16">
+                    <div className="max-w-4xl mx-auto text-center px-4">
+                        <h3 className="text-2xl font-bold text-gray-800 mb-4">
+                            ¿Buscas algo específico?
+                        </h3>
+                        <p className="text-gray-600 mb-8">
+                            Regístrate para guardar tus propiedades favoritas y recibir notificaciones de nuevas ofertas
+                        </p>
+                        <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                            <Link to="/registro" className="bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-700 transition">
+                                Registrarse
+                            </Link>
+                            <Link to="/login" className="border-2 border-blue-600 text-blue-600 px-8 py-3 rounded-lg font-semibold hover:bg-blue-600 hover:text-white transition">
+                                Iniciar sesión
+                            </Link>
+                        </div>
                     </div>
-                </div>
-            </section>
+                </section>
+            )}
 
             {/* Sección de Recomendaciones */}
             <Recomendaciones 

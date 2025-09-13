@@ -9,6 +9,8 @@ export default function Recomendaciones({ favoritos, onFavoritoToggle }) {
     const [cargando, setCargando] = useState(false);
     const [mensaje, setMensaje] = useState('');
     const [tieneFavoritos, setTieneFavoritos] = useState(false);
+    const [yaCargado, setYaCargado] = useState(false);
+    const [toastPrimerFavoritoMostrado, setToastPrimerFavoritoMostrado] = useState(false);
     const [currentSlide, setCurrentSlide] = useState(0);
     const [itemsPerView, setItemsPerView] = useState(3);
     const [isDragging, setIsDragging] = useState(false);
@@ -19,12 +21,29 @@ export default function Recomendaciones({ favoritos, onFavoritoToggle }) {
 
     useEffect(() => {
         cargarRecomendaciones();
+        
+        // Verificar si ya se mostró el toast del primer favorito
+        const yaMostrado = localStorage.getItem('toast_primer_favorito_mostrado');
+        if (yaMostrado) {
+            setToastPrimerFavoritoMostrado(true);
+        }
     }, []);
 
     // Actualizar recomendaciones cuando cambien los favoritos
     useEffect(() => {
         if (favoritos.length > 0) {
+            setYaCargado(false); // Reset para recargar cuando tenga favoritos
             cargarRecomendaciones();
+            
+            // Mostrar toast de felicitación cuando agregue su primer favorito (solo una vez)
+            if (favoritos.length === 1 && !toastPrimerFavoritoMostrado && !localStorage.getItem('toast_primer_favorito_mostrado')) {
+                toast.success('¡Excelente!', {
+                    duration: 3000,
+                    description: 'Ahora podemos recomendarte propiedades similares'
+                });
+                setToastPrimerFavoritoMostrado(true);
+                localStorage.setItem('toast_primer_favorito_mostrado', 'true');
+            }
         }
     }, [favoritos.length]);
 
@@ -53,6 +72,11 @@ export default function Recomendaciones({ favoritos, onFavoritoToggle }) {
             return; // Solo mostrar recomendaciones a clientes logueados
         }
 
+        // Evitar cargar múltiples veces si ya se cargó y no tiene favoritos
+        if (yaCargado && !tieneFavoritos && favoritos.length === 0) {
+            return;
+        }
+
         try {
             setCargando(true);
             const response = await axios.get('http://localhost:3000/api/propiedades/recomendaciones?limit=6&k=3', {
@@ -63,14 +87,19 @@ export default function Recomendaciones({ favoritos, onFavoritoToggle }) {
             setRecomendaciones(response.data.recomendaciones || []);
             setMensaje(response.data.mensaje || '');
             setTieneFavoritos(response.data.tieneFavoritos || false);
+            setYaCargado(true);
             
-            // Mostrar mensaje informativo si no hay recomendaciones
-            if (response.data.mensaje && response.data.recomendaciones.length === 0) {
-                toast.info(response.data.mensaje);
+            // Mostrar toast de bienvenida solo una vez para usuarios nuevos sin favoritos
+            if (!response.data.tieneFavoritos && !localStorage.getItem('recomendaciones_bienvenida_mostrada')) {
+                toast.success('¡Bienvenido!', {
+                    duration: 3000,
+                    description: 'Explora propiedades y guárdalas como favoritas para recibir recomendaciones personalizadas'
+                });
+                localStorage.setItem('recomendaciones_bienvenida_mostrada', 'true');
             }
         } catch (error) {
             console.error('Error al cargar recomendaciones:', error);
-            toast.error('Error al cargar recomendaciones');
+            toast.error('Error al cargar recomendaciones', { duration: 3000 });
         } finally {
             setCargando(false);
         }
@@ -191,26 +220,51 @@ export default function Recomendaciones({ favoritos, onFavoritoToggle }) {
         );
     }
 
-    // Si no tiene favoritos, mostrar mensaje informativo
+    // Si no tiene favoritos, mostrar sección compacta de bienvenida
     if (!tieneFavoritos) {
         return (
-            <section className="py-16 bg-gradient-to-br from-blue-50 to-indigo-100">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <section className="py-8 bg-gradient-to-br from-blue-50 to-indigo-100">
+                <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="text-center">
-                        <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                            <svg className="w-10 h-10 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+                            <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                             </svg>
                         </div>
                         <h2 className="text-2xl font-bold text-gray-900 mb-4">
                             Recomendaciones personalizadas
                         </h2>
-                        <p className="text-gray-600 text-lg max-w-2xl mx-auto mb-8">
-                            {mensaje || "Aún no podemos recomendarte propiedades. Guarda algunas favoritas primero"}
+                        <p className="text-gray-600 text-lg max-w-2xl mx-auto mb-6">
+                            <span className="font-semibold text-blue-600">Guarda algunas propiedades como favoritas</span> y 
+                            nuestro algoritmo te mostrará inmuebles que te podrían interesar.
                         </p>
+                        
+                        <div className="bg-white rounded-lg p-4 shadow-md max-w-xl mx-auto mb-6">
+                            <div className="flex justify-center items-center space-x-6 text-sm text-gray-600">
+                                <div className="flex items-center space-x-2">
+                                    <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center">
+                                        <span className="text-blue-600 font-bold text-xs">1</span>
+                                    </div>
+                                    <span>Explora</span>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                    <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center">
+                                        <span className="text-blue-600 font-bold text-xs">2</span>
+                                    </div>
+                                    <span>Guarda</span>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                    <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center">
+                                        <span className="text-blue-600 font-bold text-xs">3</span>
+                                    </div>
+                                    <span>Recibe</span>
+                                </div>
+                            </div>
+                        </div>
+
                         <button 
                             onClick={() => navigate('/propiedades')}
-                            className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-8 py-3 rounded-lg font-semibold transition-all duration-200 transform hover:scale-105 shadow-lg"
+                            className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-6 py-2 rounded-lg font-semibold transition-all duration-200 shadow-lg"
                         >
                             Explorar propiedades
                         </button>
@@ -223,7 +277,7 @@ export default function Recomendaciones({ favoritos, onFavoritoToggle }) {
     // Si tiene favoritos pero no hay recomendaciones
     if (recomendaciones.length === 0) {
         return (
-            <section className="py-16 bg-gradient-to-br from-blue-50 to-indigo-100">
+            <section className="py-8 bg-gradient-to-br from-blue-50 to-indigo-100">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="text-center">
                         <div className="w-20 h-20 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -250,9 +304,9 @@ export default function Recomendaciones({ favoritos, onFavoritoToggle }) {
     }
 
     return (
-        <section className="py-16 bg-gradient-to-br from-blue-50 to-indigo-100">
+        <section className="py-8 bg-gradient-to-br from-blue-50 to-indigo-100">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="text-center mb-12">
+                <div className="text-center mb-8">
                     <h2 className="text-3xl font-bold text-gray-900 mb-4">
                         Recomendaciones para ti
                     </h2>
@@ -272,12 +326,12 @@ export default function Recomendaciones({ favoritos, onFavoritoToggle }) {
                 >
                     {/* Sombra izquierda cuando no está en el primer slide */}
                     {currentSlide > 0 && (
-                        <div className="absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-r from-white via-white/80 to-transparent z-20 pointer-events-none"></div>
+                        <div className="absolute left-0 top-0 bottom-0 w-16 bg-gradient-to-r from-white via-white/90 to-transparent z-10 pointer-events-none"></div>
                     )}
                     
                     {/* Sombra derecha cuando no está en el último slide */}
                     {currentSlide < maxSlides && (
-                        <div className="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-white via-white/80 to-transparent z-20 pointer-events-none"></div>
+                        <div className="absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-white via-white/90 to-transparent z-10 pointer-events-none"></div>
                     )}
                     
                     <div className="overflow-hidden">
@@ -304,27 +358,30 @@ export default function Recomendaciones({ favoritos, onFavoritoToggle }) {
                         </div>
                     </div>
 
-                    {/* Botones de navegación mejorados */}
+                    {/* Botones de navegación - Estilo como en la imagen */}
                     {recomendaciones.length > itemsPerView && (
                         <>
+                            {/* Flecha izquierda */}
                             <button
                                 onClick={prevSlide}
                                 disabled={currentSlide === 0}
-                                className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-6 bg-white hover:bg-blue-50 disabled:bg-gray-100 disabled:cursor-not-allowed text-gray-700 hover:text-blue-600 disabled:text-gray-400 w-14 h-14 rounded-full shadow-xl border border-gray-200 hover:border-blue-300 disabled:border-gray-200 flex items-center justify-center transition-all duration-300 z-20 group"
+                                className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-8 bg-white hover:bg-gray-50 disabled:bg-gray-100 disabled:cursor-not-allowed text-gray-600 hover:text-gray-800 disabled:text-gray-300 w-12 h-12 rounded-full shadow-lg border border-gray-200 hover:border-gray-300 disabled:border-gray-100 flex items-center justify-center transition-all duration-200 z-30 group"
                                 aria-label="Anterior"
                             >
-                                <svg className="w-6 h-6 group-hover:scale-110 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
+                                <svg className="w-5 h-5 group-hover:scale-110 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                                 </svg>
                             </button>
+                            
+                            {/* Flecha derecha */}
                             <button
                                 onClick={nextSlide}
                                 disabled={currentSlide >= maxSlides}
-                                className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-6 bg-white hover:bg-blue-50 disabled:bg-gray-100 disabled:cursor-not-allowed text-gray-700 hover:text-blue-600 disabled:text-gray-400 w-14 h-14 rounded-full shadow-xl border border-gray-200 hover:border-blue-300 disabled:border-gray-200 flex items-center justify-center transition-all duration-300 z-20 group"
+                                className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-8 bg-white hover:bg-gray-50 disabled:bg-gray-100 disabled:cursor-not-allowed text-gray-600 hover:text-gray-800 disabled:text-gray-300 w-12 h-12 rounded-full shadow-lg border border-gray-200 hover:border-gray-300 disabled:border-gray-100 flex items-center justify-center transition-all duration-200 z-30 group"
                                 aria-label="Siguiente"
                             >
-                                <svg className="w-6 h-6 group-hover:scale-110 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+                                <svg className="w-5 h-5 group-hover:scale-110 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                                 </svg>
                             </button>
                         </>

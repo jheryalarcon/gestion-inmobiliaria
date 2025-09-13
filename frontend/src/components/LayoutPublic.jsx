@@ -6,41 +6,53 @@ export default function LayoutPublic({ children }) {
     const location = useLocation();
     const navigate = useNavigate();
     const [usuario, setUsuario] = useState(null);
+    const [usuarioCargando, setUsuarioCargando] = useState(true);
     const [dropdownAbierto, setDropdownAbierto] = useState(false);
 
     useEffect(() => {
-        // Verificar si hay un usuario logueado
-        const token = localStorage.getItem('token');
-        const usuarioData = localStorage.getItem('usuario');
-        
-        if (token && usuarioData) {
-            try {
-                const usuarioDecodificado = jwtDecode(token);
-                const usuarioCompleto = JSON.parse(usuarioData);
-                setUsuario(usuarioCompleto);
-            } catch (error) {
-                // Token inválido, limpiar datos
-                localStorage.removeItem('token');
-                localStorage.removeItem('usuario');
-                setUsuario(null);
-            }
-        }
-
-        // Escuchar cambios de autenticación
-        const handleAuthChange = () => {
+        // Función para cargar usuario
+        const cargarUsuario = () => {
             const token = localStorage.getItem('token');
             const usuarioData = localStorage.getItem('usuario');
             
             if (token && usuarioData) {
                 try {
+                    const usuarioDecodificado = jwtDecode(token);
                     const usuarioCompleto = JSON.parse(usuarioData);
+                    
+                    // Corregir datos antiguos: si tiene 'nombre' en lugar de 'name'
+                    if (usuarioCompleto.nombre && !usuarioCompleto.name) {
+                        usuarioCompleto.name = usuarioCompleto.nombre;
+                        delete usuarioCompleto.nombre;
+                        
+                        // Actualizar localStorage con los datos corregidos
+                        localStorage.setItem('usuario', JSON.stringify(usuarioCompleto));
+                    }
+                    
                     setUsuario(usuarioCompleto);
                 } catch (error) {
+                    // Token inválido, limpiar datos
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('usuario');
                     setUsuario(null);
                 }
             } else {
                 setUsuario(null);
             }
+            
+            // Pequeño delay para suavizar la transición
+            setTimeout(() => {
+                setUsuarioCargando(false);
+            }, 100);
+        };
+
+        // Cargar usuario inicial
+        cargarUsuario();
+
+        // Escuchar cambios de autenticación
+        const handleAuthChange = () => {
+            setUsuarioCargando(true);
+            cargarUsuario();
         };
 
         window.addEventListener('authChange', handleAuthChange);
@@ -88,7 +100,24 @@ export default function LayoutPublic({ children }) {
     };
 
     return (
-        <div className="min-h-screen flex flex-col bg-gray-50">
+        <>
+            <style jsx>{`
+                @keyframes skeleton-loading {
+                    0% {
+                        opacity: 1;
+                        background-color: #e5e7eb;
+                    }
+                    50% {
+                        opacity: 0.5;
+                        background-color: #f3f4f6;
+                    }
+                    100% {
+                        opacity: 1;
+                        background-color: #e5e7eb;
+                    }
+                }
+            `}</style>
+            <div className="min-h-screen flex flex-col bg-gray-50">
             {/* Header */}
             <header className="bg-white shadow-sm border-b border-gray-200">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -134,12 +163,25 @@ export default function LayoutPublic({ children }) {
 
                         {/* Botones de acción o usuario logueado */}
                         <div className="flex items-center space-x-4">
-                            {usuario ? (
+                            {usuarioCargando ? (
+                                /* Estado de carga - Skeleton que coincide con el dropdown */
+                                <div className="flex items-center space-x-2 text-gray-700 px-3 py-2 rounded-md text-sm font-medium">
+                                    <div className="w-8 h-8 bg-gray-200 rounded-full animate-pulse" style={{
+                                        animation: 'skeleton-loading 1.5s ease-in-out infinite'
+                                    }}></div>
+                                    <div className="hidden md:block w-32 h-4 bg-gray-200 rounded animate-pulse" style={{
+                                        animation: 'skeleton-loading 1.5s ease-in-out infinite 0.2s'
+                                    }}></div>
+                                    <div className="w-4 h-4 bg-gray-200 rounded animate-pulse" style={{
+                                        animation: 'skeleton-loading 1.5s ease-in-out infinite 0.4s'
+                                    }}></div>
+                                </div>
+                            ) : usuario ? (
                                 /* Usuario logueado - Dropdown */
                                 <div className="relative dropdown-container">
                                     <button
                                         onClick={() => setDropdownAbierto(!dropdownAbierto)}
-                                        className="flex items-center space-x-2 text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium transition-colors"
+                                        className="flex items-center space-x-2 text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 ease-in-out"
                                     >
                                         <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white text-sm font-semibold">
                                             {usuario.name?.charAt(0) || usuario.email?.charAt(0) || 'U'}
@@ -334,5 +376,6 @@ export default function LayoutPublic({ children }) {
                 </div>
             </footer>
         </div>
+        </>
     );
 }

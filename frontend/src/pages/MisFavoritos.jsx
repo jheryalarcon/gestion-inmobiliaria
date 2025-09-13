@@ -97,7 +97,7 @@ export default function MisFavoritos() {
         <LayoutPublic>
             <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
                 {/* Header Section con diseño mejorado */}
-                <section className="relative bg-gradient-to-r from-blue-600 via-blue-700 to-blue-800 text-white py-20 overflow-hidden">
+                <section className="relative bg-gradient-to-r from-blue-600 via-blue-700 to-blue-800 text-white py-16 overflow-hidden">
                     {/* Elementos decorativos */}
                     <div className="absolute inset-0 bg-black opacity-10"></div>
                     <div className="absolute top-0 left-0 w-full h-full">
@@ -112,10 +112,10 @@ export default function MisFavoritos() {
                                 <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
                             </svg>
                         </div>
-                        <h1 className="text-5xl md:text-6xl font-bold mb-6">
+                        <h1 className="text-4xl md:text-5xl font-bold mb-4">
                             Mis Favoritos
                         </h1>
-                        <p className="text-xl md:text-2xl text-blue-100 mb-4">
+                        <p className="text-xl text-blue-100 mb-4">
                             Tus propiedades guardadas para consultar fácilmente
                         </p>
                         <div className="flex justify-center items-center space-x-4 text-blue-200">
@@ -150,10 +150,10 @@ export default function MisFavoritos() {
                             </button>
                         </div>
                     ) : propiedades.length === 0 ? (
-                        <div className="text-center py-20">
-                            <div className="mb-8">
-                                <div className="relative mx-auto w-32 h-32 bg-gradient-to-br from-blue-100 to-blue-200 rounded-full flex items-center justify-center">
-                                    <svg className="h-16 w-16 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div className="text-center py-16">
+                            <div className="mb-6">
+                                <div className="relative mx-auto w-20 h-20 bg-gradient-to-br from-blue-100 to-blue-200 rounded-full flex items-center justify-center">
+                                    <svg className="h-10 w-10 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                                     </svg>
                                 </div>
@@ -162,12 +162,11 @@ export default function MisFavoritos() {
                                 No tienes favoritos aún
                             </h3>
                             <p className="text-gray-600 mb-8 text-lg max-w-md mx-auto">
-                                Guarda propiedades que te interesen haciendo clic en el corazón. 
-                                Podrás consultarlas fácilmente desde aquí.
+                                Guarda propiedades que te interesen haciendo clic en el corazón.
                             </p>
                             <button 
                                 onClick={() => navigate('/propiedades')}
-                                className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-8 py-4 rounded-lg hover:from-blue-700 hover:to-blue-800 transition shadow-lg font-semibold text-lg"
+                                className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-3 rounded-lg hover:from-blue-700 hover:to-blue-800 transition shadow-lg font-semibold"
                             >
                                 Explorar propiedades
                             </button>

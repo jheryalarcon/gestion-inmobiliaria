@@ -167,7 +167,7 @@ export default function RegistrarCliente() {
 
         if (Object.keys(nuevosErrores).length > 0) {
             setErrores(nuevosErrores);
-            toast.error('Por favor, corrige los errores en el formulario.');
+            toast.error('Por favor, corrige los errores en el formulario.', { duration: 3000 });
             return;
         }
 
@@ -187,8 +187,8 @@ export default function RegistrarCliente() {
                 },
             });
 
-            toast.success('👤 Cliente registrado correctamente', {
-                duration: 1000,
+            toast.success('Cliente registrado correctamente', {
+                duration: 3000,
             });
 
             setTimeout(() => {
@@ -201,10 +201,10 @@ export default function RegistrarCliente() {
 
             if (error.response?.data?.errores?.length) {
                 error.response.data.errores.forEach(err =>
-                    toast.error(`❌ ${err}`, { duration: 3000 })
+                    toast.error(err, { duration: 3000 })
                 );
             } else {
-                toast.error('Ocurrió un error al registrar el cliente.');
+                toast.error('Ocurrió un error al registrar el cliente.', { duration: 4000 });
             }
         }
     };

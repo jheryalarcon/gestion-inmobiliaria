@@ -22,14 +22,14 @@ export default function FavoritoIcon({ propiedadId, isFavorito = false, onToggle
 
         // Si no está autenticado, redirigir a login
         if (!token || !usuario) {
-            toast.error('Debes iniciar sesión para guardar favoritos');
+            toast.error('Debes iniciar sesión para guardar favoritos', { duration: 3000 });
             navigate('/login');
             return;
         }
 
         // Solo clientes pueden usar favoritos
         if (usuario.rol !== 'cliente') {
-            toast.error('Solo los clientes pueden guardar favoritos');
+            toast.error('Solo los clientes pueden guardar favoritos', { duration: 3000 });
             return;
         }
 
@@ -43,7 +43,7 @@ export default function FavoritoIcon({ propiedadId, isFavorito = false, onToggle
                     data: { propiedadId }
                 });
                 setFavorito(false);
-                toast.success('Propiedad removida de favoritos');
+                toast.success('Propiedad removida de favoritos', { duration: 2000 });
             } else {
                 // Agregar a favoritos
                 await axios.post('http://localhost:3000/api/favoritos', 
@@ -51,7 +51,7 @@ export default function FavoritoIcon({ propiedadId, isFavorito = false, onToggle
                     { headers: { Authorization: `Bearer ${token}` } }
                 );
                 setFavorito(true);
-                toast.success('Propiedad agregada a favoritos');
+                toast.success('Propiedad agregada a favoritos', { duration: 2000 });
             }
 
             // Notificar al componente padre
@@ -62,10 +62,10 @@ export default function FavoritoIcon({ propiedadId, isFavorito = false, onToggle
             console.error('Error al manejar favorito:', error);
             
             if (error.response?.status === 200 && error.response?.data?.message === 'Ya está en favoritos.') {
-                toast.info('Esta propiedad ya está en tus favoritos');
+                toast.info('Esta propiedad ya está en tus favoritos', { duration: 2000 });
                 setFavorito(true);
             } else {
-                toast.error('Error al manejar favorito. Intenta de nuevo.');
+                toast.error('Error al manejar favorito. Intenta de nuevo.', { duration: 4000 });
             }
         } finally {
             setCargando(false);

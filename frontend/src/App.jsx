@@ -30,7 +30,20 @@ import { Toaster } from 'sonner';
 function App() {
     return (
         <>
-            <Toaster richColors position="top-right" />
+            <Toaster 
+                richColors 
+                position="top-right"
+                expand={false}
+                closeButton={true}
+                duration={4000}
+                maxVisibleToasts={3}
+                toastOptions={{
+                    style: {
+                        fontSize: '14px',
+                        fontWeight: '500',
+                    },
+                }}
+            />
             <Routes>
                 {/* Portal público - Directorio raíz */}
                 <Route path="/" element={<Home/>}/>

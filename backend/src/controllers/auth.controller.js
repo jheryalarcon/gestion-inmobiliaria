@@ -37,7 +37,7 @@ export const login = async (req, res) => {
             token,
             usuario: {
                 id: usuario.id,
-                nombre: usuario.name,
+                name: usuario.name,
                 email: usuario.email,
                 rol: usuario.rol
             }
@@ -49,10 +49,10 @@ export const login = async (req, res) => {
 };
 
 export const register = async (req, res) => {
-    const { name, email, password } = req.body;
+    const { name, email, password, telefono } = req.body;
 
     if (!name || !email || !password) {
-        return res.status(400).json({ mensaje: 'Todos los campos son obligatorios' });
+        return res.status(400).json({ mensaje: 'Los campos nombre, email y contraseña son obligatorios' });
     }
 
     const emailLimpio = email.trim().toLowerCase();
@@ -73,6 +73,7 @@ export const register = async (req, res) => {
                 name,
                 email: emailLimpio,
                 password: passwordEncriptada,
+                telefono: telefono || null, // Teléfono opcional para clientes
                 rol: 'cliente',
             },
         });
