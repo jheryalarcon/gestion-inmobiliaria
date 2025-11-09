@@ -139,7 +139,7 @@ const HistorialSeguimientos = ({ negociacion, usuario, onSeguimientoCreado }) =>
                             📋 Historial de Seguimientos
                         </h3>
                         <p className="text-sm text-gray-600 mt-1">
-                            {seguimientos.length} seguimiento{seguimientos.length !== 1 ? 'es' : ''} registrado{seguimientos.length !== 1 ? 's' : ''}
+                            {seguimientos.length} seguimiento{seguimientos.length !== 1 ? 's' : ''} registrado{seguimientos.length !== 1 ? 's' : ''}
                         </p>
                     </div>
                     
