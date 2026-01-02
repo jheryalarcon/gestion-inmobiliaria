@@ -1,5 +1,5 @@
 import express from 'express';
-import { crearAgente, obtenerAgentes, obtenerAgentePorId, actualizarEstadoAgente, actualizarAgente, obtenerEstadisticasAgentes } from '../controllers/agentes.controller.js';
+import { crearAgente, obtenerAgentes, obtenerAgentePorId, actualizarEstadoAgente, actualizarAgente, obtenerEstadisticasAgentes, cambiarPasswordAgente } from '../controllers/agentes.controller.js';
 import verificarToken from '../middlewares/verificarToken.js';
 import esAdmin from '../middlewares/esAdmin.js';
 
@@ -22,6 +22,9 @@ router.get('/:id', obtenerAgentePorId);
 
 // Actualizar agente
 router.put('/:id', actualizarAgente);
+
+// Cambiar contraseña de agente
+router.put('/:id/password', cambiarPasswordAgente);
 
 // Actualizar estado del agente (activar/desactivar)
 router.patch('/:id/estado', actualizarEstadoAgente);

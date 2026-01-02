@@ -23,6 +23,12 @@ model Usuario {
   password    String
   rol         Rol // "cliente", "agente", "admin"
   activo      Boolean     @default(true) //permite desactivar cuentas sin borrarlas
+  verificado  Boolean     @default(false)
+  token_verificacion String?
+  token_verificacion_expiracion DateTime? // Caducidad del token de registro
+  
+  token_recuperacion String?
+  token_recuperacion_expiracion DateTime? // Caducidad del token de contraseña
   propiedades Propiedad[]
   favoritos Favorito[]
   clientes    Cliente[]   // Relación con clientes asignados
@@ -31,6 +37,9 @@ model Usuario {
   seguimientos Seguimiento[] // Seguimientos registrados por este agente
   notasInternas NotaInterna[] // Notas internas creadas por este agente
   archivosNegociacion ArchivoNegociacion[] // Archivos adjuntos por este agente
+  documentos  DocumentoAgente[] // Documentos personales del agente
+  propiedades_actualizadas Propiedad[] @relation("PropiedadActualizador")
+  propiedades_desactivadas Propiedad[] @relation("PropiedadDesactivador")
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 }
@@ -55,6 +64,8 @@ model Propiedad {
 
   direccion     String
   ciudad        String
+  sector        String?   // Sector o Barrio
+  referencia    String?   // Referencia de ubicación
   provincia     Provincia
   pais          String    @default("Ecuador")
   codigo_postal String?
@@ -62,12 +73,32 @@ model Propiedad {
   longitud      Decimal?  @db.Decimal(10, 7) //para mapas
 
   area_terreno      Decimal  @db.Decimal(10, 2)
+  unidad_area_terreno String @default("m2") // "m2" o "ha"
   area_construccion Decimal?  @db.Decimal(10, 2)
+  unidad_area_construccion String @default("m2") // "m2" o "ha"
   nro_habitaciones  Int?
   nro_banos         Int?
   nro_parqueaderos  Int?
   nro_pisos         Int?
   anio_construccion Int?
+
+  // --- CARACTERÍSTICAS FÍSICAS ---
+  orientacion       String?   // Norte, Sur, Este, Oeste, etc.
+
+  // --- AMENITIES / CARACTERÍSTICAS ADICIONALES ---
+  tiene_balcon           Boolean @default(false)
+  tiene_terraza          Boolean @default(false)
+  tiene_patio            Boolean @default(false)
+  tiene_bodega           Boolean @default(false)
+  tiene_area_bbq         Boolean @default(false)
+  tiene_piscina          Boolean @default(false)
+  tiene_ascensor         Boolean @default(false)
+  tiene_seguridad        Boolean @default(false)
+  tiene_areas_comunales  Boolean @default(false)
+  tiene_gas_centralizado Boolean @default(false)
+  tiene_cisterna         Boolean @default(false)
+  tiene_lavanderia       Boolean @default(false)
+  amoblado               Boolean @default(false)
 
   estado_publicacion EstadoPropiedad @default(disponible) // disponible, vendida, arrendada, reservada, inactiva.
 
@@ -75,12 +106,65 @@ model Propiedad {
 
   agenteId Int
   agente   Usuario @relation(fields: [agenteId], references: [id])
+  
+  documentos DocumentoPropiedad[]
+
+  // --- IDENTIFICACIÓN ---
+  codigo_interno  String?   @unique // Generado ej: CAS-001
+  uso_propiedad   UsoPropiedad? // Residencial, Comercial, Mixto
+
+  // --- DATOS DE CAPTACIÓN (Negocio) ---
+  propietarioId     Int?
+  propietario       Cliente? @relation("PropiedadPropietario", fields: [propietarioId], references: [id])
+  comision          Decimal? @db.Decimal(10, 2)
+  tipo_comision     String?  @default("porcentaje") // "porcentaje" o "fijo"
+  precio_minimo     Decimal? @db.Decimal(12, 2)
+  valor_garantia    Decimal? @db.Decimal(12, 2) // Valor de garantía para alquileres
+  tipo_contrato     String?  // "exclusiva", "abierta"
+  fecha_fin_contrato DateTime? 
+  fecha_captacion    DateTime? @default(now()) 
 
   favoritos Favorito[]
   negociaciones Negociacion[] // Negociaciones de esta propiedad
   
+  updatedBy Int?
+  usuarioActualizador Usuario? @relation("PropiedadActualizador", fields: [updatedBy], references: [id])
+
+  // Campos de auditoría para desactivación
+  fecha_desactivacion DateTime?
+  desactivado_por     Int?
+  usuarioDesactivador Usuario? @relation("PropiedadDesactivador", fields: [desactivado_por], references: [id])
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  propietarios PropiedadPropietario[] // Relación M-N con propietarios
+}
+
+model DocumentoPropiedad {
+  id           Int      @id @default(autoincrement())
+  nombre       String
+  url          String
+  tipo         TipoDocumentoPropiedad
+  categoria    CategoriaDocumento
+  propiedadId  Int
+  propiedad    Propiedad @relation(fields: [propiedadId], references: [id])
+  createdAt    DateTime @default(now())
+}
+
+model PropiedadPropietario {
+  id            Int       @id @default(autoincrement())
+  propiedadId   Int
+  propiedad     Propiedad @relation(fields: [propiedadId], references: [id])
+  clienteId     Int
+  cliente       Cliente   @relation(fields: [clienteId], references: [id])
+  porcentaje    Decimal   @default(0) @db.Decimal(5, 2) // Porcentaje de 0.00 a 100.00
+  es_principal  Boolean   @default(false)
+  
+  updatedAt     DateTime  @updatedAt
+  createdAt     DateTime  @default(now())
+
+  @@unique([propiedadId, clienteId])
 }
 
 // Posibles estados que puede tener una propiedad inmobiliaria
@@ -95,21 +179,82 @@ enum EstadoPropiedad {
 enum TipoPropiedad {
   casa
   departamento
-  terreno
+  suite
   local_comercial
+  oficina
+  bodega_galpon
+  edificio
+  terreno
   finca
   quinta
 }
 
+enum UsoPropiedad {
+  residencial
+  comercial
+  industrial
+  agricola
+  turistico
+  mixto
+}
+
 enum EstadoFisico {
   nueva
-  usada
+  bueno
+  regular
+  por_remodelar
   en_construccion
+}
+
+enum CategoriaDocumento {
+  LEGAL
+  PROPIETARIO
+  COMERCIAL
+  TECNICO
+  PH
+  SERVICIOS
+  OTROS
+}
+
+enum TipoDocumentoPropiedad {
+  ESCRITURA
+  CERTIFICADO_GRAVAMEN
+  PAGO_PREDIAL
+  PLANO
+  IRM
+  REGLAMENTO_PH
+  ALICUOTA
+  AUTORIZACION_VENTA
+  CONTRATO_EXCLUSIVIDAD // Nuevo
+  FICHA_CATASTRAL
+  CERTIFICADO_USO_SUELO
+  CERTIFICADO_ALICUOTA
+  CERTIFICADO_EXPENSAS // Nuevo
+  PLANILLA_LUZ
+  PLANILLA_AGUA
+  PLANILLA_ALICUOTA
+  OTRO
+}
+
+enum TipoDocumentoCliente {
+  CEDULA
+  PAPELETA_VOTACION
+  PODER
+  OTRO
+}
+
+enum EstadoCivil {
+  SOLTERO
+  CASADO
+  DIVORCIADO
+  VIUDO
+  UNION_DE_HECHO
 }
 
 enum TipoTransaccion {
   venta
   alquiler
+  alquiler_opcion_compra
 }
 
 enum Provincia {
@@ -166,6 +311,9 @@ model Cliente {
   nombre      String    // Nombre completo del cliente
   telefono    String    // Teléfono de contacto
   email       String    @unique // Correo electrónico único
+  cedula      String?   @unique
+  estado_civil EstadoCivil?
+  documentos  DocumentoCliente[]
   tipo_cliente TipoCliente // Tipo de cliente (comprador, arrendatario, etc.)
   observaciones String? // Observaciones opcionales
   activo      Boolean     @default(true) //permite desactivar cuentas sin borrarlas
@@ -181,6 +329,19 @@ model Cliente {
   updatedAt   DateTime  @updatedAt
   
   negociaciones Negociacion[] // Negociaciones de este cliente
+  propiedades   Propiedad[]   @relation("PropiedadPropietario") // Propiedades que posee este cliente (Legacy/Direct)
+
+  participacionPropiedades PropiedadPropietario[] // Nueva relación M-N
+}
+
+model DocumentoCliente {
+  id        Int      @id @default(autoincrement())
+  nombre    String
+  url       String
+  tipo      TipoDocumentoCliente
+  clienteId Int
+  cliente   Cliente @relation(fields: [clienteId], references: [id])
+  createdAt DateTime @default(now())
 }
 
 // Tipos de cliente
@@ -296,6 +457,29 @@ model ArchivoNegociacion {
   agente          Usuario     @relation(fields: [agenteId], references: [id])
 
   @@map("ArchivoNegociacion")
+}
+
+// MODELO de documentos personales de agentes (RRHH)
+model DocumentoAgente {
+  id        Int      @id @default(autoincrement())
+  nombre    String   // Nombre original del archivo
+  url       String   // Ubicación en servidor
+  tipo      TipoDocumentoAgente // Categoría del documento
+  
+  agenteId  Int
+  agente    Usuario  @relation(fields: [agenteId], references: [id])
+  
+  createdAt DateTime @default(now())
+
+  @@map("DocumentoAgente")
+}
+
+enum TipoDocumentoAgente {
+  IDENTIFICACION
+  CONTRATO
+  HOJA_VIDA
+  CERTIFICADO
+  OTRO
 }
 
 // Tipos de archivo para categorización

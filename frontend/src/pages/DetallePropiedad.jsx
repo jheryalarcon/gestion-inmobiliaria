@@ -8,6 +8,7 @@ import CardPropiedadPublica from '../components/CardPropiedadPublica';
 import Recomendaciones from '../components/Recomendaciones';
 import FavoritoIcon from '../components/FavoritoIcon';
 import { toast } from 'sonner';
+import { PageSpinner } from '../components/Spinner';
 
 export default function DetallePropiedad() {
     const { id } = useParams();
@@ -19,31 +20,82 @@ export default function DetallePropiedad() {
     const [formData, setFormData] = useState({
         nombre: '',
         email: '',
+        telefono: '',
         mensaje: '',
     });
     const [formErrors, setFormErrors] = useState({});
     const [formSubmitted, setFormSubmitted] = useState(false);
+    const [propiedadesSimilares, setPropiedadesSimilares] = useState([]);
 
     useEffect(() => {
         // Usar endpoint público sin autenticación
         axios.get(`http://localhost:3000/api/propiedades/publica/${id}`)
             .then(res => {
                 setPropiedad(res.data);
+                // Pre-rellenar el mensaje del formulario
+                setFormData(prev => ({
+                    ...prev,
+                    mensaje: `Hola, estoy interesado en obtener más información sobre la propiedad: ${res.data.titulo}`
+                }));
+                // Cargar propiedades similares después de obtener la propiedad actual
+                cargarPropiedadesSimilares(res.data);
             })
             .catch(err => {
                 setError(err.response?.data?.mensaje || 'Error al cargar la propiedad');
             });
-        
+
         // Cargar favoritos si el usuario está logueado
         cargarFavoritos();
     }, [id]);
+
+    const cargarPropiedadesSimilares = async (propiedadActual) => {
+        try {
+            // Calcular rango de precio (±50% para tener más resultados)
+            const precioMin = Number(propiedadActual.precio) * 0.5;
+            const precioMax = Number(propiedadActual.precio) * 1.5;
+
+            console.log('Buscando propiedades similares:', {
+                tipo: propiedadActual.tipo_propiedad,
+                ciudad: propiedadActual.ciudad,
+                precioMin,
+                precioMax
+            });
+
+            const response = await axios.get('http://localhost:3000/api/propiedades/publicas', {
+                params: {
+                    tipo_propiedad: propiedadActual.tipo_propiedad,
+                    ciudad: propiedadActual.ciudad,
+                    precio_min: precioMin,
+                    precio_max: precioMax,
+                    limit: 5 // Pedimos 5 para tener margen
+                }
+            });
+
+            console.log('Respuesta completa:', response.data);
+
+            // El endpoint puede devolver un array directamente o en response.data.propiedades
+            const propiedades = Array.isArray(response.data) ? response.data : (response.data.propiedades || []);
+
+            console.log('Propiedades encontradas:', propiedades.length);
+
+            // Filtrar la propiedad actual y tomar solo 4
+            const similares = propiedades
+                .filter(p => p.id !== propiedadActual.id)
+                .slice(0, 4);
+
+            console.log('Propiedades similares después de filtrar:', similares.length);
+            setPropiedadesSimilares(similares);
+        } catch (error) {
+            console.error('Error cargando propiedades similares:', error);
+        }
+    };
 
 
 
     const cargarFavoritos = async () => {
         const token = localStorage.getItem('token');
         const usuario = token ? JSON.parse(localStorage.getItem('usuario')) : null;
-        
+
         if (token && usuario && usuario.rol === 'cliente') {
             try {
                 const response = await axios.get('http://localhost:3000/api/favoritos', {
@@ -64,7 +116,7 @@ export default function DetallePropiedad() {
         }
     };
 
-    const handleFormChange = (e) => {
+    const handleInputChange = (e) => {
         setFormData({
             ...formData,
             [e.target.name]: e.target.value,
@@ -93,22 +145,32 @@ export default function DetallePropiedad() {
         }
 
         setFormErrors({});
-        // Simular envío de formulario
-        console.log('Datos del formulario de contacto:', formData);
-        toast.success('¡Mensaje enviado con éxito! El agente se pondrá en contacto contigo pronto.');
-        setFormSubmitted(true);
-        setFormData({
-            nombre: '',
-            email: '',
-            mensaje: '',
-        });
+
+        try {
+            await axios.post('http://localhost:3000/api/clientes/contacto-publico', {
+                ...formData,
+                propiedadId: propiedad.id
+            });
+
+            toast.success('¡Mensaje enviado con éxito! Un agente te contactará pronto.');
+            setFormSubmitted(true);
+            setFormData({
+                nombre: '',
+                email: '',
+                telefono: '',
+                mensaje: '',
+            });
+        } catch (error) {
+            console.error('Error enviando formulario:', error);
+            toast.error(error.response?.data?.mensaje || 'Error al enviar el mensaje. Intenta de nuevo.');
+        }
     };
 
     if (error) return (
         <LayoutPublic>
             <div className="text-center py-20">
                 <p className="text-red-600 text-lg">{error}</p>
-                <button 
+                <button
                     onClick={() => navigate('/')}
                     className="mt-4 bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition"
                 >
@@ -117,13 +179,10 @@ export default function DetallePropiedad() {
             </div>
         </LayoutPublic>
     );
-    
+
     if (!propiedad) return (
         <LayoutPublic>
-            <div className="text-center py-20">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-                <p className="mt-4 text-lg">Cargando propiedad...</p>
-            </div>
+            <PageSpinner text="Cargando propiedad..." />
         </LayoutPublic>
     );
 
@@ -156,409 +215,571 @@ export default function DetallePropiedad() {
 
     return (
         <LayoutPublic>
-            <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+            <div className="min-h-screen bg-gray-50">
                 {/* Hero Section */}
-                <div className="relative bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white py-16">
-                    <div className="absolute inset-0 bg-black/20"></div>
+                <div className="relative bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white py-16">
+                    <div className="absolute inset-0 bg-gradient-to-r from-orange-600/10 to-transparent"></div>
                     <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                         <div className="flex items-center justify-between">
                             <div className="flex-1">
-                <button
-                  onClick={() => navigate(-1)}
-                                    className="inline-flex items-center gap-2 bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white font-medium px-4 py-2 rounded-lg transition-all duration-200 mb-6"
-                >
+                                <button
+                                    onClick={() => navigate(-1)}
+                                    className="inline-flex items-center gap-2 bg-white/10 hover:bg-white/20 backdrop-blur-sm text-white font-medium px-4 py-2 rounded-xl transition-all duration-200 mb-6 border border-white/20"
+                                >
                                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                                     </svg>
                                     Volver
-                </button>
-                                <h1 className="text-3xl md:text-4xl font-bold mb-4 leading-tight">
+                                </button>
+                                <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-6 leading-tight">
                                     {propiedad.titulo}
                                 </h1>
-                                <div className="flex items-center gap-4 text-lg">
-                                    <span className="bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full text-sm font-medium">
-                                        {propiedad.tipo_propiedad.replace('_', ' ')}
-                                    </span>
-                                    <span className="bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full text-sm font-medium">
-                                        {propiedad.transaccion}
-                                    </span>
-                                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${badgeColor[propiedad.estado_publicacion]}`}>
-                                        {badgeIcon[propiedad.estado_publicacion]} {propiedad.estado_publicacion.charAt(0).toUpperCase() + propiedad.estado_publicacion.slice(1)}
-                                    </span>
+
+                                {/* Share Buttons */}
+                                <div className="flex items-center gap-2 mt-4">
+                                    <span className="text-sm text-gray-300 mr-2">Compartir:</span>
+
+                                    {/* WhatsApp */}
+                                    <a
+                                        href={`https://wa.me/?text=${encodeURIComponent(`¡Mira esta propiedad! ${propiedad.titulo} - ${window.location.href}`)}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="bg-white/10 hover:bg-green-500 backdrop-blur-sm p-2 rounded-lg transition-all border border-white/20 hover:border-green-400"
+                                        title="Compartir por WhatsApp"
+                                    >
+                                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                                            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
+                                        </svg>
+                                    </a>
+
+                                    {/* Facebook */}
+                                    <a
+                                        href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(window.location.href)}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="bg-white/10 hover:bg-blue-600 backdrop-blur-sm p-2 rounded-lg transition-all border border-white/20 hover:border-blue-400"
+                                        title="Compartir en Facebook"
+                                    >
+                                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                                            <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
+                                        </svg>
+                                    </a>
+
+                                    {/* Email */}
+                                    <a
+                                        href={`mailto:?subject=${encodeURIComponent(propiedad.titulo)}&body=${encodeURIComponent(`Te comparto esta propiedad: ${window.location.href}`)}`}
+                                        className="bg-white/10 hover:bg-slate-600 backdrop-blur-sm p-2 rounded-lg transition-all border border-white/20 hover:border-slate-400"
+                                        title="Compartir por Email"
+                                    >
+                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                                        </svg>
+                                    </a>
+
+                                    {/* Copy Link */}
+                                    <button
+                                        onClick={() => {
+                                            navigator.clipboard.writeText(window.location.href);
+                                            toast.success('¡Enlace copiado al portapapeles!');
+                                        }}
+                                        className="bg-white/10 hover:bg-orange-500 backdrop-blur-sm p-2 rounded-lg transition-all border border-white/20 hover:border-orange-400"
+                                        title="Copiar enlace"
+                                    >
+                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                        </svg>
+                                    </button>
                                 </div>
                             </div>
                             <div className="hidden lg:block text-right">
-                                <div className="text-4xl font-bold mb-2">
+                                <div className="text-4xl md:text-5xl font-bold mb-2 text-orange-400 drop-shadow-lg">
                                     {Number(propiedad.precio).toLocaleString('es-EC', {
                                         style: 'currency',
                                         currency: propiedad.moneda || 'USD'
                                     })}
                                 </div>
-                                <p className="text-blue-100">Precio de {propiedad.transaccion}</p>
+                                <p className="text-gray-300">Precio de {propiedad.transaccion}</p>
                             </div>
                         </div>
                     </div>
                 </div>
 
-            {/* Main Content */}
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    
-                    {/* Left Column - Images */}
-                    <div className="space-y-6">
-                        <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
-                            {/* Main Image */}
-                            <div className="relative">
-                                {/* Botón de favoritos */}
-                                <FavoritoIcon 
+                {/* Main Content - Single Column Layout */}
+                <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+                    {/* 1. IMAGE GALLERY - Full Width */}
+                    <div className="bg-white rounded-2xl shadow-xl overflow-hidden mb-8">
+                        <div className="relative">
+                            {/* Botón de favoritos */}
+                            <div className="absolute top-3 right-3 z-10">
+                                <FavoritoIcon
                                     propiedadId={propiedad.id}
                                     isFavorito={favoritos.some(fav => fav.propiedadId === propiedad.id)}
                                     onToggle={handleFavoritoToggle}
                                 />
-                                
-                        <img
-                            src={propiedad.imagenes[imagenSeleccionada]?.url.startsWith('http') 
-                    ? propiedad.imagenes[imagenSeleccionada].url 
-                    : `http://localhost:3000${propiedad.imagenes[imagenSeleccionada]?.url}`}
-                            alt="principal"
-                                    className="w-full h-80 md:h-96 object-cover cursor-pointer select-none"
-                  onClick={handleMainImageClick}
-                  onContextMenu={handleMainImageClick}
-                />
-                                
-                                {/* Image Navigation */}
-                                <div className="absolute inset-0 flex items-center justify-between p-4 opacity-0 hover:opacity-100 transition-opacity duration-200">
-                                    <button
-                                        onClick={() => setImagenSeleccionada((prev) => (prev - 1 + propiedad.imagenes.length) % propiedad.imagenes.length)}
-                                        className="bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition-colors"
-                                    >
-                                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                                        </svg>
-                                    </button>
-                                    <button
-                                        onClick={() => setImagenSeleccionada((prev) => (prev + 1) % propiedad.imagenes.length)}
-                                        className="bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition-colors"
-                                    >
-                                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                        </svg>
-                                    </button>
-                                </div>
-
-                                {/* Image Counter */}
-                                <div className="absolute top-4 right-4 bg-black/50 text-white px-3 py-1 rounded-full text-sm">
-                                    {imagenSeleccionada + 1} / {propiedad.imagenes.length}
-                                </div>
                             </div>
 
-                            {/* Thumbnail Gallery */}
-                            <div className="p-4">
-                                <div className="flex gap-2 overflow-x-auto pb-2">
-                  <PhotoProvider>
-                    {propiedad.imagenes.map((img, idx) => (
-                                <PhotoView key={img.url} src={`http://localhost:3000${img.url}`}>
-                                    <img
-                                        src={`http://localhost:3000${img.url}`}
-                          alt={`thumb-${idx}`}
-                          onClick={() => setImagenSeleccionada(idx)}
-                                                    className={`h-16 w-24 object-cover rounded-lg border-2 cursor-pointer transition-all duration-200 hover:scale-105 ${
-                                                        imagenSeleccionada === idx 
-                                                            ? 'border-blue-500 ring-2 ring-blue-200' 
-                                                            : 'border-gray-200 hover:border-blue-300'
-                                                    }`}
-                                    />
-                                </PhotoView>
-                    ))}
-                  </PhotoProvider>
-                </div>
-                            </div>
-                        </div>
+                            <img
+                                src={propiedad.imagenes[imagenSeleccionada]?.url.startsWith('http')
+                                    ? propiedad.imagenes[imagenSeleccionada].url
+                                    : `http://localhost:3000${propiedad.imagenes[imagenSeleccionada]?.url}`}
+                                alt="principal"
+                                className="w-full h-80 md:h-96 object-cover cursor-pointer select-none"
+                                onClick={handleMainImageClick}
+                                onContextMenu={handleMainImageClick}
+                            />
 
-                        {/* Property Features - Now below images */}
-                        <div className="bg-white rounded-2xl shadow-xl p-6 border border-gray-100">
-                            <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                                <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                                </svg>
-                                Características
-                            </h3>
-                            <div className="grid grid-cols-2 gap-4">
-                                {propiedad.nro_habitaciones && (
-                                    <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                                        <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                                            <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z" />
-                                            </svg>
-                                        </div>
-                                        <div>
-                                            <div className="font-semibold text-gray-900">{propiedad.nro_habitaciones}</div>
-                                            <div className="text-sm text-gray-600">Habitaciones</div>
-                                        </div>
+                            {/* Thumbnails */}
+                            <div className="p-4 bg-gray-50">
+                                <PhotoProvider>
+                                    <div className="grid grid-cols-4 md:grid-cols-6 gap-2">
+                                        {propiedad.imagenes.map((img, idx) => (
+                                            <PhotoView
+                                                key={idx}
+                                                src={img.url.startsWith('http')
+                                                    ? img.url
+                                                    : `http://localhost:3000${img.url}`}
+                                            >
+                                                <img
+                                                    src={img.url.startsWith('http')
+                                                        ? img.url
+                                                        : `http://localhost:3000${img.url}`}
+                                                    alt={`thumbnail-${idx}`}
+                                                    className={`w-full h-16 object-cover rounded-lg cursor-pointer transition-all ${imagenSeleccionada === idx
+                                                        ? 'ring-2 ring-orange-500 scale-105'
+                                                        : 'hover:ring-2 hover:ring-gray-300'
+                                                        }`}
+                                                    onClick={() => setImagenSeleccionada(idx)}
+                                                />
+                                            </PhotoView>
+                                        ))}
                                     </div>
-                                )}
-                                {propiedad.nro_banos && (
-                                    <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                                        <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                                            <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z" />
-                                            </svg>
-                                        </div>
-                                        <div>
-                                            <div className="font-semibold text-gray-900">{propiedad.nro_banos}</div>
-                                            <div className="text-sm text-gray-600">Baños</div>
-                                        </div>
-                                    </div>
-                                )}
-                                {propiedad.nro_parqueaderos && (
-                                    <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                                        <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
-                                            <svg className="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />
-                                            </svg>
-                                        </div>
-                                        <div>
-                                            <div className="font-semibold text-gray-900">{propiedad.nro_parqueaderos}</div>
-                                            <div className="text-sm text-gray-600">Parqueaderos</div>
-                                        </div>
-                                    </div>
-                                )}
-                                {propiedad.nro_pisos && (
-                                    <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                                        <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center">
-                                            <svg className="w-4 h-4 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                                            </svg>
-                                        </div>
-                                        <div>
-                                            <div className="font-semibold text-gray-900">{propiedad.nro_pisos}</div>
-                                            <div className="text-sm text-gray-600">Pisos</div>
-                                        </div>
-                                    </div>
-                )}
-              </div>
-
-                            {/* Additional Property Details */}
-                            <div className="mt-6 pt-6 border-t border-gray-200">
-                                <h4 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                                    <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                    </svg>
-                                    Información Adicional
-                                </h4>
-                                <div className="grid grid-cols-1 gap-3 text-sm">
-                                    <div className="flex justify-between items-center py-2">
-                                        <span className="text-gray-600">Tipo de Propiedad:</span>
-                                        <span className="font-semibold text-gray-900">{propiedad.tipo_propiedad.replace('_', ' ')}</span>
-                                    </div>
-                                    <div className="flex justify-between items-center py-2">
-                                        <span className="text-gray-600">Estado Físico:</span>
-                                        <span className="font-semibold text-gray-900">{propiedad.estado_propiedad}</span>
-                                    </div>
-                                    {propiedad.anio_construccion && (
-                                        <div className="flex justify-between items-center py-2">
-                                            <span className="text-gray-600">Año Construcción:</span>
-                                            <span className="font-semibold text-gray-900">{propiedad.anio_construccion}</span>
-                                        </div>
-                                    )}
-                                    <div className="flex justify-between items-center py-2">
-                                        <span className="text-gray-600">Transacción:</span>
-                                        <span className="font-semibold text-gray-900">{propiedad.transaccion}</span>
-                                    </div>
-                                </div>
+                                </PhotoProvider>
                             </div>
                         </div>
                     </div>
 
-                    {/* Right Column - Property Details */}
-                    <div className="space-y-6">
-                        
-                        {/* Price Card */}
-                        <div className="bg-white rounded-2xl shadow-xl p-6 border border-gray-100">
-                            <div className="text-center">
-                                <div className="text-3xl font-bold text-gray-900 mb-2">
-                      {Number(propiedad.precio).toLocaleString('es-EC', {
-                        style: 'currency',
-                        currency: propiedad.moneda || 'USD'
-                      })}
+                    {/* 2. QUICK FEATURES BAR - Grid */}
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
+                        {propiedad.nro_habitaciones && (
+                            <div className="bg-white rounded-xl shadow-md p-4 text-center hover:shadow-lg transition-shadow">
+                                <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                                    <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z" />
+                                    </svg>
                                 </div>
-                                <p className="text-gray-600 mb-4">Precio de {propiedad.transaccion}</p>
-                                <div className="grid grid-cols-2 gap-4 text-sm">
-                                    <div className="text-center p-3 bg-blue-50 rounded-lg">
-                                        <div className="font-semibold text-blue-900">{propiedad.area_terreno} m²</div>
-                                        <div className="text-blue-600">Terreno</div>
-                                    </div>
-                                    {propiedad.area_construccion && (
-                                        <div className="text-center p-3 bg-green-50 rounded-lg">
-                                            <div className="font-semibold text-green-900">{propiedad.area_construccion} m²</div>
-                                            <div className="text-green-600">Construcción</div>
-                                        </div>
-                                    )}
+                                <div className="text-3xl font-extrabold text-gray-900 mb-1">{propiedad.nro_habitaciones}</div>
+                                <div className="text-xs text-gray-500 uppercase tracking-wide font-medium">Habitaciones</div>
+                            </div>
+                        )}
+                        {propiedad.nro_banos && (
+                            <div className="bg-white rounded-xl shadow-md p-4 text-center hover:shadow-lg transition-shadow">
+                                <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                                    <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z" />
+                                    </svg>
+                                </div>
+                                <div className="text-3xl font-extrabold text-gray-900 mb-1">{propiedad.nro_banos}</div>
+                                <div className="text-xs text-gray-500 uppercase tracking-wide font-medium">Baños</div>
+                            </div>
+                        )}
+                        {propiedad.nro_parqueaderos && (
+                            <div className="bg-white rounded-xl shadow-md p-4 text-center hover:shadow-lg transition-shadow">
+                                <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                                    <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />
+                                    </svg>
+                                </div>
+                                <div className="text-3xl font-extrabold text-gray-900 mb-1">{propiedad.nro_parqueaderos}</div>
+                                <div className="text-xs text-gray-500 uppercase tracking-wide font-medium">Parqueaderos</div>
+                            </div>
+                        )}
+                        {propiedad.area_construccion && (
+                            <div className="bg-white rounded-xl shadow-md p-4 text-center hover:shadow-lg transition-shadow">
+                                <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                                    <svg className="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                                    </svg>
+                                </div>
+                                <div className="text-3xl font-extrabold text-gray-900 mb-1">{Number(propiedad.area_construccion).toLocaleString('es-EC')}</div>
+                                <div className="text-xs text-gray-500 uppercase tracking-wide font-medium">
+                                    {propiedad.unidad_area_construccion === 'ha' ? 'ha de Construcción' : 'm² de Construcción'}
                                 </div>
                             </div>
+                        )}
+                        <div className="bg-white rounded-xl shadow-md p-4 text-center hover:shadow-lg transition-shadow">
+                            <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                                <svg className="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                                </svg>
+                            </div>
+                            <div className="text-3xl font-extrabold text-gray-900 mb-1">{Number(propiedad.area_terreno).toLocaleString('es-EC')}</div>
+                            <div className="text-xs text-gray-500 uppercase tracking-wide font-medium">
+                                {propiedad.unidad_area_terreno === 'ha' ? 'ha de Terreno' : 'm² de Terreno'}
+                            </div>
                         </div>
+                    </div>
+
+                    {/* 3. DESCRIPTION - Full Width */}
+                    {propiedad.descripcion && (
+                        <div className="bg-white rounded-2xl shadow-xl p-6 mb-8 border-l-4 border-orange-500">
+                            <h3 className="text-2xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                                <svg className="w-6 h-6 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                                Descripción
+                            </h3>
+                            <div className="prose prose-base max-w-none">
+                                <p className="text-gray-700 leading-relaxed whitespace-pre-wrap text-base">{propiedad.descripcion}</p>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* 4. DETAILS + LOCATION GRID - 2 Columns on Desktop */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                        {/* Property Details */}
+                        <div className="bg-white rounded-2xl shadow-xl p-6 border-l-4 border-orange-500">
+                            <h3 className="text-2xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                                <svg className="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                Detalles de la Propiedad
+                            </h3>
+                            <div className="space-y-2">
+                                <div className="flex justify-between items-center py-3 border-b border-gray-100">
+                                    <span className="text-gray-700 text-sm font-bold">Tipo:</span>
+                                    <span className="font-normal text-gray-900 text-base">
+                                        {propiedad.tipo_propiedad.replace(/_/g, ' ').charAt(0).toUpperCase() + propiedad.tipo_propiedad.replace(/_/g, ' ').slice(1)}
+                                    </span>
+                                </div>
+                                <div className="flex justify-between items-center py-3 border-b border-gray-100">
+                                    <span className="text-gray-700 text-sm font-bold">Estado:</span>
+                                    <span className="font-normal text-gray-900 text-base">
+                                        {propiedad.estado_propiedad.replace(/_/g, ' ').charAt(0).toUpperCase() + propiedad.estado_propiedad.replace(/_/g, ' ').slice(1)}
+                                    </span>
+                                </div>
+                                {propiedad.anio_construccion && (
+                                    <div className="flex justify-between items-center py-3 border-b border-gray-100">
+                                        <span className="text-gray-700 text-sm font-bold">Año:</span>
+                                        <span className="font-normal text-gray-900 text-base">{propiedad.anio_construccion}</span>
+                                    </div>
+                                )}
+                                <div className="flex justify-between items-center py-3 border-b border-gray-100">
+                                    <span className="text-gray-700 text-sm font-bold">Transacción:</span>
+                                    <span className="font-normal text-gray-900 text-base">
+                                        {propiedad.transaccion.charAt(0).toUpperCase() + propiedad.transaccion.slice(1)}
+                                    </span>
+                                </div>
+                                {propiedad.codigo_interno && (
+                                    <div className="flex justify-between items-center py-3">
+                                        <span className="text-gray-700 text-sm font-bold">Código:</span>
+                                        <span className="font-normal text-gray-900 text-base">{propiedad.codigo_interno}</span>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
                         {/* Location */}
-                        <div className="bg-white rounded-2xl shadow-xl p-6 border border-gray-100">
-                            <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                                <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div className="bg-white rounded-2xl shadow-xl p-6 border-l-4 border-orange-500">
+                            <h3 className="text-2xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                                <svg className="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                                 </svg>
                                 Ubicación
                             </h3>
-                            <div className="space-y-3">
-                                <div className="flex items-start gap-3">
-                                    <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
-                                        <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                                        </svg>
-                                    </div>
-                                    <div>
-                                        <div className="font-semibold text-gray-900">{propiedad.direccion}</div>
-                                        <div className="text-sm text-gray-600">{propiedad.ciudad}, {propiedad.provincia}</div>
-                                    </div>
+                            <div className="space-y-2">
+                                <div className="flex justify-between items-center py-3 border-b border-gray-100">
+                                    <span className="text-gray-700 text-sm font-bold">Provincia:</span>
+                                    <span className="font-normal text-gray-900 text-base">{propiedad.provincia.replace(/_/g, ' ')}</span>
                                 </div>
-                                {propiedad.codigo_postal && (
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                                            <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                            </svg>
-                                        </div>
-                                        <div>
-                                            <div className="font-semibold text-gray-900">Código Postal</div>
-                                            <div className="text-sm text-gray-600">{propiedad.codigo_postal}</div>
-                                        </div>
-                                    </div>
-                                )}
+                                <div className="flex justify-between items-center py-3 border-b border-gray-100">
+                                    <span className="text-gray-700 text-sm font-bold">Ciudad:</span>
+                                    <span className="font-normal text-gray-900 text-base">{propiedad.ciudad}</span>
+                                </div>
+                                <div className="flex justify-between items-start py-3 border-b border-gray-100">
+                                    <span className="text-gray-700 text-sm font-bold">Dirección:</span>
+                                    <span className="font-normal text-gray-900 text-base text-right max-w-[60%]">{propiedad.direccion}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* 5. AMENITIES - Grid */}
+                    <div className="bg-gradient-to-br from-white to-gray-50 rounded-2xl shadow-xl p-8 mb-8 border-l-4 border-orange-500">
+                        <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                            <svg className="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                            </svg>
+                            Amenidades
+                        </h3>
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                            {propiedad.tiene_balcon && (
+                                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors border border-gray-200">
+                                    <svg className="w-6 h-6 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                                    </svg>
+                                    <span className="text-sm font-medium text-gray-700">Balcón</span>
+                                </div>
+                            )}
+                            {propiedad.tiene_terraza && (
+                                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors border border-gray-200">
+                                    <svg className="w-6 h-6 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                                    </svg>
+                                    <span className="text-sm font-medium text-gray-700">Terraza</span>
+                                </div>
+                            )}
+                            {propiedad.tiene_patio && (
+                                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors border border-gray-200">
+                                    <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                                    </svg>
+                                    <span className="text-sm font-medium text-gray-700">Patio</span>
+                                </div>
+                            )}
+                            {propiedad.tiene_piscina && (
+                                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors border border-gray-200">
+                                    <svg className="w-6 h-6 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                                    </svg>
+                                    <span className="text-sm font-medium text-gray-700">Piscina</span>
+                                </div>
+                            )}
+                            {propiedad.tiene_bodega && (
+                                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors border border-gray-200">
+                                    <svg className="w-6 h-6 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                                    </svg>
+                                    <span className="text-sm font-medium text-gray-700">Bodega</span>
+                                </div>
+                            )}
+                            {propiedad.tiene_area_bbq && (
+                                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors border border-gray-200">
+                                    <svg className="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z" />
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.879 16.121A3 3 0 1012.015 11L11 14H9c0 .768.293 1.536.879 2.121z" />
+                                    </svg>
+                                    <span className="text-sm font-medium text-gray-700">Área BBQ</span>
+                                </div>
+                            )}
+                            {propiedad.tiene_ascensor && (
+                                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors border border-gray-200">
+                                    <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                                    </svg>
+                                    <span className="text-sm font-medium text-gray-700">Ascensor</span>
+                                </div>
+                            )}
+                            {propiedad.tiene_seguridad && (
+                                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors border border-gray-200">
+                                    <svg className="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                                    </svg>
+                                    <span className="text-sm font-medium text-gray-700">Seguridad 24/7</span>
+                                </div>
+                            )}
+                            {propiedad.tiene_areas_comunales && (
+                                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors border border-gray-200">
+                                    <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                                    </svg>
+                                    <span className="text-sm font-medium text-gray-700">Áreas Comunales</span>
+                                </div>
+                            )}
+                            {propiedad.tiene_gas_centralizado && (
+                                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors border border-gray-200">
+                                    <svg className="w-6 h-6 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z" />
+                                    </svg>
+                                    <span className="text-sm font-medium text-gray-700">Gas Centralizado</span>
+                                </div>
+                            )}
+                            {propiedad.tiene_cisterna && (
+                                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors border border-gray-200">
+                                    <svg className="w-6 h-6 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                                    </svg>
+                                    <span className="text-sm font-medium text-gray-700">Cisterna</span>
+                                </div>
+                            )}
+                            {propiedad.tiene_lavanderia && (
+                                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors border border-gray-200">
+                                    <svg className="w-6 h-6 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                                    </svg>
+                                    <span className="text-sm font-medium text-gray-700">Lavandería</span>
+                                </div>
+                            )}
+                            {propiedad.amoblado && (
+                                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors border border-gray-200">
+                                    <svg className="w-6 h-6 text-amber-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                                    </svg>
+                                    <span className="text-sm font-medium text-gray-700">Amoblado</span>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* 6. CONTACT SECTION - Prominent, Full Width */}
+                    <div className="bg-gradient-to-br from-orange-50 to-amber-50 rounded-2xl shadow-xl p-8 mb-8 border-2 border-orange-200">
+                        <h3 className="text-2xl font-bold text-gray-900 mb-6 text-center">
+                            ¿Interesado en esta propiedad?
+                        </h3>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {/* WhatsApp Button */}
+                            <div className="flex flex-col justify-center">
+                                <a
+                                    href={`https://wa.me/593981231304?text=${encodeURIComponent(`Hola, estoy interesado en la propiedad: ${propiedad.titulo}`)}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="w-full bg-[#25D366] hover:bg-[#128C7E] text-white font-bold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 mb-6 transition-all transform hover:scale-[1.02] shadow-lg shadow-green-100 group animate-pulse hover:animate-none"
+                                >
+                                    <svg className="w-8 h-8 group-hover:animate-bounce" fill="currentColor" viewBox="0 0 24 24">
+                                        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
+                                    </svg>
+                                    <span className="text-lg">Contactar por WhatsApp</span>
+                                </a>
+                                <p className="text-center text-sm text-gray-600 mt-3">Respuesta inmediata</p>
+                            </div>
+
+                            {/* Contact Form */}
+                            <div className="bg-white rounded-xl p-6 shadow-md">
+                                <h4 className="font-semibold text-gray-900 mb-4">O envía un mensaje:</h4>
+                                <form onSubmit={handleFormSubmit} className="space-y-3">
+                                    <input
+                                        type="text"
+                                        name="nombre"
+                                        placeholder="Nombre completo"
+                                        value={formData.nombre}
+                                        onChange={handleInputChange}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm"
+                                        required
+                                    />
+                                    <input
+                                        type="email"
+                                        name="email"
+                                        placeholder="Email"
+                                        value={formData.email}
+                                        onChange={handleInputChange}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm"
+                                        required
+                                    />
+                                    <input
+                                        type="tel"
+                                        name="telefono"
+                                        placeholder="Teléfono"
+                                        value={formData.telefono}
+                                        onChange={handleInputChange}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm"
+                                        required
+                                    />
+                                    <textarea
+                                        name="mensaje"
+                                        placeholder="Mensaje"
+                                        value={formData.mensaje}
+                                        onChange={handleInputChange}
+                                        rows="3"
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm resize-none"
+                                        required
+                                    ></textarea>
+                                    <button
+                                        type="submit"
+                                        disabled={formSubmitted}
+                                        className="w-full bg-slate-900 hover:bg-slate-800 text-white font-semibold py-2.5 px-4 rounded-lg transition-colors disabled:bg-gray-400 text-sm"
+                                    >
+                                        {formSubmitted ? 'Enviado ✓' : 'Enviar Mensaje'}
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* 7. SIMILAR PROPERTIES */}
+                    {propiedadesSimilares.length > 0 && (
+                        <div className="mb-8">
+                            <div className="mb-6">
+                                <h2 className="text-3xl font-bold text-gray-900 mb-2">Propiedades Similares</h2>
+                                <p className="text-gray-600">Otras opciones que podrían interesarte</p>
+                            </div>
+                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                                {propiedadesSimilares.map((prop) => (
+                                    <CardPropiedadPublica
+                                        key={prop.id}
+                                        propiedad={prop}
+                                        isFavorito={favoritos.some(fav => fav.propiedadId === prop.id)}
+                                        onFavoritoToggle={handleFavoritoToggle}
+                                    />
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Sección de Recomendaciones Personalizadas */}
+                    <Recomendaciones
+                        favoritos={favoritos}
+                        onFavoritoToggle={handleFavoritoToggle}
+                    />
+                </div>
+
+                {/* Sección de Propiedades Similares */}
+                {propiedadesSimilares.length > 0 && (
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+                        <div className="mb-8">
+                            <h2 className="text-3xl font-bold text-gray-900 mb-2">Propiedades Similares</h2>
+                            <p className="text-gray-600">Otras opciones que podrían interesarte</p>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                            {propiedadesSimilares.map((prop) => (
+                                <CardPropiedadPublica
+                                    key={prop.id}
+                                    propiedad={prop}
+                                    isFavorito={favoritos.some(fav => fav.propiedadId === prop.id)}
+                                    onFavoritoToggle={handleFavoritoToggle}
+                                />
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {/* Sección de Recomendaciones Personalizadas */}
+                <Recomendaciones
+                    favoritos={favoritos}
+                    onFavoritoToggle={handleFavoritoToggle}
+                />
+
+                {/* Sticky Mobile Price Bar - Only visible on mobile */}
+                <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t-2 border-gray-200 shadow-2xl z-40 px-4 py-3">
+                    <div className="flex items-center justify-between gap-3">
+                        {/* Price */}
+                        <div>
+                            <div className="text-xs text-gray-500">Precio</div>
+                            <div className="text-xl font-bold text-gray-900">
+                                {Number(propiedad.precio).toLocaleString('es-EC', {
+                                    style: 'currency',
+                                    currency: propiedad.moneda || 'USD',
+                                    minimumFractionDigits: 0,
+                                    maximumFractionDigits: 0
+                                })}
                             </div>
                         </div>
 
-                        {/* Agent Info */}
-              {propiedad.agente && (
-                            <div className="bg-white rounded-2xl shadow-xl p-6 border border-gray-100">
-                                <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                                    <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                                    </svg>
-                                    Agente Responsable
-                                </h3>
-                                <div className="flex items-center gap-4">
-                                    <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-blue-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
-                      {propiedad.agente.name?.charAt(0) || 'A'}
+                        {/* WhatsApp Button */}
+                        <a
+                            href={`https://wa.me/593981231304?text=${encodeURIComponent(`Hola, estoy interesado en la propiedad: ${propiedad.titulo}`)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="bg-green-600 hover:bg-green-700 text-white font-semibold px-6 py-3 rounded-xl transition-all duration-200 flex items-center gap-2 shadow-lg"
+                        >
+                            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
+                            </svg>
+                            Contactar
+                        </a>
+                    </div>
                 </div>
-                                    <div>
-                                        <div className="font-semibold text-gray-900">{propiedad.agente.name}</div>
-                                        <div className="text-sm text-gray-600">{propiedad.agente.email}</div>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Description - Now integrated in right column */}
-                        {propiedad.descripcion && (
-                            <div className="bg-white rounded-2xl shadow-xl p-6 border border-gray-100">
-                                <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                                    <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                    </svg>
-                                    Descripción
-                                </h3>
-                                <div className="prose prose-sm max-w-none">
-                                    <p className="text-gray-700 leading-relaxed whitespace-pre-wrap text-sm">{propiedad.descripcion}</p>
-                </div>
-                </div>
-                        )}
-
-                        {/* Contact Form */}
-                        <div className="bg-white rounded-2xl shadow-xl p-6 border border-gray-100">
-                            <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                                <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                                </svg>
-                                Contactar al Agente
-                            </h3>
-                  {formSubmitted ? (
-                                <div className="text-center py-8">
-                                    <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                                        <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                        </svg>
-                                    </div>
-                                    <p className="text-green-600 font-semibold text-lg">¡Mensaje enviado!</p>
-                                    <p className="text-gray-600 mt-2">El agente se pondrá en contacto contigo pronto.</p>
-                                </div>
-                  ) : (
-                      <form onSubmit={handleFormSubmit} className="space-y-4">
-                          <div>
-                                        <label htmlFor="nombre" className="block text-sm font-semibold text-gray-700 mb-2">Tu Nombre</label>
-                              <input
-                                  type="text"
-                                  id="nombre"
-                                  name="nombre"
-                                  value={formData.nombre}
-                                  onChange={handleFormChange}
-                                            className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
-                                                formErrors.nombre ? 'border-red-500' : 'border-gray-300'
-                                            }`}
-                                  placeholder="Tu nombre completo"
-                              />
-                                        {formErrors.nombre && <p className="text-red-500 text-sm mt-1">{formErrors.nombre}</p>}
-                          </div>
-                          <div>
-                                        <label htmlFor="email" className="block text-sm font-semibold text-gray-700 mb-2">Tu Email</label>
-                              <input
-                                  type="email"
-                                  id="email"
-                                  name="email"
-                                  value={formData.email}
-                                  onChange={handleFormChange}
-                                            className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
-                                                formErrors.email ? 'border-red-500' : 'border-gray-300'
-                                            }`}
-                                  placeholder="tu@ejemplo.com"
-                              />
-                                        {formErrors.email && <p className="text-red-500 text-sm mt-1">{formErrors.email}</p>}
-                          </div>
-                          <div>
-                                        <label htmlFor="mensaje" className="block text-sm font-semibold text-gray-700 mb-2">Mensaje</label>
-                              <textarea
-                                  id="mensaje"
-                                  name="mensaje"
-                                  value={formData.mensaje}
-                                  onChange={handleFormChange}
-                                            rows="4"
-                                            className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors resize-none ${
-                                                formErrors.mensaje ? 'border-red-500' : 'border-gray-300'
-                                            }`}
-                                  placeholder="Me gustaría obtener más información sobre esta propiedad..."
-                              ></textarea>
-                                        {formErrors.mensaje && <p className="text-red-500 text-sm mt-1">{formErrors.mensaje}</p>}
-                          </div>
-                          <button
-                              type="submit"
-                                        className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold py-3 px-4 rounded-lg transition-all duration-200 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                          >
-                                        <span className="flex items-center justify-center gap-2">
-                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                                            </svg>
-                              Enviar Mensaje
-                                        </span>
-                          </button>
-                      </form>
-                  )}
-                </div>
-            </div>
-                </div>
-            </div>
-
-
-            {/* Sección de Recomendaciones Personalizadas */}
-            <Recomendaciones 
-                favoritos={favoritos}
-                onFavoritoToggle={handleFavoritoToggle}
-            />
             </div>
         </LayoutPublic>
     );

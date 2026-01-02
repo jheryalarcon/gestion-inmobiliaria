@@ -1,26 +1,79 @@
 import { useEffect, useState, useRef } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useBlocker } from 'react-router-dom';
 import axios from 'axios';
 import SelectProvincia from '../components/SelectProvincia';
 import SelectTipoPropiedad from '../components/SelectTipoPropiedad';
+import DocumentManager from '../components/DocumentManager'; // Import DocumentManager
 import { jwtDecode } from 'jwt-decode';
 import { toast } from 'sonner';
+import { Trash2, FolderCheck } from 'lucide-react';
+import FormIdentificacion from '../components/propiedad/form/FormIdentificacion';
+import FormUbicacion from '../components/propiedad/form/FormUbicacion';
+import FormCaracteristicas from '../components/propiedad/form/FormCaracteristicas';
+import FormNegocio from '../components/propiedad/form/FormNegocio';
+import FormImagenes from '../components/propiedad/form/FormImagenes';
+
+// Helper para mapear categorías
+const obtenerCategoriaPorTipo = (tipo) => {
+    const mapping = {
+        escritura: 'LEGAL',
+        gravamenes: 'LEGAL',
+        predial: 'LEGAL',
+        planos: 'TECNICO',
+        ficha_catastral: 'TECNICO',
+        uso_suelo: 'TECNICO',
+        reglamento_ph: 'PH',
+        certificado_alicuota: 'PH',
+        certificado_expensas: 'PH',
+        planilla_luz: 'SERVICIOS',
+        planilla_agua: 'SERVICIOS',
+        planilla_alicuota: 'SERVICIOS',
+        contrato_exclusividad: 'COMERCIAL',
+        autorizacion_venta: 'COMERCIAL',
+        otros: 'OTROS'
+    };
+    return mapping[tipo] || 'OTROS';
+};
 
 export default function EditarPropiedad() {
-    const {id} = useParams();
+    const { id } = useParams();
     const navigate = useNavigate();
     const [datos, setDatos] = useState(null);
     const [imagenesActuales, setImagenesActuales] = useState([]);
     const [imagenesAEliminar, setImagenesAEliminar] = useState([]);
+    const [docsAEliminar, setDocsAEliminar] = useState([]); // ADDED for Batch Delete
     const [imagenesNuevas, setImagenesNuevas] = useState([]);
     const [vistaPrevia, setVistaPrevia] = useState([]);
     const [agentes, setAgentes] = useState([]);
     const [usuario, setUsuario] = useState(null);
     const [errores, setErrores] = useState({});
     const [loading, setLoading] = useState(true);
-    const [showConfirmModal, setShowConfirmModal] = useState(false);
     const cancelarRef = useRef(null);
+    const isSavedRef = useRef(false);
     const [initialDatos, setInitialDatos] = useState(null);
+
+    // Multi-Propietario State
+    const [propietarios, setPropietarios] = useState([]);
+    const [clientes, setClientes] = useState([]);
+    const [busquedaCliente, setBusquedaCliente] = useState('');
+
+    // Documentos State
+    const [documentos, setDocumentos] = useState({
+        escritura: [],
+        gravamenes: [],
+        predial: [],
+        planos: [],
+        ficha_catastral: [],
+        uso_suelo: [],
+        reglamento_ph: [],
+        certificado_alicuota: [],
+        certificado_expensas: [], // ADDED
+        planilla_luz: [],
+        planilla_agua: [],
+        planilla_alicuota: [],
+        contrato_exclusividad: [],
+        autorizacion_venta: []
+    });
 
     const token = localStorage.getItem('token');
 
@@ -35,6 +88,108 @@ export default function EditarPropiedad() {
             setDatos(res.data);
             setInitialDatos(res.data); // Guardar estado inicial para comparación
             setImagenesActuales(res.data.imagenes || []);
+
+            // Mapear propietarios existentes
+            console.log('👤 Propietarios recibidos:', res.data.propietarios);
+            if (res.data.propietarios && res.data.propietarios.length > 0) {
+                setPropietarios(res.data.propietarios.map(p => ({
+                    clienteId: p.clienteId.toString(),
+                    nombre: p.cliente?.nombre || 'Desconocido', // Safely access cliente
+                    email: p.cliente?.email || '',
+                    porcentaje: p.porcentaje,
+                    es_principal: p.es_principal
+                })));
+            } else {
+                console.warn('⚠️ No se encontraron propietarios en la relación. Verificando fallback...');
+                // Fallback Legacy: Si hay ID pero no relación, buscamos al cliente manualmente
+                if (res.data.propietarioId) {
+                    console.log('🔄 Cargando propietario legacy ID:', res.data.propietarioId);
+                    axios.get(`http://localhost:3000/api/clientes/${res.data.propietarioId}`, {
+                        headers: { Authorization: `Bearer ${token}` }
+                    }).then(clienteRes => {
+                        const cliente = clienteRes.data;
+                        setPropietarios([{
+                            clienteId: cliente.id.toString(),
+                            nombre: cliente.nombre,
+                            email: cliente.email,
+                            porcentaje: 100,
+                            es_principal: true
+                        }]);
+                        console.log('✅ Propietario legacy cargado:', cliente.nombre);
+                    }).catch(err => {
+                        console.error('Error cargando propietario legacy:', err);
+                    });
+                }
+            }
+
+            // Mapear documentos existentes
+            if (res.data.documentos && res.data.documentos.length > 0) {
+                // Normalizar claves a minúsculas para coincidir con el estado
+                const docsMap = { ...documentos }; // Start with empty state structure
+                res.data.documentos.forEach(doc => {
+                    const keyOriginal = doc.tipo.toLowerCase();
+                    console.log('📄 Procesando documento:', doc.id, doc.tipo, keyOriginal);
+
+                    // Mapa de normalización de claves de backend a frontend
+                    const keyMap = {
+                        'escritura_publica': 'escritura',
+                        'escritura': 'escritura',
+                        // Gravamenes
+                        'cert_gravamenes': 'gravamenes',
+                        'gravamenes': 'gravamenes',
+                        'cert_gravamen': 'gravamenes',
+                        'certificado_gravamen': 'gravamenes', // ACTUAL KEY sent by Registrar
+                        // Predial
+                        'predial': 'predial',
+                        'impuesto_predial': 'predial',
+                        'pago_predial': 'predial', // ACTUAL KEY sent by Registrar
+                        // Planos
+                        'planos': 'planos',
+                        'plano': 'planos', // ACTUAL KEY sent by Registrar
+                        // Ficha
+                        'ficha_catastral': 'ficha_catastral',
+                        // Uso Suelo
+                        'uso_suelo': 'uso_suelo',
+                        'certificado_uso_suelo': 'uso_suelo', // ACTUAL KEY sent by Registrar
+                        // PH
+                        'reglamento_ph': 'reglamento_ph',
+                        'cert_alicuota': 'certificado_alicuota',
+                        'certificado_alicuota': 'certificado_alicuota',
+                        'certificado_expensas': 'certificado_expensas', // ADDED
+                        // Servicios
+                        'planilla_luz': 'planilla_luz',
+                        'luz': 'planilla_luz',
+                        'planilla_agua': 'planilla_agua',
+                        'agua': 'planilla_agua',
+                        'planilla_alicuota': 'planilla_alicuota',
+                        'alicuota': 'planilla_alicuota',
+                        // Comercial
+                        'contrato_exclusividad': 'contrato_exclusividad',
+                        'autorizacion_venta': 'autorizacion_venta',
+                        'otro': 'otros',
+                        'otros': 'otros'
+                    };
+
+                    const stateKey = keyMap[keyOriginal];
+
+                    if (stateKey && docsMap[stateKey] !== undefined) {
+                        // Es un array conocido, pusheamos
+                        docsMap[stateKey] = [
+                            ...(docsMap[stateKey] || []),
+                            {
+                                id: doc.id,
+                                name: doc.nombre,
+                                url: doc.url,
+                                type: 'application/pdf'
+                            }
+                        ];
+                    } else {
+                        console.warn('⚠️ Documento con tipo desconocido o no mapeado:', doc.tipo);
+                    }
+                });
+                console.log('📂 Mapa de documentos final:', docsMap);
+                setDocumentos(docsMap);
+            }
             setLoading(false);
         }).catch((error) => {
             if (error.response?.status === 403) {
@@ -48,10 +203,15 @@ export default function EditarPropiedad() {
             setLoading(false);
         });
 
-        if (user.rol === 'admin') {
+        if (user.rol === 'admin' || user.rol === 'agente') {
             axios.get('http://localhost:3000/api/usuarios/agentes', {
                 headers: { Authorization: `Bearer ${token}` }
             }).then(res => setAgentes(res.data));
+
+            // Cargar clientes para buscador
+            axios.get('http://localhost:3000/api/clientes?limit=1000', {
+                headers: { Authorization: `Bearer ${token}` }
+            }).then(res => setClientes(res.data.clientes || []));
         }
     }, []);
 
@@ -77,20 +237,12 @@ export default function EditarPropiedad() {
         return false;
     };
 
-    const handleCancel = () => {
-        if (hayCambios()) {
-            setShowConfirmModal(true);
-        } else {
-            if (usuario?.rol === 'admin') {
-                navigate('/admin/panel-propiedades');
-            } else {
-                navigate('/agente/panel-propiedades');
-            }
-        }
-    };
+    const blocker = useBlocker(
+        ({ currentLocation, nextLocation }) =>
+            !isSavedRef.current && hayCambios() && currentLocation.pathname !== nextLocation.pathname
+    );
 
-    const confirmarSalida = () => {
-        setShowConfirmModal(false);
+    const handleCancel = () => {
         if (usuario?.rol === 'admin') {
             navigate('/admin/panel-propiedades');
         } else {
@@ -100,125 +252,82 @@ export default function EditarPropiedad() {
 
     const obtenerMensajeErrorCampo = (campo) => {
         const mensajes = {
-            titulo: 'El título es obligatorio',
-            tipo_propiedad: 'Selecciona un tipo de propiedad',
-            estado_propiedad: 'Selecciona un estado físico',
-            transaccion: 'Selecciona una transacción',
-            precio: 'Ingrese un precio válido',
-            direccion: 'La dirección es obligatoria',
-            ciudad: 'La ciudad es obligatoria',
-            provincia: 'Selecciona una provincia',
-            area_terreno: 'Área de terreno inválida',
-            agenteId: 'Debe seleccionar un agente',
-            imagenes: 'Debe subir al menos una imagen válida',
+            titulo: 'El título de la propiedad es obligatorio',
+            tipo_propiedad: 'Debe seleccionar un tipo de propiedad (Casa, Departamento, etc.)',
+            estado_propiedad: 'Debe seleccionar el estado físico de la propiedad',
+            transaccion: 'Debe especificar si es Venta o Alquiler',
+            precio: 'El precio debe ser un número mayor a $0',
+            direccion: 'La dirección completa es obligatoria',
+            ciudad: 'Debe especificar la ciudad',
+            provincia: 'Debe seleccionar una provincia',
+            sector: 'El sector o barrio es obligatorio',
+            area_terreno: 'El área de terreno debe ser un número mayor a 0',
+            uso_propiedad: 'Debe seleccionar el uso (Residencial, Comercial, etc.)',
+            agenteId: 'Debe asignar un agente responsable',
+            imagenes: 'Debe subir al menos una imagen de la propiedad',
+            comision: 'La comisión pactada es obligatoria (puede ser 0)',
+            fecha_captacion: 'La fecha de captación es obligatoria',
+            tipo_contrato: 'Debe seleccionar el tipo de contrato (Exclusividad o Abierta)',
+            valor_garantia: 'El valor de garantía es obligatorio para alquileres'
         };
-        return mensajes[campo] || 'Campo obligatorio';
+        return mensajes[campo] || 'Este campo es obligatorio';
     };
 
     const handleChange = (e) => {
-        const { name, value } = e.target;
-        setDatos((prev) => ({
-            ...prev,
-            [name]: value
-        }));
+        const { name, value, type, checked } = e.target;
+        // Fix para Checkboxes (Amenities)
+        const val = type === 'checkbox' ? checked : value;
+
+        setDatos((prev) => {
+            const nuevosDatos = { ...prev, [name]: val };
+
+            // Limpiar valor_garantia si la transacción cambia a Venta
+            if (name === 'transaccion' && val !== 'alquiler') {
+                nuevosDatos.valor_garantia = '';
+            }
+
+            return nuevosDatos;
+        });
+
         setErrores((prev) => {
             const nuevos = { ...prev };
             // Solo los campos obligatorios de RegistrarPropiedad.jsx
             if ([
-                'titulo', 'tipo_propiedad', 'estado_propiedad', 'transaccion', 'precio', 'direccion', 'ciudad', 'provincia', 'area_terreno'
-            ].includes(name)) {
-                if (value.trim() === '' || value === '') {
+                'titulo', 'tipo_propiedad', 'estado_propiedad', 'transaccion', 'precio', 'direccion', 'ciudad', 'provincia', 'area_terreno',
+                'sector', 'uso_propiedad', 'comision', 'fecha_captacion', 'tipo_contrato', 'valor_garantia'
+            ].includes(name)) { // Added valor_garantia check logic in render or separate check
+                // Logic simplified below
+                if (String(val).trim() === '' || val === '') {
                     nuevos[name] = obtenerMensajeErrorCampo(name);
                 } else {
                     delete nuevos[name];
                 }
             }
-            // Validación numérica específica para precio y área_terreno
+            // Specific validations
             if (name === 'precio') {
-                if (isNaN(Number(value)) || Number(value) <= 0) {
+                if (isNaN(Number(val)) || Number(val) <= 0) {
                     nuevos.precio = 'Ingrese un precio válido';
                 } else {
                     delete nuevos.precio;
                 }
             }
             if (name === 'area_terreno') {
-                if (!value || Number(value) <= 0) {
+                if (!val || Number(val) <= 0) {
                     nuevos.area_terreno = 'Área de terreno inválida';
                 } else {
                     delete nuevos.area_terreno;
                 }
             }
-            return nuevos;
-        });
-    };
-
-    const handleImagenesNuevas = (e) => {
-        const files = Array.from(e.target.files);
-        const maxSizeMB = 5;
-        const maxSizeBytes = maxSizeMB * 1024 * 1024;
-        const maxImagenes = 5;
-        const erroresImagenes = [];
-        
-        // Validar número máximo de imágenes (considerando imágenes actuales y nuevas)
-        const totalImagenes = imagenesActuales.length + imagenesNuevas.length + files.length;
-        if (totalImagenes > maxImagenes) {
-            toast.error(`❌ Solo puedes tener un máximo de ${maxImagenes} imágenes. Actualmente tienes ${imagenesActuales.length + imagenesNuevas.length} y estás intentando agregar ${files.length} más.`, {
-                duration: 4000,
-            });
-            return;
-        }
-        
-        const archivosValidos = files.filter((file) => {
-            if (file.size > maxSizeBytes) {
-                erroresImagenes.push(`❌ "${file.name}" supera los ${maxSizeMB} MB`);
-                return false;
+            // Special case: Clear guarantee error if transaction changes
+            if (name === 'transaccion' && val !== 'alquiler') {
+                delete nuevos.valor_garantia;
             }
-            return true;
-        });
-        if (erroresImagenes.length > 0) {
-            toast.error('Algunas imágenes son demasiado pesadas:\n' + erroresImagenes.join('\n'), {
-                duration: 4000,
-            });
-        }
-        
-        // Agregar nuevas imágenes a las existentes
-        const nuevasImagenes = [...imagenesNuevas, ...archivosValidos];
-        setImagenesNuevas(nuevasImagenes);
-        
-        // Crear URLs para vista previa de las nuevas imágenes
-        const nuevasVistasPrevias = archivosValidos.map(file => URL.createObjectURL(file));
-        setVistaPrevia([...vistaPrevia, ...nuevasVistasPrevias]);
-        
-        setErrores((prev) => {
-            const nuevos = { ...prev };
-            if (nuevasImagenes.length > 0 || imagenesActuales.length > 0) delete nuevos.imagenes;
-            else nuevos.imagenes = 'Debe subir al menos una imagen válida';
+
             return nuevos;
         });
     };
 
-    const eliminarImagenNueva = (index) => {
-        const nuevasImagenes = [...imagenesNuevas];
-        const imagenEliminada = nuevasImagenes.splice(index, 1)[0];
-        setImagenesNuevas(nuevasImagenes);
 
-        // Liberar la URL del objeto para evitar memory leaks
-        const nuevasVistasPrevias = [...vistaPrevia];
-        URL.revokeObjectURL(nuevasVistasPrevias[index]);
-        nuevasVistasPrevias.splice(index, 1);
-        setVistaPrevia(nuevasVistasPrevias);
-
-        // Actualizar errores si no quedan imágenes
-        setErrores((prev) => {
-            const nuevos = { ...prev };
-            if (nuevasImagenes.length === 0 && imagenesActuales.length === 0) {
-                nuevos.imagenes = 'Debe subir al menos una imagen válida';
-            } else {
-                delete nuevos.imagenes;
-            }
-            return nuevos;
-        });
-    };
 
     const eliminarImagenActual = (index) => {
         const nuevas = [...imagenesActuales];
@@ -229,19 +338,186 @@ export default function EditarPropiedad() {
         setImagenesActuales(nuevas);
     };
 
+    // HANDLERS MULTI-PROPIETARIO
+    const agregarPropietario = (cliente) => {
+        if (propietarios.some(p => p.clienteId === cliente.id.toString())) {
+            toast.warning('Este propietario ya está agregado');
+            return;
+        }
+        const nuevosPropietarios = [...propietarios, {
+            clienteId: cliente.id.toString(),
+            nombre: cliente.nombre,
+            email: cliente.email,
+            porcentaje: 0,
+            es_principal: propietarios.length === 0 // Primero es principal por defecto
+        }];
+
+        // Recalcular porcentajes automáticamente (Auto-Distribución)
+        const total = nuevosPropietarios.length;
+        const porcentajeBase = Math.floor((100 / total) * 100) / 100;
+        const resto = 100 - (porcentajeBase * total);
+
+        nuevosPropietarios.forEach((p, i) => {
+            p.porcentaje = (i === 0 ? (porcentajeBase + resto).toFixed(2) : porcentajeBase.toFixed(2));
+        });
+
+        setPropietarios(nuevosPropietarios);
+        setBusquedaCliente('');
+        // Limpiar error al agregar
+        setErrores(prev => {
+            const nuevos = { ...prev };
+            delete nuevos.propietarios;
+            return nuevos;
+        });
+    };
+
+    const eliminarPropietario = (index) => {
+        const nuevos = [...propietarios];
+        nuevos.splice(index, 1);
+
+        if (nuevos.length > 0) {
+            // Asegurar principal
+            if (!nuevos.some(p => p.es_principal)) {
+                nuevos[0].es_principal = true;
+            }
+            // Recalcular porcentajes automáticamente
+            const total = nuevos.length;
+            const porcentajeBase = Math.floor((100 / total) * 100) / 100;
+            const resto = 100 - (porcentajeBase * total);
+            nuevos.forEach((p, i) => {
+                p.porcentaje = (i === 0 ? (porcentajeBase + resto).toFixed(2) : porcentajeBase.toFixed(2));
+            });
+        }
+
+        setPropietarios(nuevos);
+
+        // Validar si quedó vacío
+        if (nuevos.length === 0) {
+            setErrores(prev => ({
+                ...prev,
+                propietarios: 'Debe haber al menos un propietario asignado'
+            }));
+        }
+    };
+
+    const handlePropietarioChange = (index, field, value) => {
+        setPropietarios(prev => {
+            const nuevos = [...prev];
+            if (field === 'es_principal') {
+                if (value) nuevos.forEach((p, i) => p.es_principal = i === index);
+            } else {
+                nuevos[index][field] = value;
+            }
+            return nuevos;
+        });
+    };
+
+    const filtrarClientes = () => {
+        if (!busquedaCliente) return [];
+        return clientes.filter(c =>
+            c.nombre.toLowerCase().includes(busquedaCliente.toLowerCase()) ||
+            c.email.toLowerCase().includes(busquedaCliente.toLowerCase()) ||
+            c.cedula?.includes(busquedaCliente)
+        ).slice(0, 5);
+    };
+
+    // HANDLERS DOCUMENTOS (Refactored for Batch Save)
+    const handleUploadDocumento = (e, tipo) => {
+        const files = Array.from(e.target.files);
+        if (files.length === 0) return;
+
+        const newDocs = files.map(file => ({
+            file, // Store actual file object
+            name: file.name,
+            url: URL.createObjectURL(file), // Preview
+            type: file.type,
+            isNew: true
+        }));
+
+        setDocumentos(prev => ({
+            ...prev,
+            [tipo]: [...prev[tipo], ...newDocs]
+        }));
+    };
+
+    const eliminarDocumento = (tipo, index) => {
+        const docToDelete = documentos[tipo][index];
+
+        // If it's an existing document (has ID), mark for deletion
+        if (docToDelete.id) {
+            setDocsAEliminar(prev => [...prev, docToDelete.id]);
+        }
+
+        // If it's a new document,revoke object URL to avoid leaks
+        if (docToDelete.isNew && docToDelete.url) {
+            URL.revokeObjectURL(docToDelete.url);
+        }
+
+        // Remove from UI state
+        setDocumentos(prev => {
+            const newByType = [...prev[tipo]];
+            newByType.splice(index, 1);
+            return { ...prev, [tipo]: newByType };
+        });
+    };
+
     const validarFormulario = () => {
         const nuevosErrores = {};
-        if (!datos.titulo?.trim()) nuevosErrores.titulo = 'El título es obligatorio';
-        if (!datos.tipo_propiedad) nuevosErrores.tipo_propiedad = 'Selecciona un tipo de propiedad';
-        if (!datos.estado_propiedad) nuevosErrores.estado_propiedad = 'Selecciona un estado físico';
-        if (!datos.transaccion) nuevosErrores.transaccion = 'Selecciona una transacción';
-        if (!datos.precio || isNaN(Number(datos.precio)) || Number(datos.precio) <= 0) nuevosErrores.precio = 'Precio inválido';
-        if (!datos.direccion?.trim()) nuevosErrores.direccion = 'La dirección es obligatoria';
-        if (!datos.ciudad?.trim()) nuevosErrores.ciudad = 'La ciudad es obligatoria';
-        if (!datos.provincia) nuevosErrores.provincia = 'Selecciona una provincia';
-        if (!datos.area_terreno || Number(datos.area_terreno) <= 0) nuevosErrores.area_terreno = 'Área de terreno inválida';
-        if (usuario?.rol === 'admin' && !datos.agenteId) nuevosErrores.agenteId = 'Debe seleccionar un agente';
-        if (imagenesActuales.length + imagenesNuevas.length === 0) nuevosErrores.imagenes = 'Debe subir al menos una imagen';
+        if (!datos.titulo?.trim()) nuevosErrores.titulo = obtenerMensajeErrorCampo('titulo');
+        if (!datos.tipo_propiedad) nuevosErrores.tipo_propiedad = obtenerMensajeErrorCampo('tipo_propiedad');
+        if (!datos.estado_propiedad) nuevosErrores.estado_propiedad = obtenerMensajeErrorCampo('estado_propiedad');
+        if (!datos.transaccion) nuevosErrores.transaccion = obtenerMensajeErrorCampo('transaccion');
+        if (!datos.precio || isNaN(Number(datos.precio)) || Number(datos.precio) <= 0) nuevosErrores.precio = obtenerMensajeErrorCampo('precio');
+        if (!datos.direccion?.trim()) nuevosErrores.direccion = obtenerMensajeErrorCampo('direccion');
+        if (!datos.ciudad?.trim()) nuevosErrores.ciudad = obtenerMensajeErrorCampo('ciudad');
+        if (!datos.sector?.trim()) nuevosErrores.sector = obtenerMensajeErrorCampo('sector');
+        if (!datos.provincia) nuevosErrores.provincia = obtenerMensajeErrorCampo('provincia');
+        if (!datos.uso_propiedad) nuevosErrores.uso_propiedad = obtenerMensajeErrorCampo('uso_propiedad');
+        if (!datos.area_terreno || Number(datos.area_terreno) <= 0) nuevosErrores.area_terreno = obtenerMensajeErrorCampo('area_terreno');
+        if (usuario?.rol === 'admin' && !datos.agenteId) nuevosErrores.agenteId = obtenerMensajeErrorCampo('agenteId');
+        if (imagenesActuales.length + imagenesNuevas.length === 0) nuevosErrores.imagenes = obtenerMensajeErrorCampo('imagenes');
+
+        // Negocio Check
+        if (!datos.comision || isNaN(Number(datos.comision)) || Number(datos.comision) < 0) nuevosErrores.comision = obtenerMensajeErrorCampo('comision');
+        if (!datos.tipo_contrato) nuevosErrores.tipo_contrato = obtenerMensajeErrorCampo('tipo_contrato');
+        if (!datos.fecha_captacion) nuevosErrores.fecha_captacion = obtenerMensajeErrorCampo('fecha_captacion');
+
+        // Garantía (Alquiler) - Validación condicional mejorada
+        if (datos.transaccion === 'alquiler') {
+            if (!datos.valor_garantia || isNaN(Number(datos.valor_garantia)) || Number(datos.valor_garantia) < 0) {
+                nuevosErrores.valor_garantia = obtenerMensajeErrorCampo('valor_garantia');
+            }
+        }
+
+        // Validación de Propietarios
+        if (propietarios.length === 0) {
+            nuevosErrores.propietarios = 'Debe haber al menos un propietario asignado';
+            toast.error('❌ Debes asignar al menos un propietario');
+        } else {
+            const sumaPorcentajes = propietarios.reduce((acc, curr) => acc + parseFloat(curr.porcentaje || 0), 0);
+            if (Math.abs(sumaPorcentajes - 100) > 0.1) {
+                nuevosErrores.propietarios = `La suma de porcentajes debe ser exactamente 100% (Actual: ${sumaPorcentajes.toFixed(2)}%)`;
+                toast.error(`❌ La suma de porcentajes debe ser 100% (Actual: ${sumaPorcentajes.toFixed(2)}%)`);
+            }
+            if (!propietarios.some(p => p.es_principal)) {
+                nuevosErrores.propietarios = 'Debe marcar al menos un propietario como principal';
+                toast.error('❌ Debe marcar un propietario como principal');
+            }
+        }
+
+        // 🛡️ Validación de Documentos Obligatorios
+        if (datos.tipo_contrato === 'exclusividad') {
+            if (!documentos.contrato_exclusividad || documentos.contrato_exclusividad.length === 0) {
+                nuevosErrores.documentos = 'El Contrato de Exclusividad es obligatorio para este tipo de contrato';
+                toast.error('❌ Debes subir el Contrato de Exclusividad');
+            }
+        } else {
+            if (!documentos.autorizacion_venta || documentos.autorizacion_venta.length === 0) {
+                nuevosErrores.documentos = 'La Autorización de Venta es obligatoria para contratos abiertos';
+                toast.error('❌ Debes subir la Autorización de Venta');
+            }
+        }
+
         return nuevosErrores;
     };
 
@@ -253,33 +529,112 @@ export default function EditarPropiedad() {
         if (Object.keys(nuevosErrores).length > 0) {
             setErrores(nuevosErrores);
             toast.error('Por favor, corrige los errores en el formulario.');
-                return;
+
+            // Scroll automático al primer campo con error
+            setTimeout(() => {
+                const firstErrorField = document.querySelector('.border-red-500, [class*="border-red"]');
+                if (firstErrorField) {
+                    firstErrorField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    firstErrorField.focus();
+                }
+            }, 100);
+            return;
         }
         const formData = new FormData();
         for (const key in datos) {
+            // Excluir campos complejos que se manejan aparte
+            if (['propietarios', 'imagenes', 'documentos', 'imagenesAEliminar'].includes(key)) continue;
+
             const valor = datos[key];
             if (valor !== '' && valor !== null && valor !== undefined) {
                 formData.append(key, valor);
             }
         }
         imagenesNuevas.forEach(img => formData.append('imagenes', img));
+        formData.append('propietarios', JSON.stringify(propietarios));
         imagenesAEliminar.forEach((id) => {
             formData.append('imagenesAEliminar[]', id);
         });
+
         try {
+            // 1. Actualizar datos de la propiedad
             await axios.put(`http://localhost:3000/api/propiedades/${id}`, formData, {
                 headers: {
                     Authorization: `Bearer ${token}`,
                     'Content-Type': 'multipart/form-data',
                 },
             });
-            toast.success('🏠 Propiedad actualizada correctamente', {
-                duration: 1000,
+
+            // 2. Procesar ELIMINACIÓN de documentos en lote
+            const deletePromises = docsAEliminar.map(docId =>
+                axios.delete(`http://localhost:3000/api/documentos/propiedad/${docId}`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                })
+            );
+
+            // 3. Procesar SUBIDA de documentos nuevos en lote
+            const uploadPromises = [];
+
+            // Recorrer el estado 'documentos' buscando los que tienen isNew: true
+            // Mapa de Claves de Estado -> Enum Backend
+            const stateToEnum = {
+                escritura: 'ESCRITURA',
+                gravamenes: 'CERTIFICADO_GRAVAMEN',
+                predial: 'PAGO_PREDIAL',
+                planos: 'PLANO',
+                ficha_catastral: 'FICHA_CATASTRAL',
+                uso_suelo: 'CERTIFICADO_USO_SUELO',
+                reglamento_ph: 'REGLAMENTO_PH',
+                certificado_alicuota: 'CERTIFICADO_ALICUOTA',
+                certificado_expensas: 'CERTIFICADO_EXPENSAS',
+                planilla_luz: 'PLANILLA_LUZ',
+                planilla_agua: 'PLANILLA_AGUA',
+                planilla_alicuota: 'PLANILLA_ALICUOTA',
+                contrato_exclusividad: 'CONTRATO_EXCLUSIVIDAD',
+                autorizacion_venta: 'AUTORIZACION_VENTA',
+                otros: 'OTRO',
+                papeleta_votacion: 'PAPELETA_VOTACION',
+                poder: 'PODER',
+                hoja_vida: 'HOJA_VIDA',
+                contrato: 'CONTRATO'
+            };
+            Object.entries(documentos).forEach(([tipoKey, docsArray]) => {
+                const newFiles = docsArray.filter(d => d.isNew && d.file);
+                if (newFiles.length > 0) {
+                    const fd = new FormData();
+                    newFiles.forEach(d => fd.append('documentos', d.file));
+
+                    const tipoEnum = stateToEnum[tipoKey] || tipoKey.toUpperCase();
+                    fd.append('tipo', tipoEnum);
+                    fd.append('propiedadId', id);
+                    // Mapping de categorías (simplificado, idealmente debería venir de un objeto config)
+                    const categoria = obtenerCategoriaPorTipo(tipoKey);
+                    fd.append('categoria', categoria);
+
+                    uploadPromises.push(
+                        axios.post(`http://localhost:3000/api/documentos/propiedad/${id}`, fd, {
+                            headers: {
+                                'Content-Type': 'multipart/form-data',
+                                Authorization: `Bearer ${token}`
+                            }
+                        })
+                    );
+                }
             });
+
+            if (deletePromises.length > 0 || uploadPromises.length > 0) {
+                toast.info('Sincronizando documentos...', { duration: 2000 });
+                await Promise.all([...deletePromises, ...uploadPromises]);
+            }
+
+            toast.success('✅ Propiedad actualizada correctamente');
+
+            // Actualizar estado inicial para evitar alertas de cambios no guardados
+            setInitialDatos(datos);
+            isSavedRef.current = true;
+
             setTimeout(() => {
-                navigate(
-                    usuario.rol === 'admin' ? '/admin/panel-propiedades' : '/agente/panel-propiedades'
-                );
+                navigate(usuario?.rol === 'admin' ? '/admin/panel-propiedades' : '/agente/panel-propiedades');
             }, 1000);
         } catch (error) {
             console.error('Error al actualizar propiedad:', error.response?.data);
@@ -303,348 +658,117 @@ export default function EditarPropiedad() {
     };
 
     if (!loading && usuario?.rol === 'agente' && datos && usuario.id !== datos.agenteId) {
-      return (
-        <div className="max-w-xl mx-auto mt-20 p-8 bg-white rounded-2xl shadow text-center border border-red-200">
-            <h2 className="text-2xl font-bold text-red-600 mb-4">Acceso denegado</h2>
-            <p className="text-gray-700">No tienes permisos para editar esta propiedad.</p>
-            <button
-              className="mt-6 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-6 py-2 rounded-xl shadow transition"
-              onClick={() => navigate(-1)}
-            >
-              ← Volver
-            </button>
-          </div>
-      );
+        return (
+            <div className="max-w-xl mx-auto mt-20 p-8 bg-white rounded-2xl shadow text-center border border-red-200">
+                <h2 className="text-2xl font-bold text-red-600 mb-4">Acceso denegado</h2>
+                <p className="text-gray-700">No tienes permisos para editar esta propiedad.</p>
+                <button
+                    className="mt-6 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-6 py-2 rounded-xl shadow transition"
+                    onClick={() => navigate(-1)}
+                >
+                    ← Volver
+                </button>
+            </div>
+        );
     }
 
     if (loading || !datos) return null;
     return (
-        <div className="max-w-3xl mx-auto mt-10 p-4 md:p-8 bg-white shadow-lg rounded-2xl border border-gray-100">
-            <h2 className="text-3xl font-extrabold text-center mb-2 text-blue-900 tracking-tight">Editar Propiedad</h2>
-            <p className="text-center text-gray-600 mb-8">Modifica los datos de la propiedad y guarda los cambios</p>
+        <div className="max-w-4xl mx-auto mt-10 mb-20">
+            {/* Header Card */}
+            <div className="bg-white shadow-xl rounded-2xl border-t-4 border-orange-500 overflow-hidden mb-8">
+                <div className="bg-gradient-to-r from-gray-700 to-gray-800 p-8 text-center relative overflow-hidden">
+                    <div className="absolute top-0 left-0 w-full h-full bg-white/10 pattern-grid-lg"></div>
+                    <h2 className="text-3xl font-extrabold text-white mb-2 tracking-tight relative z-10">
+                        Editar Propiedad
+                    </h2>
+                    <p className="text-orange-50 relative z-10 opacity-90">
+                        Modifica los datos, gestiona imágenes y actualiza documentos
+                    </p>
+                </div>
+            </div>
+
             <form onSubmit={handleSubmit} className="space-y-8">
-                {/* DATOS GENERALES */}
-                <section className="bg-gray-50 rounded-xl p-6 shadow-sm border border-gray-200">
-                    <h3 className="text-xl font-bold text-blue-800 mb-4">Datos Generales</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {/* TÍTULO */}
-                <div>
-                            <label className="block text-base font-semibold text-blue-800 mb-1">Título <span className="text-red-500">*</span></label>
-                            <input
-                                type="text"
-                                name="titulo"
-                                value={datos.titulo}
-                                onChange={handleChange}
-                                className={`w-full border-2 border-blue-100 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300 bg-white shadow-sm transition ${errores.titulo ? 'border-red-400' : 'border-blue-100'}`}
-                                placeholder="Ej: Casa moderna en Quito"
-                            />
-                            {errores.titulo && <p className="text-red-600 text-sm mt-1 font-medium">{errores.titulo}</p>}
-                </div>
-                        {/* TIPO DE PROPIEDAD */}
-                <div>
-                            <label className="block text-base font-semibold text-blue-800 mb-1">Tipo de propiedad <span className="text-red-500">*</span></label>
-                            <SelectTipoPropiedad
-                        value={datos.tipo_propiedad}
-                                onChange={e => handleChange({ target: { name: 'tipo_propiedad', value: e.target.value } })}
-                                error={errores.tipo_propiedad}
-                            />
-                            {errores.tipo_propiedad && <p className="text-red-600 text-sm mt-1 font-medium">{errores.tipo_propiedad}</p>}
-                </div>
-                {/* ESTADO FÍSICO */}
-                <div>
-                    <label className="block text-base font-semibold text-blue-800 mb-1">Estado físico <span className="text-red-500">*</span></label>
-                    <select
-                        name="estado_propiedad"
-                        value={datos.estado_propiedad}
-                        onChange={handleChange}
-                        className={`w-full border-2 border-blue-100 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300 bg-white shadow-sm transition ${errores.estado_propiedad ? 'border-red-400' : 'border-blue-100'}`}
-                    >
-                        <option value="" disabled hidden>Seleccione estado físico de la propiedad</option>
-                        <option value="nueva">Nueva</option>
-                        <option value="usada">Usada</option>
-                        <option value="en_construccion">En construcción</option>
-                    </select>
-                    {errores.estado_propiedad && <p className="text-red-600 text-sm mt-1 font-medium">{errores.estado_propiedad}</p>}
-                </div>
-                {/* TRANSACCIÓN */}
-                <div>
-                    <label className="block text-base font-semibold text-blue-800 mb-1">Transacción <span className="text-red-500">*</span></label>
-                    <select
-                        name="transaccion"
-                        value={datos.transaccion}
-                        onChange={handleChange}
-                        className={`w-full border-2 border-blue-100 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300 bg-white shadow-sm transition ${errores.transaccion ? 'border-red-400' : 'border-blue-100'}`}
-                    >
-                        <option value="" disabled hidden>Seleccione tipo de transacción</option>
-                        <option value="venta">Venta</option>
-                        <option value="alquiler">Alquiler</option>
-                    </select>
-                    {errores.transaccion && <p className="text-red-600 text-sm mt-1 font-medium">{errores.transaccion}</p>}
-                </div>
-                {/* PRECIO */}
-                <div>
-                    <label className="block text-base font-semibold text-blue-800 mb-1">Precio <span className="text-red-500">*</span></label>
-                    <input
-                        type="number"
-                        name="precio"
-                        value={datos.precio}
-                        onChange={handleChange}
-                        className={`w-full border-2 border-blue-100 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300 bg-white shadow-sm transition ${errores.precio ? 'border-red-400' : 'border-blue-100'}`}
-                        placeholder="Ej: 100000"
-                    />
-                    {errores.precio && <p className="text-red-600 text-sm mt-1 font-medium">{errores.precio}</p>}
-                </div>
-                </div>
-                    {/* DESCRIPCIÓN */}
-                    <div className="mt-6">
-                        <label className="block text-base font-semibold text-blue-800 mb-1">Descripción</label>
-                    <textarea
-                        name="descripcion"
-                        value={datos.descripcion || ''}
-                        onChange={handleChange}
-                            rows={3}
-                            className={`w-full border-2 border-blue-100 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300 bg-white shadow-sm transition ${errores.descripcion ? 'border-red-400' : 'border-blue-100'}`}
-                        placeholder="Agrega una descripción detallada..."
-                        ></textarea>
-                        {errores.descripcion && <p className="text-red-600 text-sm mt-1 font-medium">{errores.descripcion}</p>}
-                </div>
-                </section>
-                {/* UBICACIÓN */}
-                <section className="bg-gray-50 rounded-xl p-6 shadow-sm border border-gray-200">
-                    <h3 className="text-xl font-bold text-blue-800 mb-4">Ubicación</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {/* DIRECCIÓN */}
-                <div>
-                            <label className="block text-base font-semibold text-blue-800 mb-1">Dirección <span className="text-red-500">*</span></label>
-                            <input
-                                type="text"
-                                name="direccion"
-                                value={datos.direccion}
-                                onChange={handleChange}
-                                className={`w-full border-2 border-blue-100 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300 bg-white shadow-sm transition ${errores.direccion ? 'border-red-400' : 'border-blue-100'}`}
-                                placeholder="Ej: Av. Amazonas N34-56"
-                            />
-                            {errores.direccion && <p className="text-red-600 text-sm mt-1 font-medium">{errores.direccion}</p>}
-                </div>
-                        {/* CIUDAD */}
-                <div>
-                            <label className="block text-base font-semibold text-blue-800 mb-1">Ciudad <span className="text-red-500">*</span></label>
-                            <input
-                                type="text"
-                                name="ciudad"
-                                value={datos.ciudad}
-                                onChange={handleChange}
-                                className={`w-full border-2 border-blue-100 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300 bg-white shadow-sm transition ${errores.ciudad ? 'border-red-400' : 'border-blue-100'}`}
-                                placeholder="Ej: Quito"
-                            />
-                            {errores.ciudad && <p className="text-red-600 text-sm mt-1 font-medium">{errores.ciudad}</p>}
-                </div>
-                        {/* PROVINCIA */}
-                <div>
-                            <label className="block text-base font-semibold text-blue-800 mb-1">Provincia <span className="text-red-500">*</span></label>
-                            <SelectProvincia
-                                value={datos.provincia}
-                                onChange={e => handleChange({ target: { name: 'provincia', value: e.target.value } })}
-                                error={errores.provincia}
-                            />
-                            {errores.provincia && <p className="text-red-600 text-sm mt-1 font-medium">{errores.provincia}</p>}
-                </div>
-                </div>
-                </section>
-                {/* CARACTERÍSTICAS */}
-                <section className="bg-gray-50 rounded-xl p-6 shadow-sm border border-gray-200">
-                    <h3 className="text-xl font-bold text-blue-800 mb-4">Características</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {/* ÁREA TERRENO */}
-                <div>
-                            <label className="block text-base font-semibold text-blue-800 mb-1">Área terreno (m²) <span className="text-red-500">*</span></label>
-                            <input
-                                type="number"
-                                name="area_terreno"
-                                value={datos.area_terreno}
-                                onChange={handleChange}
-                                className={`w-full border-2 border-blue-100 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300 bg-white shadow-sm transition ${errores.area_terreno ? 'border-red-400' : 'border-blue-100'}`}
-                                placeholder="Ej: 200"
-                            />
-                            {errores.area_terreno && <p className="text-red-600 text-sm mt-1 font-medium">{errores.area_terreno}</p>}
-                </div>
-                        {/* CONSTRUCCIÓN */}
-                <div>
-                            <label className="block text-base font-semibold text-blue-800 mb-1">Área construcción (m²)</label>
-                            <input
-                                type="number"
-                                name="area_construccion"
-                                value={datos.area_construccion || ''}
-                                onChange={handleChange}
-                                className={`w-full border-2 border-blue-100 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300 bg-white shadow-sm transition ${errores.area_construccion ? 'border-red-400' : 'border-blue-100'}`}
-                                placeholder="Ej: 150"
-                            />
-                            {errores.area_construccion && <p className="text-red-600 text-sm mt-1 font-medium">{errores.area_construccion}</p>}
-                </div>
-                        {/* HABITACIONES */}
-                <div>
-                            <label className="block text-base font-semibold text-blue-800 mb-1">Habitaciones</label>
-                            <input
-                                type="number"
-                                name="nro_habitaciones"
-                                value={datos.nro_habitaciones || ''}
-                                onChange={handleChange}
-                                className={`w-full border-2 border-blue-100 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300 bg-white shadow-sm transition ${errores.nro_habitaciones ? 'border-red-400' : 'border-blue-100'}`}
-                                placeholder="Ej: 3"
-                            />
-                            {errores.nro_habitaciones && <p className="text-red-600 text-sm mt-1 font-medium">{errores.nro_habitaciones}</p>}
-                </div>
-                        {/* BAÑOS */}
-                <div>
-                            <label className="block text-base font-semibold text-blue-800 mb-1">Baños</label>
-                            <input
-                                type="number"
-                                name="nro_banos"
-                                value={datos.nro_banos || ''}
-                           onChange={handleChange}
-                                className={`w-full border-2 border-blue-100 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300 bg-white shadow-sm transition ${errores.nro_banos ? 'border-red-400' : 'border-blue-100'}`}
-                                placeholder="Ej: 2"
-                            />
-                            {errores.nro_banos && <p className="text-red-600 text-sm mt-1 font-medium">{errores.nro_banos}</p>}
-                </div>
-                        {/* PARQUEADEROS */}
-                <div>
-                            <label className="block text-base font-semibold text-blue-800 mb-1">Parqueaderos</label>
-                            <input
-                                type="number"
-                                name="nro_parqueaderos"
-                                value={datos.nro_parqueaderos || ''}
-                                onChange={handleChange}
-                                className={`w-full border-2 border-blue-100 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300 bg-white shadow-sm transition ${errores.nro_parqueaderos ? 'border-red-400' : 'border-blue-100'}`}
-                                placeholder="Ej: 1"
-                            />
-                            {errores.nro_parqueaderos && <p className="text-red-600 text-sm mt-1 font-medium">{errores.nro_parqueaderos}</p>}
-                </div>
-                        {/* PISOS */}
-                <div>
-                            <label className="block text-base font-semibold text-blue-800 mb-1">Número de pisos</label>
-                            <input
-                                type="number"
-                                name="nro_pisos"
-                                value={datos.nro_pisos || ''}
-                                onChange={handleChange}
-                                className={`w-full border-2 border-blue-100 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300 bg-white shadow-sm transition ${errores.nro_pisos ? 'border-red-400' : 'border-blue-100'}`}
-                                placeholder="Ej: 2"
-                            />
-                            {errores.nro_pisos && <p className="text-red-600 text-sm mt-1 font-medium">{errores.nro_pisos}</p>}
-                </div>
-                </div>
-                </section>
-                {/* ASIGNACIÓN DE AGENTE (solo admin) */}
-                {usuario?.rol === 'admin' && datos.agente && (
-                    <section className="bg-gray-50 rounded-xl p-6 shadow-sm border border-gray-200">
-                        <h3 className="text-xl font-bold text-blue-800 mb-4">Agente responsable</h3>
-                        <div>
-                            <label className="block text-base font-semibold text-blue-800 mb-1">
-                                Agente asignado
-                            </label>
-                            <div className="w-full border-2 border-blue-100 rounded-lg px-4 py-2 bg-gray-100 text-gray-700 shadow-sm">
-                                {datos.agente?.name} ({datos.agente?.email})
-                            </div>
-                        </div>
-                    </section>
-                )}
-                {/* IMÁGENES */}
-                <section className="bg-gray-50 rounded-xl p-6 shadow-sm border border-gray-200">
-                    <h3 className="text-xl font-bold text-blue-800 mb-4">Imágenes</h3>
-                <div>
-                        <label className="block text-base font-semibold text-blue-800 mb-1">Sube imágenes <span className="text-red-500">*</span></label>
-                        {/* Imágenes actuales */}
-                        <div className="mb-2">
-                            <span className="font-semibold">Imágenes actuales:</span>
-                            <div className="flex gap-2 mt-2 flex-wrap">
-                                {imagenesActuales.length === 0 && (
-                                    <span className="text-gray-500 text-sm">No hay imágenes actuales.</span>
-                                )}
-                        {imagenesActuales.map((img, idx) => (
-                                    <div key={img.id || idx} className="relative group">
-                                        <img
-                                            src={
-                                                img.url
-                                                    ? img.url.startsWith('http')
-                                                        ? img.url
-                                                        : `http://localhost:3000${img.url}`
-                                                    : (typeof img === 'string' ? img : '')
-                                            }
-                                    alt={`img-${idx}`}
-                                            className="h-24 w-24 object-cover rounded shadow border"
-                                />
-                                        <button
-                                            type="button"
-                                            onClick={() => eliminarImagenActual(idx)}
-                                            className="absolute -top-2 -right-2 bg-red-600 hover:bg-red-700 text-white text-sm w-6 h-6 rounded-full flex items-center justify-center opacity-90 hover:opacity-100 transition-all duration-200 shadow-lg"
-                                            title="Eliminar imagen"
-                                        >
-                                            ×
-                                        </button>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-                        {/* Nuevas imágenes */}
-                        <div className="mb-2">
-                            <label
-    htmlFor="imagenes"
-    className="block w-full cursor-pointer bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold px-4 py-2 rounded-lg border-2 border-indigo-200 shadow-sm transition text-center"
-  >
-    Seleccione imágenes de la propiedad
-  </label>
-  <input
-    id="imagenes"
-    name="imagenes"
-    type="file"
-    accept="image/*"
-    multiple
-    className="hidden"
-    onChange={handleImagenesNuevas}
-  />
-  <div className="mt-2 flex justify-between items-center">
-    <p className="text-sm text-gray-600">
-      {imagenesActuales.length + imagenesNuevas.length} de 5 imágenes totales
-    </p>
-    <div className="w-24 bg-gray-200 rounded-full h-2">
-      <div 
-        className="bg-blue-600 h-2 rounded-full transition-all duration-300" 
-        style={{ width: `${((imagenesActuales.length + imagenesNuevas.length) / 5) * 100}%` }}
-      ></div>
-    </div>
-  </div>
-                            <div className="flex gap-2 mt-2 flex-wrap">
-                                {vistaPrevia.length === 0 && (
-                                    <span className="text-gray-500 text-sm">No hay nuevas imágenes seleccionadas.</span>
-                                )}
-                                {vistaPrevia.map((src, idx) => (
-                                    <div key={idx} className="relative group">
-                                        <img 
-                                            src={src} 
-                                            alt={`preview-${idx}`} 
-                                            className="h-24 w-24 object-cover rounded shadow border" 
-                                        />
-                                        <button
-                                            type="button"
-                                            onClick={() => eliminarImagenNueva(idx)}
-                                            className="absolute -top-2 -right-2 bg-red-600 hover:bg-red-700 text-white text-sm w-6 h-6 rounded-full flex items-center justify-center opacity-90 hover:opacity-100 transition-all duration-200 shadow-lg"
-                                            title="Eliminar imagen"
-                                        >
-                                            ×
-                                        </button>
-                                    </div>
-                                ))}
-                            </div>
-                            {errores.imagenes && <p className="text-red-600 text-sm mt-1 font-medium">{errores.imagenes}</p>}
-                </div>
+
+                <FormIdentificacion
+                    datos={datos}
+                    handleChange={handleChange}
+                    errores={errores}
+                    codigoPreview={datos.codigo_interno}
+                />
+
+                <FormUbicacion
+                    datos={datos}
+                    handleChange={handleChange}
+                    errores={errores}
+                    // Pass current location as mapCenter if it exists, so map centers on it
+                    mapCenter={datos.latitud && datos.longitud ? { lat: Number(datos.latitud), lng: Number(datos.longitud) } : null}
+                    handleMapChange={({ lat, lng }) => setDatos(prev => ({ ...prev, latitud: lat, longitud: lng }))}
+                />
+
+                <FormCaracteristicas
+                    datos={datos}
+                    handleChange={handleChange}
+                    errores={errores}
+                />
+
+                <FormImagenes
+                    datos={datos}
+                    handleChange={handleChange}
+                    errores={errores}
+                    imagenes={imagenesNuevas}
+                    setImagenes={(newImages) => {
+                        setImagenesNuevas(newImages);
+                        // Limpiar error si ya hay imágenes (nuevas o actuales)
+                        if (errores.imagenes && (newImages.length + imagenesActuales.length) > 0) {
+                            setErrores(prev => {
+                                const nuevos = { ...prev };
+                                delete nuevos.imagenes;
+                                return nuevos;
+                            });
+                        }
+                    }}
+                    imagenesExistentes={imagenesActuales}
+                    onDeleteExistente={eliminarImagenActual}
+                />
+
+                <FormNegocio
+                    datos={{ ...datos, propietarios }} // FormNegocio espera propietarios dentro de datos
+                    handleChange={handleChange}
+                    errores={errores}
+                    usuario={usuario}
+                    agentes={agentes}
+                    clientes={clientes}
+                    busquedaCliente={busquedaCliente}
+                    setBusquedaCliente={setBusquedaCliente}
+                    filtrarClientes={filtrarClientes}
+                    agregarPropietario={agregarPropietario}
+                    handleRemovePropietario={eliminarPropietario}
+                    handlePropietarioChange={handlePropietarioChange}
+                />
+
+                {/* DOCUMENTOS EN SU CAJA ESTILO REGISTRO */}
+                <section className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 mt-6">
+                    <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                        <FolderCheck className="w-6 h-6 text-orange-600" />
+                        Documentación Legal y Técnica <span className="text-sm font-normal text-gray-500">(Privado)</span>
+                    </h3>
+                    <div className="w-full">
+                        <DocumentManager
+                            documentos={documentos}
+                            onUpload={(e, tipo) => handleUploadDocumento(e, tipo)} // Adaptar firma
+                            onDelete={eliminarDocumento}
+                            tipoContrato={datos.tipo_contrato}
+                            errores={errores}
+                        />
                     </div>
                 </section>
-                {/* BOTONES */}
-                <div className="flex flex-col md:flex-row gap-4 justify-center mt-8">
+
+
+                <div className="flex flex-col md:flex-row gap-4 justify-center mt-12 pb-12">
                     <button
                         type="button"
-                        className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold px-10 py-3 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-gray-400"
+                        className="px-8 py-4 rounded-xl bg-white border border-gray-200 text-gray-700 font-bold shadow-md hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-all duration-300 transform hover:-translate-y-1"
                         onClick={handleCancel}
                         ref={cancelarRef}
                     >
@@ -652,36 +776,40 @@ export default function EditarPropiedad() {
                     </button>
                     <button
                         type="submit"
-                        className="bg-blue-700 hover:bg-blue-800 text-white font-bold px-10 py-3 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                        className="px-12 py-4 rounded-xl bg-gradient-to-r from-orange-600 to-orange-500 text-white font-bold shadow-lg shadow-orange-500/30 hover:shadow-orange-500/50 hover:from-orange-700 hover:to-orange-600 transition-all duration-300 transform hover:-translate-y-1 flex items-center gap-2"
                     >
-                        Guardar cambios
+                        <span>Guardar cambios</span>
                     </button>
                 </div>
-                {showConfirmModal && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
-                        <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md border border-gray-200 transition-all duration-300">
-                            <h3 className="text-xl font-bold text-center text-yellow-700 mb-4 flex items-center justify-center gap-2">
-                                <span className="text-2xl">⚠️</span> Cambios sin guardar
-                            </h3>
-                            <p className="text-gray-700 text-center mb-6">Tienes cambios sin guardar. ¿Seguro que quieres salir?</p>
-                            <div className="flex justify-end gap-2 mt-4">
-                                <button
-                                    onClick={() => setShowConfirmModal(false)}
-                                    className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium text-sm px-4 py-2 rounded-lg shadow-sm transition"
-                                >
-                                    Cancelar
-                                </button>
-                                <button
-                                    onClick={confirmarSalida}
-                                    className="bg-yellow-500 hover:bg-yellow-600 text-white font-medium text-sm px-4 py-2 rounded-lg shadow-md transition"
-                                >
-                                    Salir sin guardar
-                                </button>
+                {
+                    blocker.state === 'blocked' && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
+                            <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md border border-gray-200 transition-all duration-300">
+                                <h3 className="text-xl font-bold text-center text-yellow-700 mb-4 flex items-center justify-center gap-2">
+                                    <span className="text-2xl">⚠️</span> Cambios sin guardar
+                                </h3>
+                                <p className="text-gray-700 text-center mb-6">Tienes cambios sin guardar. ¿Seguro que quieres salir?</p>
+                                <div className="flex justify-end gap-2 mt-4">
+                                    <button
+                                        type="button"
+                                        onClick={() => blocker.reset()}
+                                        className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium text-sm px-4 py-2 rounded-lg shadow-sm transition"
+                                    >
+                                        Cancelar
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => blocker.proceed()}
+                                        className="bg-yellow-500 hover:bg-yellow-600 text-white font-medium text-sm px-4 py-2 rounded-lg shadow-md transition"
+                                    >
+                                        Salir sin guardar
+                                    </button>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                )}
-            </form>
-        </div>
+                    )
+                }
+            </form >
+        </div >
     );
 }

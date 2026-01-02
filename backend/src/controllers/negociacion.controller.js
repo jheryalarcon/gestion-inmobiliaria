@@ -30,8 +30,8 @@ export const crearNegociacion = async (req, res) => {
 
         // ✅ Verificar que el cliente tenga un agente asignado
         if (!cliente.agenteId) {
-            return res.status(400).json({ 
-                mensaje: 'No se puede crear negociación para un cliente sin agente asignado' 
+            return res.status(400).json({
+                mensaje: 'No se puede crear negociación para un cliente sin agente asignado'
             });
         }
 
@@ -51,8 +51,8 @@ export const crearNegociacion = async (req, res) => {
 
         // ✅ SOLO permitir negociaciones con propiedades DISPONIBLES
         if (propiedad.estado_publicacion !== 'disponible') {
-            return res.status(400).json({ 
-                mensaje: `No se puede crear negociación con una propiedad que no está disponible. Estado actual: ${propiedad.estado_publicacion}` 
+            return res.status(400).json({
+                mensaje: `No se puede crear negociación con una propiedad que no está disponible. Estado actual: ${propiedad.estado_publicacion}`
             });
         }
 
@@ -67,8 +67,8 @@ export const crearNegociacion = async (req, res) => {
         });
 
         if (negociacionExistente) {
-            return res.status(400).json({ 
-                mensaje: 'Ya existe una negociación activa entre este cliente y propiedad' 
+            return res.status(400).json({
+                mensaje: 'Ya existe una negociación activa entre este cliente y propiedad'
             });
         }
 
@@ -126,10 +126,10 @@ export const crearNegociacion = async (req, res) => {
 // Obtener negociaciones con filtros
 export const obtenerNegociaciones = async (req, res) => {
     const usuario = req.usuario;
-    const { 
-        search = '', 
-        etapa = '', 
-        clienteId = '', 
+    const {
+        search = '',
+        etapa = '',
+        clienteId = '',
         propiedadId = '',
         page = 1,
         limit = 10
@@ -137,7 +137,7 @@ export const obtenerNegociaciones = async (req, res) => {
 
     try {
         const skip = (parseInt(page) - 1) * parseInt(limit);
-        
+
         // Construir filtros
         const where = {
             activo: true
@@ -149,18 +149,27 @@ export const obtenerNegociaciones = async (req, res) => {
         }
 
         // Filtro por cliente
-        if (clienteId) {
+        if (clienteId && !isNaN(parseInt(clienteId))) {
             where.clienteId = parseInt(clienteId);
         }
 
         // Filtro por propiedad
-        if (propiedadId) {
+        if (propiedadId && !isNaN(parseInt(propiedadId))) {
             where.propiedadId = parseInt(propiedadId);
         }
 
-        // Filtro por agente (agentes solo ven sus negociaciones)
+        // --- LÓGICA DE PRIVACIDAD AVANZADA ---
         if (usuario.rol === 'agente') {
-            where.agenteId = usuario.id;
+            if (propiedadId && !isNaN(parseInt(propiedadId))) {
+                // Si el agente está viendo una propiedad específica:
+                // PUEDE ver todas las negociaciones de esa propiedad (para colaboración/competencia)
+                // PERO... los datos sensibles se censurarán más adelante si no es el dueño de la negociación.
+                // NO aplicamos restricción where.agenteId aquí.
+            } else {
+                // Si está viendo el panel general (sin filtrar por propiedad):
+                // SOLO ve sus propias negociaciones.
+                where.agenteId = usuario.id;
+            }
         }
 
         // Búsqueda por nombre de cliente o título de propiedad
@@ -184,6 +193,8 @@ export const obtenerNegociaciones = async (req, res) => {
                 }
             ];
         }
+
+        // console.log('Consultando negociaciones con filtros:', JSON.stringify(where, null, 2));
 
         // Obtener negociaciones
         const [negociaciones, total] = await Promise.all([
@@ -224,10 +235,33 @@ export const obtenerNegociaciones = async (req, res) => {
             prisma.negociacion.count({ where })
         ]);
 
+        // --- SANITIZACIÓN DE DATOS (Anonimización) ---
+        const negociacionesSanitizadas = negociaciones.map(negociacion => {
+            // Regla: Si soy agente Y NO es mi negociación -> Censurar
+            if (usuario.rol === 'agente' && negociacion.agenteId !== usuario.id) {
+                const nombreAgente = negociacion.agente?.name || 'Agente';
+                return {
+                    ...negociacion,
+                    cliente: {
+                        id: null, // Ocultar ID para evitar navegación a perfil
+                        nombre: `Cliente Confidencial de ${nombreAgente.split(' ')[0]}`,
+                        email: '---', // Oculto
+                        telefono: '---', // Oculto
+                        tipo_cliente: '---' // Oculto
+                    },
+                    esConfidencial: true // Flag para UI frontend
+                };
+            }
+            return {
+                ...negociacion,
+                esConfidencial: false
+            };
+        });
+
         const totalPages = Math.ceil(total / parseInt(limit));
 
         res.json({
-            negociaciones,
+            negociaciones: negociacionesSanitizadas,
             paginacion: {
                 pagina: parseInt(page),
                 limite: parseInt(limit),
@@ -314,13 +348,14 @@ export const actualizarNegociacion = async (req, res) => {
         // ✅ REGLA: Verificar que la etapa sea válida
         const etapasValidas = ['interes', 'negociacion', 'cierre', 'finalizada', 'cancelada'];
         if (!etapasValidas.includes(etapa)) {
-            return res.status(400).json({ 
+            return res.status(400).json({
                 mensaje: '❌ Etapa inválida. Las etapas permitidas son: ' + etapasValidas.join(', ')
             });
         }
 
         const negociacion = await prisma.negociacion.findUnique({
-            where: { id: parseInt(id) }
+            where: { id: parseInt(id) },
+            include: { propiedad: true }
         });
 
         if (!negociacion) {
@@ -332,23 +367,59 @@ export const actualizarNegociacion = async (req, res) => {
         }
 
         // ✅ REGLA: El agente solo puede cambiar etapas de sus propias negociaciones
-        if (usuario.rol === 'agente' && negociacion.agenteId !== usuario.id) {
-            return res.status(403).json({ 
-                mensaje: '❌ Acceso denegado. Solo puedes actualizar negociaciones de tus clientes asignados' 
+        // (Excepto Admin o Agente Responsable que podrían necesitar intervenir en pasos finales)
+        const esAgenteResponsable = negociacion.propiedad.agenteId === usuario.id;
+        const esAdmin = usuario.rol === 'admin';
+        const esDueñoNegociacion = negociacion.agenteId === usuario.id;
+
+        if (usuario.rol === 'agente') {
+            // Caso A: Soy el Agente Comprador (Dueño de la Negociación)
+            if (esDueñoNegociacion) {
+                // Tengo control total de MIS etapas (salvo las restringidas más adelante)
+            }
+            // Caso B: Soy el Agente Responsable (Captador de la Propiedad) pero NO es mi cliente
+            else if (esAgenteResponsable) {
+                // SOLO puedo intervenir para Cerrar, Finalizar o Cancelar (Rechazar)
+                const etapasPermitidasParaCaptador = ['cierre', 'finalizada', 'cancelada'];
+                if (!etapasPermitidasParaCaptador.includes(etapa)) {
+                    return res.status(403).json({
+                        mensaje: '⛔ Como Agente Captador, solo puedes intervenir para Cerrar, Finalizar o Cancelar una negociación ajena. No puedes modificar etapas previas.'
+                    });
+                }
+            }
+            // Caso C: No soy ni el comprador ni el captador
+            else {
+                return res.status(403).json({
+                    mensaje: '❌ Acceso denegado. No tienes permisos sobre esta negociación.'
+                });
+            }
+        }
+
+        // ⛔ REGLA DE CONGELAMIENTO (Propiedad No Disponible)
+        // Si la propiedad NO está disponible, nadie puede mover negociaciones, EXCEPTO:
+        // 1. Si la propiedad está 'reservada' Y estamos moviendo ESTA negociación de 'cierre' a 'finalizada' (Completar venta).
+        // 2. Si es para Cancelar (siempre se puede cancelar/perder un cliente).
+        const estadoPropiedad = negociacion.propiedad.estado_publicacion;
+        const esTransicionCierreFinal = estadoPropiedad === 'reservada' && negociacion.etapa === 'cierre' && etapa === 'finalizada';
+
+        if (estadoPropiedad !== 'disponible' && etapa !== 'cancelada' && !esTransicionCierreFinal) {
+            return res.status(400).json({
+                mensaje: `⛔ No se puede actualizar la negociación. La propiedad se encuentra en estado "${estadoPropiedad}" y las negociaciones están pausadas.`
             });
         }
 
-        // ✅ REGLA: El administrador solo puede visualizar, no modificar
-        if (usuario.rol === 'admin') {
-            return res.status(403).json({ 
-                mensaje: '❌ Los administradores no pueden modificar etapas de negociación. Solo pueden visualizar.' 
+        // 🔐 REGLA DE AUTORIDAD PARA CIERRE (Check-in del Responsable)
+        // Solo el Admin o el Agente Responsable pueden mover a 'cierre' o 'finalizada'
+        if ((etapa === 'cierre' || etapa === 'finalizada') && !esAdmin && !esAgenteResponsable) {
+            return res.status(403).json({
+                mensaje: '⛔ Solo el Agente Responsable de la propiedad (Captador) puede autorizar el Cierre o Finalización. Por favor contacta al responsable para proceder.'
             });
         }
 
         // ✅ REGLA: Se registra la fecha de cada cambio de etapa
         const negociacionActualizada = await prisma.negociacion.update({
             where: { id: parseInt(id) },
-            data: { 
+            data: {
                 etapa,
                 fecha_cambio_etapa: new Date() // Registrar fecha del cambio
             },
@@ -381,6 +452,50 @@ export const actualizarNegociacion = async (req, res) => {
                 }
             }
         });
+
+        // 🛡️ MÁSCARA DE PRIVACIDAD
+        // Si no soy el dueño de la negociación (ni admin), NO debo ver los datos del cliente
+        // Esto protege la cartera del agente comprador frente al agente captador
+        if (usuario.rol !== 'admin' && negociacion.agenteId !== usuario.id) {
+            negociacionActualizada.cliente.nombre = 'Cliente Protegido';
+            negociacionActualizada.cliente.email = 'confidencial@sistema.com';
+            negociacionActualizada.cliente.telefono = '***********';
+        }
+
+        // 🤖 AUTOMATIZACIÓN DE ESTADOS DE PROPIEDAD
+        let nuevoEstadoPropiedad = null;
+
+        if (etapa === 'cierre') {
+            // Cierre -> Reservada
+            nuevoEstadoPropiedad = 'reservada';
+        } else if (etapa === 'finalizada') {
+            // Finalizada -> Vendida/Arrendada
+            if (negociacion.propiedad.transaccion === 'venta') {
+                nuevoEstadoPropiedad = 'vendida';
+            } else {
+                nuevoEstadoPropiedad = 'arrendada';
+            }
+        } else if (etapa === 'cancelada') {
+            // Si SE CANCELA y estaba Reservada -> Volver a Disponible
+            // (Solo si esta negociación era la que la tenía reservada... pero como simplificamos, 
+            // asumimos que si estaba reservada y alguien cancela, es probable que fuera esta. 
+            // Pero CUIDADO: Si otra estaba en espera y cancela, no debería liberar la propiedad.
+            // MEJORA: Solo liberar si la propiedad estaba 'reservada' Y esta negociación estaba en 'cierre')
+            if (negociacion.propiedad.estado_publicacion === 'reservada' && negociacion.etapa === 'cierre') {
+                nuevoEstadoPropiedad = 'disponible';
+            }
+        }
+
+        if (nuevoEstadoPropiedad) {
+            await prisma.propiedad.update({
+                where: { id: negociacion.propiedadId },
+                data: { estado_publicacion: nuevoEstadoPropiedad }
+            });
+        }
+
+        // ❌ ELIMINADO: Auto-cancelación de competencia. 
+        // Ahora las otras negociaciones simplemente quedan "Pausadas" (Frozen) 
+        // porque la propiedad ya no estará en estado 'disponible'.
 
         res.json({
             mensaje: `✅ Etapa de negociación actualizada correctamente a "${etapa}"`,
@@ -453,7 +568,7 @@ export const obtenerEstadisticas = async (req, res) => {
 
     try {
         const where = { activo: true };
-        
+
         // Agentes solo ven sus estadísticas
         if (usuario.rol === 'agente') {
             where.agenteId = usuario.id;
@@ -466,14 +581,14 @@ export const obtenerEstadisticas = async (req, res) => {
         ] = await Promise.all([
             // Total de negociaciones
             prisma.negociacion.count({ where }),
-            
+
             // Negociaciones por etapa
             prisma.negociacion.groupBy({
                 by: ['etapa'],
                 where,
                 _count: { etapa: true }
             }),
-            
+
             // Negociaciones de los últimos 30 días
             prisma.negociacion.count({
                 where: {

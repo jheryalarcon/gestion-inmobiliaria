@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'sonner';
+import Spinner from './Spinner';
 
 const ArchivosAdjuntos = ({ negociacionId, esAgenteResponsable, esAdmin }) => {
     const [archivos, setArchivos] = useState([]);
@@ -190,7 +191,7 @@ const ArchivosAdjuntos = ({ negociacionId, esAgenteResponsable, esAdmin }) => {
             {mostrarFormulario && esAgenteResponsable && (
                 <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-6">
                     <h4 className="font-medium text-gray-800 mb-3">📤 Subir nuevo archivo:</h4>
-                    
+
                     <div className="space-y-3">
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -245,10 +246,10 @@ const ArchivosAdjuntos = ({ negociacionId, esAgenteResponsable, esAdmin }) => {
             {/* Lista de archivos */}
             <div className="space-y-4">
                 <h4 className="font-medium text-gray-800">📂 Archivos subidos:</h4>
-                
+
                 {cargando ? (
                     <div className="text-center py-8">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                        <Spinner color="blue" />
                         <p className="text-gray-600 mt-2">Cargando archivos...</p>
                     </div>
                 ) : archivos.length === 0 ? (
@@ -324,7 +325,7 @@ const ArchivosAdjuntos = ({ negociacionId, esAgenteResponsable, esAdmin }) => {
                         <h3 className="text-lg font-semibold text-gray-900 mb-4">
                             📝 ¿Estás seguro de subir este archivo?
                         </h3>
-                        
+
                         <div className="bg-gray-50 rounded-lg p-4 mb-4">
                             <p className="text-sm text-gray-600 mb-2">
                                 <strong>Nombre:</strong> {archivoSeleccionado?.name}

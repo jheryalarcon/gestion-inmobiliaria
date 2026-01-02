@@ -29,7 +29,7 @@ export default function PanelAgentes() {
     useEffect(() => {
         const token = localStorage.getItem('token');
         console.log('Token encontrado en localStorage:', token ? 'SÍ' : 'NO');
-        
+
         if (!token) {
             console.log('No hay token, redirigiendo a login');
             navigate('/login');
@@ -39,14 +39,14 @@ export default function PanelAgentes() {
         try {
             const decoded = jwtDecode(token);
             console.log('Token decodificado:', decoded);
-            
+
             if (decoded.rol !== 'admin') {
                 console.log('Usuario no es admin, redirigiendo');
                 toast.error('No tienes permisos para acceder a esta página');
                 navigate('/admin');
                 return;
             }
-            
+
             setUsuario(decoded);
             console.log('Usuario autenticado como admin');
         } catch (error) {
@@ -90,12 +90,12 @@ export default function PanelAgentes() {
             setLoading(true);
             setError(null);
         }
-        
+
         try {
             console.log('Iniciando carga de agentes...', { filtros });
-            
+
             const token = localStorage.getItem('token');
-            
+
             if (!token) {
                 console.error('No hay token disponible');
                 setError('No hay token de autenticación');
@@ -269,7 +269,7 @@ export default function PanelAgentes() {
                     <div className="text-red-600 text-6xl mb-4">⚠️</div>
                     <h2 className="text-xl font-bold text-red-800 mb-2">Error al cargar agentes</h2>
                     <p className="text-red-700 mb-4">{error}</p>
-                    <button 
+                    <button
                         onClick={() => {
                             setError(null);
                             cargarAgentes();
@@ -448,11 +448,10 @@ export default function PanelAgentes() {
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                                agente.activo 
-                                                    ? 'bg-green-100 text-green-800' 
+                                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${agente.activo
+                                                    ? 'bg-green-100 text-green-800'
                                                     : 'bg-red-100 text-red-800'
-                                            }`}>
+                                                }`}>
                                                 {agente.activo ? 'Activo' : 'Inactivo'}
                                             </span>
                                         </td>
@@ -531,11 +530,10 @@ export default function PanelAgentes() {
                                         <button
                                             key={page}
                                             onClick={() => handlePageChange(page)}
-                                            className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
-                                                page === filtros.page
+                                            className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${page === filtros.page
                                                     ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
                                                     : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
-                                            }`}
+                                                }`}
                                         >
                                             {page}
                                         </button>

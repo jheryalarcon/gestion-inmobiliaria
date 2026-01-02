@@ -1,58 +1,62 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { jwtDecode } from 'jwt-decode';
+import Spinner, { OverlaySpinner } from './Spinner';
 
 export default function LayoutPublic({ children }) {
     const location = useLocation();
     const navigate = useNavigate();
-    const [usuario, setUsuario] = useState(null);
-    const [usuarioCargando, setUsuarioCargando] = useState(true);
+    const [usuario, setUsuario] = useState(() => {
+        const token = localStorage.getItem('token');
+        const usuarioData = localStorage.getItem('usuario');
+
+        if (token && usuarioData) {
+            try {
+                const usuarioCompleto = JSON.parse(usuarioData);
+                // Corregir datos antiguos: si tiene 'nombre' en lugar de 'name'
+                if (usuarioCompleto.nombre && !usuarioCompleto.name) {
+                    usuarioCompleto.name = usuarioCompleto.nombre;
+                    delete usuarioCompleto.nombre;
+                    localStorage.setItem('usuario', JSON.stringify(usuarioCompleto));
+                }
+                return usuarioCompleto;
+            } catch (error) {
+                localStorage.removeItem('token');
+                localStorage.removeItem('usuario');
+                return null;
+            }
+        }
+        return null;
+    });
+    const [usuarioCargando, setUsuarioCargando] = useState(false);
     const [dropdownAbierto, setDropdownAbierto] = useState(false);
 
+    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
     useEffect(() => {
-        // Función para cargar usuario
+        // Función para cargar usuario (solo para eventos de cambio de auth)
         const cargarUsuario = () => {
             const token = localStorage.getItem('token');
             const usuarioData = localStorage.getItem('usuario');
-            
+
             if (token && usuarioData) {
                 try {
-                    const usuarioDecodificado = jwtDecode(token);
                     const usuarioCompleto = JSON.parse(usuarioData);
-                    
-                    // Corregir datos antiguos: si tiene 'nombre' en lugar de 'name'
-                    if (usuarioCompleto.nombre && !usuarioCompleto.name) {
-                        usuarioCompleto.name = usuarioCompleto.nombre;
-                        delete usuarioCompleto.nombre;
-                        
-                        // Actualizar localStorage con los datos corregidos
-                        localStorage.setItem('usuario', JSON.stringify(usuarioCompleto));
-                    }
-                    
                     setUsuario(usuarioCompleto);
                 } catch (error) {
-                    // Token inválido, limpiar datos
-                    localStorage.removeItem('token');
-                    localStorage.removeItem('usuario');
                     setUsuario(null);
                 }
             } else {
                 setUsuario(null);
             }
-            
-            // Pequeño delay para suavizar la transición
-            setTimeout(() => {
-                setUsuarioCargando(false);
-            }, 100);
+            setUsuarioCargando(false);
         };
-
-        // Cargar usuario inicial
-        cargarUsuario();
 
         // Escuchar cambios de autenticación
         const handleAuthChange = () => {
             setUsuarioCargando(true);
-            cargarUsuario();
+            // Pequeño delay solo cuando hay cambio de auth explícito para dar feedback visual
+            setTimeout(cargarUsuario, 500);
         };
 
         window.addEventListener('authChange', handleAuthChange);
@@ -76,16 +80,18 @@ export default function LayoutPublic({ children }) {
         localStorage.removeItem('usuario');
         setUsuario(null);
         setDropdownAbierto(false);
-        
+        setMobileMenuOpen(false); // Cerrar menú móvil al cerrar sesión
+
         // Disparar evento para actualizar otros componentes
         window.dispatchEvent(new Event('authChange'));
-        
+
         // Redirigir al inicio
         navigate('/');
     };
 
     const handleIrAPanel = () => {
         setDropdownAbierto(false);
+        setMobileMenuOpen(false);
         if (usuario?.rol === 'admin') {
             navigate('/admin');
         } else if (usuario?.rol === 'agente') {
@@ -96,150 +102,230 @@ export default function LayoutPublic({ children }) {
 
     const handleIrAFavoritos = () => {
         setDropdownAbierto(false);
+        setMobileMenuOpen(false);
         navigate('/favoritos');
     };
 
     return (
         <div className="min-h-screen flex flex-col bg-gray-50">
+            <OverlaySpinner show={usuarioCargando} text="Procesando..." />
             {/* Header */}
-            <header className="bg-white shadow-sm border-b border-gray-200">
+            <header className="sticky top-0 z-50 bg-white/90 backdrop-blur-md shadow-sm border-b border-gray-200/60 transition-all duration-300">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex justify-between items-center h-16">
+                    <div className="flex justify-between items-center h-24">
                         {/* Logo y nombre */}
                         <div className="flex items-center">
-                            <Link to="/" className="flex items-center space-x-3">
-                                <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-                                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                                    </svg>
-                                </div>
-                                <div>
-                                    <h1 className="text-xl font-bold text-gray-900">Inmobiliaria</h1>
-                                    <p className="text-xs text-gray-500">Sistema Inmobiliario</p>
-                                </div>
+                            <Link to="/" className="flex items-center space-x-3 group">
+                                <img
+                                    src="/logo-rectangular.jpg"
+                                    alt="Constructora Inmobiliaria Escudero"
+                                    className="h-20 w-auto object-contain"
+                                />
                             </Link>
                         </div>
 
-                        {/* Navegación */}
-                        <nav className="hidden md:flex space-x-8">
-                            <Link 
-                                to="/" 
-                                className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                                    location.pathname === '/' 
-                                        ? 'text-blue-600 bg-blue-50' 
-                                        : 'text-gray-700 hover:text-blue-600 hover:bg-gray-50'
-                                }`}
-                            >
-                                Inicio
-                            </Link>
-                            <Link 
-                                to="/propiedades" 
-                                className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                                    location.pathname === '/propiedades' 
-                                        ? 'text-blue-600 bg-blue-50' 
-                                        : 'text-gray-700 hover:text-blue-600 hover:bg-gray-50'
-                                }`}
-                            >
-                                Propiedades
-                            </Link>
+                        {/* Navegación Desktop */}
+                        <nav className="hidden md:flex items-center space-x-1">
+                            {['Inicio', 'Propiedades'].map((item) => {
+                                const path = item === 'Inicio' ? '/' : `/${item.toLowerCase()}`;
+                                const isActive = location.pathname === path;
+                                return (
+                                    <Link
+                                        key={item}
+                                        to={path}
+                                        className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 ${isActive
+                                            ? 'text-white bg-slate-900 shadow-md'
+                                            : 'text-slate-600 hover:text-slate-900 hover:bg-white'
+                                            }`}
+                                    >
+                                        {item}
+                                    </Link>
+                                );
+                            })}
                         </nav>
 
                         {/* Botones de acción o usuario logueado */}
                         <div className="flex items-center space-x-4">
-                            {usuarioCargando ? (
-                                /* Estado de carga - Skeleton que coincide con el dropdown */
-                                <div className="flex items-center space-x-2 text-gray-700 px-3 py-2 rounded-md text-sm font-medium">
-                                    <div className="w-8 h-8 bg-gray-200 rounded-full animate-pulse"></div>
-                                    <div className="hidden md:block w-32 h-4 bg-gray-200 rounded animate-pulse"></div>
-                                    <div className="w-4 h-4 bg-gray-200 rounded animate-pulse"></div>
-                                </div>
-                            ) : usuario ? (
-                                /* Usuario logueado - Dropdown */
-                                <div className="relative dropdown-container">
-                                    <button
-                                        onClick={() => setDropdownAbierto(!dropdownAbierto)}
-                                        className="flex items-center space-x-2 text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 ease-in-out"
-                                    >
-                                        <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white text-sm font-semibold">
-                                            {usuario.name?.charAt(0) || usuario.email?.charAt(0) || 'U'}
-                                        </div>
-                                        <span className="hidden md:block">{usuario.email}</span>
-                                        <svg 
-                                            className={`w-4 h-4 transition-transform ${dropdownAbierto ? 'rotate-180' : ''}`} 
-                                            fill="none" 
-                                            stroke="currentColor" 
-                                            viewBox="0 0 24 24"
+                            {/* Mobile Menu Button - Visible solo en móvil */}
+                            <button
+                                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                                className="md:hidden p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-orange-500"
+                            >
+                                <span className="sr-only">Abrir menú</span>
+                                {mobileMenuOpen ? (
+                                    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                ) : (
+                                    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                                    </svg>
+                                )}
+                            </button>
+
+                            <div className="hidden md:flex items-center space-x-4">
+                                {usuario ? (
+                                    /* Usuario logueado - Dropdown Desktop */
+                                    <div className="relative dropdown-container">
+                                        <button
+                                            onClick={() => setDropdownAbierto(!dropdownAbierto)}
+                                            className="flex items-center space-x-2 text-slate-700 hover:text-slate-900 px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 ease-in-out"
                                         >
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                        </svg>
-                                    </button>
-
-                                    {/* Dropdown menu */}
-                                    {dropdownAbierto && (
-                                        <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
-                                            <div className="px-4 py-2 border-b border-gray-100">
-                                                <p className="text-sm font-medium text-gray-900">{usuario.name || 'Usuario'}</p>
-                                                <p className="text-xs text-gray-500">{usuario.email}</p>
+                                            <div className="w-8 h-8 bg-slate-900 rounded-full flex items-center justify-center text-white text-sm font-semibold ring-2 ring-slate-100">
+                                                {usuario.name?.charAt(0) || usuario.email?.charAt(0) || 'U'}
                                             </div>
-                                            
-                                            <div className="py-1">
-                                                <button
-                                                    onClick={handleIrAFavoritos}
-                                                    className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
-                                                >
-                                                    <svg className="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                                                    </svg>
-                                                    Mis Favoritos
-                                                </button>
+                                            <span className="hidden md:block">{usuario.email}</span>
+                                            <svg
+                                                className={`w-4 h-4 transition-transform ${dropdownAbierto ? 'rotate-180' : ''}`}
+                                                fill="none"
+                                                stroke="currentColor"
+                                                viewBox="0 0 24 24"
+                                            >
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                            </svg>
+                                        </button>
 
-                                                {(usuario.rol === 'admin' || usuario.rol === 'agente') && (
+                                        {/* Dropdown menu */}
+                                        {dropdownAbierto && (
+                                            <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
+                                                <div className="px-4 py-2 border-b border-gray-100">
+                                                    <p className="text-sm font-medium text-gray-900">{usuario.name || 'Usuario'}</p>
+                                                    <p className="text-xs text-gray-500">{usuario.email}</p>
+                                                </div>
+
+                                                <div className="py-1">
                                                     <button
-                                                        onClick={handleIrAPanel}
+                                                        onClick={handleIrAFavoritos}
                                                         className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
                                                     >
                                                         <svg className="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z" />
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                                                         </svg>
-                                                        Mi Panel
+                                                        Mis Favoritos
                                                     </button>
-                                                )}
 
-                                                <div className="border-t border-gray-100"></div>
-                                                
-                                                <button
-                                                    onClick={handleCerrarSesion}
-                                                    className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
-                                                >
-                                                    <svg className="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                                                    </svg>
-                                                    Cerrar Sesión
-                                                </button>
+                                                    {(usuario.rol === 'admin' || usuario.rol === 'agente') && (
+                                                        <button
+                                                            onClick={handleIrAPanel}
+                                                            className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                                                        >
+                                                            <svg className="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z" />
+                                                            </svg>
+                                                            Mi Panel
+                                                        </button>
+                                                    )}
+
+                                                    <div className="border-t border-gray-100"></div>
+
+                                                    <button
+                                                        onClick={handleCerrarSesion}
+                                                        className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                                                    >
+                                                        <svg className="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                                                        </svg>
+                                                        Cerrar Sesión
+                                                    </button>
+                                                </div>
                                             </div>
-                                        </div>
-                                    )}
-                                </div>
-                            ) : (
-                                /* Usuario no logueado - Botones de login/registro */
-                                <>
-                                    <Link 
-                                        to="/login" 
-                                        className="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium transition-colors"
-                                    >
-                                        Iniciar Sesión
-                                    </Link>
-                                    <Link 
-                                        to="/registro" 
-                                        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
-                                    >
-                                        Registrarse
-                                    </Link>
-                                </>
-                            )}
+                                        )}
+                                    </div>
+                                ) : (
+                                    /* Usuario no logueado - Botones Desktop */
+                                    <>
+                                        <Link
+                                            to="/login"
+                                            className="text-slate-700 hover:text-slate-900 font-semibold px-4 py-2 rounded-lg text-sm transition-colors"
+                                        >
+                                            Iniciar Sesión
+                                        </Link>
+                                        <Link
+                                            to="/registro"
+                                            className="bg-orange-600 hover:bg-orange-700 text-white px-5 py-2.5 rounded-lg text-sm font-bold shadow-lg shadow-orange-200 transition-all hover:shadow-orange-300 hover:-translate-y-0.5"
+                                        >
+                                            Registrarse
+                                        </Link>
+                                    </>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>
+
+                {/* Mobile Menu Drawer */}
+                {mobileMenuOpen && (
+                    <div className="md:hidden bg-white border-b border-gray-200 shadow-lg animate-fade-in-down origin-top">
+                        <div className="px-4 pt-2 pb-4 space-y-1 sm:px-3">
+                            {['Inicio', 'Propiedades'].map((item) => (
+                                <Link
+                                    key={item}
+                                    to={item === 'Inicio' ? '/' : `/${item.toLowerCase()}`}
+                                    onClick={() => setMobileMenuOpen(false)}
+                                    className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-orange-600 hover:bg-gray-50 transition-colors"
+                                >
+                                    {item}
+                                </Link>
+                            ))}
+
+                            {usuario ? (
+                                <div className="border-t border-gray-100 pt-4 mt-4">
+                                    <div className="flex items-center px-3 mb-3">
+                                        <div className="w-8 h-8 bg-orange-600 rounded-full flex items-center justify-center text-white text-sm font-semibold mr-3">
+                                            {usuario.name?.charAt(0) || 'U'}
+                                        </div>
+                                        <div>
+                                            <p className="text-sm font-medium text-gray-900">{usuario.name}</p>
+                                            <p className="text-xs text-gray-500">{usuario.email}</p>
+                                        </div>
+                                    </div>
+
+                                    <Link
+                                        to="/favoritos"
+                                        onClick={() => setMobileMenuOpen(false)}
+                                        className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-orange-600 hover:bg-gray-50 transition-colors"
+                                    >
+                                        Mis Favoritos
+                                    </Link>
+
+                                    {(usuario.rol === 'admin' || usuario.rol === 'agente') && (
+                                        <Link
+                                            to={usuario.rol === 'admin' ? '/admin' : '/agente'}
+                                            onClick={() => setMobileMenuOpen(false)}
+                                            className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-orange-600 hover:bg-gray-50 transition-colors"
+                                        >
+                                            Mi Panel
+                                        </Link>
+                                    )}
+
+                                    <button
+                                        onClick={handleCerrarSesion}
+                                        className="w-full text-left block px-3 py-2 rounded-md text-base font-medium text-red-600 hover:bg-red-50 transition-colors mt-1"
+                                    >
+                                        Cerrar Sesión
+                                    </button>
+                                </div>
+                            ) : (
+                                <div className="border-t border-gray-100 pt-4 mt-4 grid grid-cols-2 gap-3 px-3">
+                                    <Link
+                                        to="/login"
+                                        onClick={() => setMobileMenuOpen(false)}
+                                        className="text-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                                    >
+                                        Iniciar Sesión
+                                    </Link>
+                                    <Link
+                                        to="/registro"
+                                        onClick={() => setMobileMenuOpen(false)}
+                                        className="text-center px-4 py-2 bg-orange-600 border border-transparent rounded-lg text-sm font-medium text-white hover:bg-orange-700 transition-colors"
+                                    >
+                                        Registrarse
+                                    </Link>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
             </header>
 
             {/* Contenido principal */}
@@ -247,93 +333,88 @@ export default function LayoutPublic({ children }) {
                 {children}
             </main>
 
-            {/* Footer */}
-            <footer className="bg-gray-800 text-white py-12">
+            {/* Footer Premium - Light Theme */}
+            <footer className="bg-slate-50 text-slate-600 py-16 border-t border-slate-200">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-                        <div className="col-span-1 md:col-span-2">
-                            <div className="flex items-center space-x-3 mb-4">
-                                <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-                                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                                    </svg>
-                                </div>
+                    <div className="grid grid-cols-1 md:grid-cols-12 gap-12 mb-12">
+                        {/* Brand Column */}
+                        <div className="md:col-span-5 space-y-6">
+                            <div className="flex items-center space-x-3">
+                                {/* Using rectangular logo here too as per request, or staying circular? 
+                                    User said "use rectangular where corresponds". Footer usually looks better with the branding name + logo or just the logo.
+                                    Let's keep the circular symbol for the footer as it fits the "icon + text" layout better, 
+                                    OR switch to rectangular if that was the specific request. 
+                                    "me parece muy bueno el dseño... puedes usar el nuevo logo rectangular en donde corresponda"
+                                    Usually rectangular full logos go in headers/forms. Circular marks in footers/favicons.
+                                    I will keep circular here for layout balance unless explicitly told otherwise, but I will update the text colors.
+                                */}
+                                <img
+                                    src="/logo-circular.png"
+                                    alt="Logo Escudero"
+                                    className="w-12 h-12 rounded-full shadow-sm"
+                                />
                                 <div>
-                                    <h3 className="text-lg font-bold">Inmobiliaria</h3>
-                                    <p className="text-sm text-gray-400">Sistema Inmobiliario</p>
+                                    <h3 className="text-xl font-bold text-slate-900 tracking-tight">Escudero</h3>
+                                    <p className="text-xs text-orange-600 uppercase tracking-widest font-semibold">Constructora Inmobiliaria</p>
                                 </div>
                             </div>
-                            <p className="text-gray-300 text-sm mb-4">
-                                Encuentra tu hogar ideal con nuestro sistema inmobiliario completo. 
-                                Propiedades de calidad en las mejores ubicaciones.
+                            <p className="text-slate-500 leading-relaxed text-sm max-w-sm">
+                                Redefiniendo la experiencia de encontrar tu hogar ideal.
+                                Combinamos tecnología avanzada con un servicio personalizado para ofrecerte
+                                las mejores propiedades del mercado.
                             </p>
                         </div>
-                        
-                        <div>
-                            <h4 className="text-lg font-semibold mb-4">Enlaces Rápidos</h4>
-                            <ul className="space-y-2">
-                                <li>
-                                    <Link to="/" className="text-gray-300 hover:text-white text-sm transition-colors">
-                                        Inicio
-                                    </Link>
-                                </li>
-                                <li>
-                                    <Link to="/propiedades" className="text-gray-300 hover:text-white text-sm transition-colors">
-                                        Propiedades
-                                    </Link>
-                                </li>
-                                <li>
-                                    <Link to="/login" className="text-gray-300 hover:text-white text-sm transition-colors">
-                                        Iniciar Sesión
-                                    </Link>
-                                </li>
-                                <li>
-                                    <Link to="/registro" className="text-gray-300 hover:text-white text-sm transition-colors">
-                                        Registrarse
-                                    </Link>
-                                </li>
+
+                        {/* Links Column 1 */}
+                        <div className="md:col-span-3">
+                            <h4 className="text-slate-900 font-bold mb-6">Explorar</h4>
+                            <ul className="space-y-4">
+                                {['Inicio', 'Propiedades', 'Nuevos Desarrollos', 'Agentes'].map((item) => (
+                                    <li key={item}>
+                                        <Link to="/" className="text-sm text-slate-500 hover:text-orange-600 transition-colors flex items-center group">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-orange-500 mr-2 opacity-0 group-hover:opacity-100 transition-opacity"></span>
+                                            {item}
+                                        </Link>
+                                    </li>
+                                ))}
                             </ul>
                         </div>
-                        
-                        <div>
-                            <h4 className="text-lg font-semibold mb-4">Contacto</h4>
-                            <ul className="space-y-2 text-sm text-gray-300">
-                                <li className="flex items-center space-x-2">
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                                    </svg>
-                                    <span>+593 981231304</span>
+
+                        {/* Contact Column */}
+                        <div className="md:col-span-4">
+                            <h4 className="text-slate-900 font-bold mb-6">Contáctanos</h4>
+                            <ul className="space-y-4 text-sm">
+                                <li className="flex items-start space-x-3 group">
+                                    <div className="p-2 bg-white border border-slate-100 rounded-lg shadow-sm group-hover:border-orange-200 group-hover:shadow-md transition-all">
+                                        <svg className="w-5 h-5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                                        </svg>
+                                    </div>
+                                    <div className="pt-1.5">
+                                        <p className="font-bold text-slate-700">+593 98 123 1304</p>
+                                        <p className="text-slate-400 text-xs">Lunes - Viernes, 9am - 6pm</p>
+                                    </div>
                                 </li>
-                                <li className="flex items-center space-x-2">
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                                    </svg>
-                                    <span>info@inmobiliaria.com</span>
-                                </li>
-                                <li className="flex items-center space-x-2">
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                                    </svg>
-                                    <span>Santo Domingo de los Colorados, Ecuador</span>
+                                <li className="flex items-start space-x-3 group">
+                                    <div className="p-2 bg-white border border-slate-100 rounded-lg shadow-sm group-hover:border-orange-200 group-hover:shadow-md transition-all">
+                                        <svg className="w-5 h-5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                                        </svg>
+                                    </div>
+                                    <div className="pt-1.5">
+                                        <p className="font-bold text-slate-700">info@inmobiliaria.com</p>
+                                        <p className="text-slate-400 text-xs">Soporte 24/7</p>
+                                    </div>
                                 </li>
                             </ul>
                         </div>
                     </div>
-                    
-                    <div className="border-t border-gray-700 mt-8 pt-8">
-                        <div className="flex flex-col md:flex-row justify-between items-center">
-                            <p className="text-gray-400 text-sm">
-                                © 2025 Inmobiliaria. Todos los derechos reservados.
-                            </p>
-                            <div className="flex space-x-6 mt-4 md:mt-0">
-                                <a href="#" className="text-gray-400 hover:text-white text-sm transition-colors">
-                                    Política de Privacidad
-                                </a>
-                                <a href="#" className="text-gray-400 hover:text-white text-sm transition-colors">
-                                    Términos de Servicio
-                                </a>
-                            </div>
+
+                    <div className="border-t border-slate-200 pt-8 mt-8 flex flex-col md:flex-row justify-between items-center text-xs text-slate-400">
+                        <p>© 2025 Inmobiliaria. Todos los derechos reservados.</p>
+                        <div className="flex space-x-6 mt-4 md:mt-0">
+                            <a href="#" className="hover:text-orange-600 transition-colors">Política de Privacidad</a>
+                            <a href="#" className="hover:text-orange-600 transition-colors">Términos de Servicio</a>
                         </div>
                     </div>
                 </div>

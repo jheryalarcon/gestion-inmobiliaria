@@ -3,13 +3,20 @@ export const obtenerAgentes = async (req, res) => {
     try {
         const agentes = await prisma.usuario.findMany({
             where: {
-                rol: 'agente',
                 activo: true,
+                OR: [
+                    { rol: 'agente' },
+                    { rol: 'admin' }
+                ]
+            },
+            orderBy: {
+                name: 'asc'
             },
             select: {
                 id: true,
                 name: true,
                 email: true,
+                rol: true
             },
         });
 

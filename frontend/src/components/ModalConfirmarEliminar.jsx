@@ -38,9 +38,8 @@ export default function ModalConfirmarEliminar({ propiedadId, onClose, onSuccess
                 </p>
 
                 {mensaje && (
-                    <p className={`text-sm text-center mb-3 font-medium ${
-                        mensaje.includes('correctamente') ? 'text-green-600' : 'text-red-600'
-                    }`}>
+                    <p className={`text-sm text-center mb-3 font-medium ${mensaje.includes('correctamente') ? 'text-green-600' : 'text-red-600'
+                        }`}>
                         {mensaje}
                     </p>
                 )}
@@ -56,9 +55,8 @@ export default function ModalConfirmarEliminar({ propiedadId, onClose, onSuccess
                     <button
                         onClick={handleEliminar}
                         disabled={cargando}
-                        className={`bg-red-600 hover:bg-red-700 text-white font-medium text-sm px-4 py-2 rounded-lg shadow-md transition ${
-                            cargando ? 'opacity-50 cursor-not-allowed' : ''
-                        }`}
+                        className={`bg-red-600 hover:bg-red-700 text-white font-medium text-sm px-4 py-2 rounded-lg shadow-md transition ${cargando ? 'opacity-50 cursor-not-allowed' : ''
+                            }`}
                     >
                         {cargando ? 'Eliminando...' : 'Eliminar'}
                     </button>

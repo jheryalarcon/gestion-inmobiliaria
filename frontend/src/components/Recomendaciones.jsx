@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import CardPropiedadPublica from './CardPropiedadPublica';
 import { toast } from 'sonner';
+import Spinner from './Spinner';
 
 export default function Recomendaciones({ favoritos, onFavoritoToggle }) {
     const [recomendaciones, setRecomendaciones] = useState([]);
@@ -21,12 +22,12 @@ export default function Recomendaciones({ favoritos, onFavoritoToggle }) {
 
     // Función para ir al inicio de la página
     const scrollToTop = () => {
-        window.scrollTo(0, 0);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
     useEffect(() => {
         cargarRecomendaciones();
-        
+
         // Verificar si ya se mostró el toast del primer favorito
         const yaMostrado = localStorage.getItem('toast_primer_favorito_mostrado');
         if (yaMostrado) {
@@ -39,7 +40,7 @@ export default function Recomendaciones({ favoritos, onFavoritoToggle }) {
         if (favoritos.length > 0) {
             setYaCargado(false); // Reset para recargar cuando tenga favoritos
             cargarRecomendaciones();
-            
+
             // Mostrar toast de felicitación cuando agregue su primer favorito (solo una vez)
             if (favoritos.length === 1 && !toastPrimerFavoritoMostrado && !localStorage.getItem('toast_primer_favorito_mostrado')) {
                 toast.success('¡Excelente!', {
@@ -60,7 +61,7 @@ export default function Recomendaciones({ favoritos, onFavoritoToggle }) {
             } else if (window.innerWidth < 1024) {
                 setItemsPerView(2); // Tablet: 2 elementos
             } else {
-                setItemsPerView(2); // Desktop: 2 elementos (temporal para mostrar flechas)
+                setItemsPerView(3); // Desktop: 3 elementos (igual que el grid principal)
             }
         };
 
@@ -72,7 +73,7 @@ export default function Recomendaciones({ favoritos, onFavoritoToggle }) {
     const cargarRecomendaciones = async () => {
         const token = localStorage.getItem('token');
         const usuario = token ? JSON.parse(localStorage.getItem('usuario')) : null;
-        
+
         if (!token || !usuario || usuario.rol !== 'cliente') {
             return; // Solo mostrar recomendaciones a clientes logueados
         }
@@ -87,13 +88,13 @@ export default function Recomendaciones({ favoritos, onFavoritoToggle }) {
             const response = await axios.get('http://localhost:3000/api/propiedades/recomendaciones?limit=6&k=3', {
                 headers: { Authorization: `Bearer ${token}` }
             });
-            
+
             // La nueva respuesta incluye recomendaciones, mensaje y metadatos
             setRecomendaciones(response.data.recomendaciones || []);
             setMensaje(response.data.mensaje || '');
             setTieneFavoritos(response.data.tieneFavoritos || false);
             setYaCargado(true);
-            
+
             // Mostrar toast de bienvenida solo una vez para usuarios nuevos sin favoritos
             if (!response.data.tieneFavoritos && !localStorage.getItem('recomendaciones_bienvenida_mostrada')) {
                 toast.success('¡Bienvenido!', {
@@ -112,7 +113,7 @@ export default function Recomendaciones({ favoritos, onFavoritoToggle }) {
 
     // Funciones de navegación del carrusel
     const maxSlides = Math.max(0, recomendaciones.length - itemsPerView);
-    
+
     const nextSlide = () => {
         setCurrentSlide(prev => Math.min(prev + 1, maxSlides));
     };
@@ -145,7 +146,7 @@ export default function Recomendaciones({ favoritos, onFavoritoToggle }) {
         e.preventDefault();
         const x = e.pageX;
         const walk = (x - startX) * 2; // Velocidad del scroll
-        
+
         // Determinar si debe cambiar de slide
         if (walk > 50 && currentSlide > 0) {
             prevSlide();
@@ -166,7 +167,7 @@ export default function Recomendaciones({ favoritos, onFavoritoToggle }) {
         if (!isDragging) return;
         const x = e.touches[0].pageX;
         const walk = (x - startX) * 2;
-        
+
         if (walk > 50 && currentSlide > 0) {
             prevSlide();
             setIsDragging(false);
@@ -200,14 +201,14 @@ export default function Recomendaciones({ favoritos, onFavoritoToggle }) {
     // No mostrar nada si no hay token o no es cliente
     const token = localStorage.getItem('token');
     const usuario = token ? JSON.parse(localStorage.getItem('usuario')) : null;
-    
+
     if (!token || !usuario || usuario.rol !== 'cliente') {
         return null;
     }
 
     if (cargando) {
         return (
-            <section className="py-16 bg-gradient-to-br from-blue-50 to-indigo-100">
+            <section className="py-16 bg-gray-50 border-t border-gray-200">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="text-center mb-12">
                         <h2 className="text-3xl font-bold text-gray-900 mb-4">
@@ -218,7 +219,7 @@ export default function Recomendaciones({ favoritos, onFavoritoToggle }) {
                         </p>
                     </div>
                     <div className="flex justify-center items-center py-20">
-                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                        <Spinner size="lg" color="orange" />
                     </div>
                 </div>
             </section>
@@ -228,11 +229,11 @@ export default function Recomendaciones({ favoritos, onFavoritoToggle }) {
     // Si no tiene favoritos, mostrar sección compacta de bienvenida
     if (!tieneFavoritos) {
         return (
-            <section className="py-8 bg-gradient-to-br from-blue-50 to-indigo-100">
+            <section className="py-8 bg-gray-50 border-t border-gray-200">
                 <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="text-center">
-                        <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
-                            <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm">
+                            <svg className="w-8 h-8 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                             </svg>
                         </div>
@@ -240,39 +241,39 @@ export default function Recomendaciones({ favoritos, onFavoritoToggle }) {
                             Recomendaciones personalizadas
                         </h2>
                         <p className="text-gray-600 text-lg max-w-2xl mx-auto mb-6">
-                            <span className="font-semibold text-blue-600">Guarda algunas propiedades como favoritas</span> y 
+                            <span className="font-semibold text-orange-600">Guarda algunas propiedades como favoritas</span> y
                             nuestro algoritmo te mostrará inmuebles que te podrían interesar.
                         </p>
-                        
-                        <div className="bg-white rounded-lg p-4 shadow-md max-w-xl mx-auto mb-6">
+
+                        <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-100 max-w-xl mx-auto mb-6">
                             <div className="flex justify-center items-center space-x-6 text-sm text-gray-600">
                                 <div className="flex items-center space-x-2">
-                                    <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center">
-                                        <span className="text-blue-600 font-bold text-xs">1</span>
+                                    <div className="w-6 h-6 bg-orange-100 rounded-full flex items-center justify-center">
+                                        <span className="text-orange-600 font-bold text-xs">1</span>
                                     </div>
                                     <span>Explora</span>
                                 </div>
                                 <div className="flex items-center space-x-2">
-                                    <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center">
-                                        <span className="text-blue-600 font-bold text-xs">2</span>
+                                    <div className="w-6 h-6 bg-orange-100 rounded-full flex items-center justify-center">
+                                        <span className="text-orange-600 font-bold text-xs">2</span>
                                     </div>
                                     <span>Guarda</span>
                                 </div>
                                 <div className="flex items-center space-x-2">
-                                    <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center">
-                                        <span className="text-blue-600 font-bold text-xs">3</span>
+                                    <div className="w-6 h-6 bg-orange-100 rounded-full flex items-center justify-center">
+                                        <span className="text-orange-600 font-bold text-xs">3</span>
                                     </div>
                                     <span>Recibe</span>
                                 </div>
                             </div>
                         </div>
 
-                        <button 
+                        <button
                             onClick={() => {
                                 navigate('/propiedades');
                                 scrollToTop();
                             }}
-                            className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-6 py-2 rounded-lg font-semibold transition-all duration-200 shadow-lg"
+                            className="bg-slate-900 hover:bg-slate-800 text-white px-6 py-2 rounded-lg font-semibold transition-all duration-200 shadow-lg"
                         >
                             Explorar propiedades
                         </button>
@@ -285,11 +286,11 @@ export default function Recomendaciones({ favoritos, onFavoritoToggle }) {
     // Si tiene favoritos pero no hay recomendaciones
     if (recomendaciones.length === 0) {
         return (
-            <section className="py-8 bg-gradient-to-br from-blue-50 to-indigo-100">
+            <section className="py-8 bg-gray-50 border-t border-gray-200">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="text-center">
-                        <div className="w-20 h-20 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                            <svg className="w-10 h-10 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div className="w-20 h-20 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                            <svg className="w-10 h-10 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
                         </div>
@@ -299,12 +300,12 @@ export default function Recomendaciones({ favoritos, onFavoritoToggle }) {
                         <p className="text-gray-600 text-lg max-w-2xl mx-auto mb-8">
                             {mensaje || "No encontramos propiedades similares a tus favoritas"}
                         </p>
-                        <button 
+                        <button
                             onClick={() => {
                                 navigate('/propiedades');
                                 scrollToTop();
                             }}
-                            className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-8 py-3 rounded-lg font-semibold transition-all duration-200 transform hover:scale-105 shadow-lg"
+                            className="bg-slate-900 hover:bg-slate-800 text-white px-8 py-3 rounded-lg font-semibold transition-all duration-200 transform hover:scale-105 shadow-lg"
                         >
                             Ver todas las propiedades
                         </button>
@@ -315,7 +316,7 @@ export default function Recomendaciones({ favoritos, onFavoritoToggle }) {
     }
 
     return (
-        <section className="py-8 bg-gradient-to-br from-blue-50 to-indigo-100">
+        <section className="py-16 bg-white border-t border-gray-200">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="text-center mb-8">
                     <h2 className="text-3xl font-bold text-gray-900 mb-4">
@@ -327,7 +328,7 @@ export default function Recomendaciones({ favoritos, onFavoritoToggle }) {
                 </div>
 
                 {/* Carrusel de recomendaciones */}
-                <div 
+                <div
                     className="relative"
                     onMouseEnter={() => setIsHovered(true)}
                     onMouseLeave={() => setIsHovered(false)}
@@ -339,16 +340,16 @@ export default function Recomendaciones({ favoritos, onFavoritoToggle }) {
                     {currentSlide > 0 && (
                         <div className="absolute left-0 top-0 bottom-0 w-16 bg-gradient-to-r from-white via-white/90 to-transparent z-10 pointer-events-none"></div>
                     )}
-                    
+
                     {/* Sombra derecha cuando no está en el último slide */}
                     {currentSlide < maxSlides && (
                         <div className="absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-white via-white/90 to-transparent z-10 pointer-events-none"></div>
                     )}
-                    
+
                     <div className="overflow-hidden">
-                        <div 
+                        <div
                             className={`flex transition-transform duration-300 ease-in-out ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
-                            style={{ 
+                            style={{
                                 transform: `translateX(-${currentSlide * (100 / itemsPerView)}%)`,
                                 gap: '1.5rem'
                             }}
@@ -361,15 +362,16 @@ export default function Recomendaciones({ favoritos, onFavoritoToggle }) {
                             onTouchEnd={handleTouchEnd}
                         >
                             {recomendaciones.map((propiedad) => (
-                                <div 
-                                    key={propiedad.id} 
-                                    className="flex-shrink-0" 
-                                    style={{ 
+                                <div
+                                    key={propiedad.id}
+                                    className="flex-shrink-0"
+                                    style={{
                                         width: `calc(${100 / itemsPerView}% - ${1.5 * (itemsPerView - 1) / itemsPerView}rem)`,
-                                        minWidth: '300px'
+                                        width: `calc(${100 / itemsPerView}% - ${1.5 * (itemsPerView - 1) / itemsPerView}rem)`,
+                                        // minWidth eliminado para permitir que el card se ajuste al contenedor del slide
                                     }}
                                 >
-                                    <CardPropiedadPublica 
+                                    <CardPropiedadPublica
                                         propiedad={propiedad}
                                         favoritos={favoritos}
                                         onFavoritoToggle={onFavoritoToggle}
@@ -393,7 +395,7 @@ export default function Recomendaciones({ favoritos, onFavoritoToggle }) {
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                                 </svg>
                             </button>
-                            
+
                             {/* Flecha derecha */}
                             <button
                                 onClick={nextSlide}
@@ -415,11 +417,10 @@ export default function Recomendaciones({ favoritos, onFavoritoToggle }) {
                                 <button
                                     key={index}
                                     onClick={() => setCurrentSlide(index)}
-                                    className={`w-3 h-3 rounded-full transition-all duration-300 ${
-                                        currentSlide === index 
-                                            ? 'bg-blue-600 scale-125 shadow-lg' 
-                                            : 'bg-gray-300 hover:bg-gray-400 hover:scale-110'
-                                    }`}
+                                    className={`w-3 h-3 rounded-full transition-all duration-300 ${currentSlide === index
+                                        ? 'bg-orange-500 scale-125 shadow-md ring-2 ring-orange-200'
+                                        : 'bg-gray-200 hover:bg-gray-300 hover:scale-110'
+                                        }`}
                                     aria-label={`Ir al slide ${index + 1}`}
                                 />
                             ))}

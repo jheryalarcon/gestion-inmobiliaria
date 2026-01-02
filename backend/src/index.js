@@ -1,7 +1,11 @@
+import dotenv from 'dotenv';
+dotenv.config();
 
 import express from 'express';
 import cors from 'cors';
 import morgan from 'morgan';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import authRoutes from './routes/auth.routes.js';
 import propiedadRoutes from './routes/propiedad.routes.js';
 import usuariosRoutes from './routes/usuarios.routes.js';
@@ -12,6 +16,12 @@ import seguimientoRoutes from './routes/seguimiento.routes.js';
 import notaInternaRoutes from './routes/notaInterna.routes.js';
 import archivoNegociacionRoutes from './routes/archivoNegociacion.routes.js';
 import agentesRoutes from './routes/agentes.routes.js';
+import documentoRoutes from './routes/documento.routes.js';
+import dashboardRoutes from './routes/dashboard.routes.js';
+
+// Get __dirname equivalent in ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 
@@ -25,7 +35,8 @@ app.use(cors({
 
 // app.use(morgan('dev')) // Comentado para limpiar la consola
 app.use(express.json());
-app.use('/uploads', express.static('uploads'));
+// Servir archivos estáticos desde la carpeta uploads con ruta absoluta
+app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 
 
 app.use('/api/auth', authRoutes);
@@ -38,6 +49,8 @@ app.use('/api/seguimientos', seguimientoRoutes);
 app.use('/api/notas-internas', notaInternaRoutes);
 app.use('/api/archivos-negociacion', archivoNegociacionRoutes);
 app.use('/api/agentes', agentesRoutes);
+app.use('/api/documentos', documentoRoutes);
+app.use('/api/dashboard', dashboardRoutes);
 
 app.listen(3000, () => {
     console.log('Servidor corriendo en http://localhost:3000');

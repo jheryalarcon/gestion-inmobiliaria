@@ -43,7 +43,7 @@ export const crearCliente = async (req, res) => {
     // Validación de agente existente
     if (agenteId) {
         const agente = await prisma.usuario.findFirst({
-            where: { 
+            where: {
                 id: parseInt(agenteId),
                 rol: 'agente',
                 activo: true
@@ -55,9 +55,9 @@ export const crearCliente = async (req, res) => {
     }
 
     if (errores.length > 0) {
-        return res.status(400).json({ 
-            mensaje: 'Validación fallida', 
-            errores 
+        return res.status(400).json({
+            mensaje: 'Validación fallida',
+            errores
         });
     }
 
@@ -97,8 +97,8 @@ export const crearCliente = async (req, res) => {
         });
     } catch (error) {
         console.error('Error al crear cliente:', error);
-        res.status(500).json({ 
-            mensaje: 'Error interno del servidor al registrar el cliente' 
+        res.status(500).json({
+            mensaje: 'Error interno del servidor al registrar el cliente'
         });
     }
 };
@@ -110,15 +110,15 @@ export const obtenerClientes = async (req, res) => {
 
     try {
         const skip = (parseInt(page) - 1) * parseInt(limit);
-        
+
         // Construir filtros
         const where = {};
-        
+
         // Filtro por rol
         if (usuario.rol === 'agente') {
             where.agenteId = usuario.id;
         }
-        
+
         // Filtro por estado (activo/inactivo)
         if (estado === 'activo') {
             where.activo = true;
@@ -126,7 +126,7 @@ export const obtenerClientes = async (req, res) => {
             where.activo = false;
         }
         // Si estado es 'todos', no se aplica filtro
-        
+
         // Filtro de búsqueda
         if (search) {
             where.OR = [
@@ -135,7 +135,7 @@ export const obtenerClientes = async (req, res) => {
                 { telefono: { contains: search, mode: 'insensitive' } }
             ];
         }
-        
+
         // Filtro por tipo de cliente
         if (tipo_cliente) {
             where.tipo_cliente = tipo_cliente;
@@ -178,8 +178,8 @@ export const obtenerClientes = async (req, res) => {
         });
     } catch (error) {
         console.error('Error al obtener clientes:', error);
-        res.status(500).json({ 
-            mensaje: 'Error interno del servidor al obtener los clientes' 
+        res.status(500).json({
+            mensaje: 'Error interno del servidor al obtener los clientes'
         });
     }
 };
@@ -204,23 +204,23 @@ export const obtenerCliente = async (req, res) => {
         });
 
         if (!cliente) {
-            return res.status(404).json({ 
-                mensaje: 'Cliente no encontrado' 
+            return res.status(404).json({
+                mensaje: 'Cliente no encontrado'
             });
         }
 
         // Verificar permisos
         if (usuario.rol === 'agente' && cliente.agenteId !== usuario.id) {
-            return res.status(403).json({ 
-                mensaje: 'No tienes permisos para ver este cliente' 
+            return res.status(403).json({
+                mensaje: 'No tienes permisos para ver este cliente'
             });
         }
 
         res.json({ cliente });
     } catch (error) {
         console.error('Error al obtener cliente:', error);
-        res.status(500).json({ 
-            mensaje: 'Error interno del servidor al obtener el cliente' 
+        res.status(500).json({
+            mensaje: 'Error interno del servidor al obtener el cliente'
         });
     }
 };
@@ -247,15 +247,15 @@ export const actualizarCliente = async (req, res) => {
         });
 
         if (!clienteExistente) {
-            return res.status(404).json({ 
-                mensaje: 'Cliente no encontrado' 
+            return res.status(404).json({
+                mensaje: 'Cliente no encontrado'
             });
         }
 
         // Verificar permisos
         if (usuario.rol === 'agente' && clienteExistente.agenteId !== usuario.id) {
-            return res.status(403).json({ 
-                mensaje: 'No tienes permisos para editar este cliente' 
+            return res.status(403).json({
+                mensaje: 'No tienes permisos para editar este cliente'
             });
         }
 
@@ -268,7 +268,7 @@ export const actualizarCliente = async (req, res) => {
         // Validación de email único (excluyendo el cliente actual)
         if (email) {
             const emailDuplicado = await prisma.cliente.findFirst({
-                where: { 
+                where: {
                     email: email.trim(),
                     id: { not: parseInt(id) }
                 }
@@ -287,9 +287,9 @@ export const actualizarCliente = async (req, res) => {
         // La relación con el agente se mantiene fija
 
         if (errores.length > 0) {
-            return res.status(400).json({ 
-                mensaje: 'Validación fallida', 
-                errores 
+            return res.status(400).json({
+                mensaje: 'Validación fallida',
+                errores
             });
         }
 
@@ -324,8 +324,8 @@ export const actualizarCliente = async (req, res) => {
         });
     } catch (error) {
         console.error('Error al actualizar cliente:', error);
-        res.status(500).json({ 
-            mensaje: 'Error interno del servidor al actualizar el cliente' 
+        res.status(500).json({
+            mensaje: 'Error interno del servidor al actualizar el cliente'
         });
     }
 };
@@ -341,15 +341,15 @@ export const eliminarCliente = async (req, res) => {
         });
 
         if (!cliente) {
-            return res.status(404).json({ 
-                mensaje: 'Cliente no encontrado' 
+            return res.status(404).json({
+                mensaje: 'Cliente no encontrado'
             });
         }
 
         // Verificar permisos
         if (usuario.rol === 'agente' && cliente.agenteId !== usuario.id) {
-            return res.status(403).json({ 
-                mensaje: 'No tienes permisos para eliminar este cliente' 
+            return res.status(403).json({
+                mensaje: 'No tienes permisos para eliminar este cliente'
             });
         }
 
@@ -357,13 +357,13 @@ export const eliminarCliente = async (req, res) => {
             where: { id: parseInt(id) }
         });
 
-        res.json({ 
-            mensaje: 'Cliente eliminado correctamente' 
+        res.json({
+            mensaje: 'Cliente eliminado correctamente'
         });
     } catch (error) {
         console.error('Error al eliminar cliente:', error);
-        res.status(500).json({ 
-            mensaje: 'Error interno del servidor al eliminar el cliente' 
+        res.status(500).json({
+            mensaje: 'Error interno del servidor al eliminar el cliente'
         });
     }
 };
@@ -374,7 +374,7 @@ export const obtenerEstadisticas = async (req, res) => {
 
     try {
         const where = {};
-        
+
         // Filtrar por agente si no es admin
         if (usuario.rol === 'agente') {
             where.agenteId = usuario.id;
@@ -387,7 +387,7 @@ export const obtenerEstadisticas = async (req, res) => {
         ] = await Promise.all([
             // Total de clientes
             prisma.cliente.count({ where }),
-            
+
             // Clientes por tipo
             prisma.cliente.groupBy({
                 by: ['tipo_cliente'],
@@ -396,7 +396,7 @@ export const obtenerEstadisticas = async (req, res) => {
                     tipo_cliente: true
                 }
             }),
-            
+
             // Clientes registrados en los últimos 30 días
             prisma.cliente.count({
                 where: {
@@ -415,8 +415,8 @@ export const obtenerEstadisticas = async (req, res) => {
         });
     } catch (error) {
         console.error('Error al obtener estadísticas:', error);
-        res.status(500).json({ 
-            mensaje: 'Error interno del servidor al obtener estadísticas' 
+        res.status(500).json({
+            mensaje: 'Error interno del servidor al obtener estadísticas'
         });
     }
 };
@@ -433,22 +433,22 @@ export const desactivarCliente = async (req, res) => {
         });
 
         if (!cliente) {
-            return res.status(404).json({ 
-                mensaje: 'Cliente no encontrado' 
+            return res.status(404).json({
+                mensaje: 'Cliente no encontrado'
             });
         }
 
         // Verificar permisos
         if (usuario.rol === 'agente' && cliente.agenteId !== usuario.id) {
-            return res.status(403).json({ 
-                mensaje: 'No tienes permisos para desactivar este cliente' 
+            return res.status(403).json({
+                mensaje: 'No tienes permisos para desactivar este cliente'
             });
         }
 
         // Verificar si ya está inactivo
         if (!cliente.activo) {
-            return res.status(400).json({ 
-                mensaje: 'El cliente ya está inactivo' 
+            return res.status(400).json({
+                mensaje: 'El cliente ya está inactivo'
             });
         }
 
@@ -484,8 +484,8 @@ export const desactivarCliente = async (req, res) => {
         });
     } catch (error) {
         console.error('Error al desactivar cliente:', error);
-        res.status(500).json({ 
-            mensaje: 'Error interno del servidor al desactivar el cliente' 
+        res.status(500).json({
+            mensaje: 'Error interno del servidor al desactivar el cliente'
         });
     }
 };
@@ -502,22 +502,22 @@ export const reactivarCliente = async (req, res) => {
         });
 
         if (!cliente) {
-            return res.status(404).json({ 
-                mensaje: 'Cliente no encontrado' 
+            return res.status(404).json({
+                mensaje: 'Cliente no encontrado'
             });
         }
 
         // Solo administradores pueden reactivar clientes
         if (usuario.rol !== 'admin') {
-            return res.status(403).json({ 
-                mensaje: 'Solo los administradores pueden reactivar clientes' 
+            return res.status(403).json({
+                mensaje: 'Solo los administradores pueden reactivar clientes'
             });
         }
 
         // Verificar si ya está activo
         if (cliente.activo) {
-            return res.status(400).json({ 
-                mensaje: 'El cliente ya está activo' 
+            return res.status(400).json({
+                mensaje: 'El cliente ya está activo'
             });
         }
 
@@ -553,8 +553,149 @@ export const reactivarCliente = async (req, res) => {
         });
     } catch (error) {
         console.error('Error al reactivar cliente:', error);
-        res.status(500).json({ 
-            mensaje: 'Error interno del servidor al reactivar el cliente' 
+        res.status(500).json({
+            mensaje: 'Error interno del servidor al reactivar el cliente'
         });
+    }
+};
+
+// Registrar contacto desde formulario público (Lead Capture)
+export const registrarContactoPublico = async (req, res) => {
+    const { nombre, email, mensaje, propiedadId, telefono } = req.body;
+    const errores = [];
+
+    // Validaciones
+    if (!nombre?.trim()) errores.push('El nombre es obligatorio');
+    if (!email?.trim()) errores.push('El email es obligatorio');
+    if (!mensaje?.trim()) errores.push('El mensaje es obligatorio');
+    if (!propiedadId) errores.push('ID de propiedad no válido');
+
+    if (errores.length > 0) {
+        return res.status(400).json({ mensaje: 'Datos incompletos', errores });
+    }
+
+    try {
+        // 1. Obtener la Propiedad y su Agente Responsable
+        const propiedad = await prisma.propiedad.findUnique({
+            where: { id: parseInt(propiedadId) },
+            select: { id: true, agenteId: true, titulo: true, codigo_interno: true }
+        });
+
+        if (!propiedad) {
+            return res.status(404).json({ mensaje: 'Propiedad no encontrada' });
+        }
+
+        // 2. Buscar si el Cliente ya existe
+        let cliente = await prisma.cliente.findUnique({
+            where: { email: email.trim() }
+        });
+
+        // Agente que gestionará este lead (Por defecto el de la propiedad)
+        let agenteResponsableId = propiedad.agenteId;
+
+        if (cliente) {
+            // El cliente YA EXISTE -> Se respeta su agente asignado (Exclusividad)
+            if (cliente.agenteId) {
+                agenteResponsableId = cliente.agenteId;
+            }
+        } else {
+            // Cliente NUEVO -> Se asigna al agente de la propiedad (Captación)
+            cliente = await prisma.cliente.create({
+                data: {
+                    nombre: nombre.trim(),
+                    email: email.trim(),
+                    telefono: telefono?.trim() || 'Sin teléfono',
+                    tipo_cliente: 'comprador',
+                    agenteId: agenteResponsableId,
+                    observaciones: 'Cliente captado vía Web Pública'
+                }
+            });
+        }
+
+        // 3. Verificar si ya existe una Negociación ACTIVA
+        const negociacionExistente = await prisma.negociacion.findUnique({
+            where: {
+                clienteId_propiedadId: {
+                    clienteId: cliente.id,
+                    propiedadId: propiedad.id
+                }
+            }
+        });
+
+        if (negociacionExistente && negociacionExistente.activo) {
+            // YA EXISTE -> Agregar SEGUIMIENTO
+            await prisma.seguimiento.create({
+                data: {
+                    negociacionId: negociacionExistente.id,
+                    agenteId: agenteResponsableId,
+                    fecha: new Date(),
+                    tipo: 'mensaje',
+                    comentario: `Nuevo mensaje web: "${mensaje}"`
+                }
+            });
+
+            return res.status(200).json({
+                mensaje: 'Mensaje añadido a negociación existente',
+                negociacionId: negociacionExistente.id
+            });
+
+        } else {
+            // NO EXISTE o estaba inactiva -> Crear/Reactivar NEGOCIACIÓN
+            let nuevaNegociacion;
+
+            if (negociacionExistente) {
+                // Reactivar
+                nuevaNegociacion = await prisma.negociacion.update({
+                    where: { id: negociacionExistente.id },
+                    data: {
+                        activo: true,
+                        etapa: 'interes',
+                        agenteId: agenteResponsableId,
+                        updatedAt: new Date()
+                    }
+                });
+
+                await prisma.seguimiento.create({
+                    data: {
+                        negociacionId: nuevaNegociacion.id,
+                        agenteId: agenteResponsableId,
+                        fecha: new Date(),
+                        tipo: 'mensaje',
+                        comentario: `Cliente reactiva interés vía web: "${mensaje}"`
+                    }
+                });
+
+            } else {
+                // Crear desde cero
+                nuevaNegociacion = await prisma.negociacion.create({
+                    data: {
+                        clienteId: cliente.id,
+                        propiedadId: propiedad.id,
+                        agenteId: agenteResponsableId,
+                        etapa: 'interes',
+                        fecha_inicio: new Date()
+                    }
+                });
+
+                await prisma.seguimiento.create({
+                    data: {
+                        negociacionId: nuevaNegociacion.id,
+                        agenteId: agenteResponsableId,
+                        fecha: new Date(),
+                        tipo: 'mensaje',
+                        comentario: `Primer contacto web: "${mensaje}"`
+                    }
+                });
+            }
+
+            return res.status(201).json({
+                mensaje: 'Solicitud recibida correctamente',
+                negociacionId: nuevaNegociacion.id
+            });
+        }
+
+    } catch (error) {
+        console.error('Error procesando lead público:', error);
+        res.status(500).json({ mensaje: 'Error al procesar su solicitud' });
     }
 };

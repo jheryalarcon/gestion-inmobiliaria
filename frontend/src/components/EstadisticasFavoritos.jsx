@@ -165,3 +165,9 @@ export default function EstadisticasFavoritos({ propiedades }) {
 
 
 
+
+
+
+
+
+

@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useBlocker } from 'react-router-dom';
 import { toast } from 'sonner';
 import { jwtDecode } from 'jwt-decode';
 import { PageSpinner } from '../components/Spinner';
+import DocumentManager from '../components/DocumentManager';
+import { Eye, EyeOff } from 'lucide-react';
 
 export default function RegistrarAgente() {
     const navigate = useNavigate();
@@ -17,7 +19,11 @@ export default function RegistrarAgente() {
     });
     const [errores, setErrores] = useState({});
     const [submitting, setSubmitting] = useState(false);
-    const [showConfirmModal, setShowConfirmModal] = useState(false);
+
+    // Estados para visibilidad de contraseña
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
     const cancelarRef = useRef(null);
 
     const initialDatos = {
@@ -26,6 +32,29 @@ export default function RegistrarAgente() {
         telefono: '',
         password: '',
         confirmPassword: ''
+    };
+
+    const [documentos, setDocumentos] = useState({
+        identificacion: [],
+        contrato: [],
+        hoja_vida: [],
+        certificado: [],
+        otro: []
+    });
+
+    const handleUpload = (e, categoria) => {
+        const files = Array.from(e.target.files);
+        setDocumentos(prev => ({
+            ...prev,
+            [categoria]: [...prev[categoria], ...files]
+        }));
+    };
+
+    const handleDelete = (categoria, index) => {
+        setDocumentos(prev => ({
+            ...prev,
+            [categoria]: prev[categoria].filter((_, i) => i !== index)
+        }));
     };
 
     useEffect(() => {
@@ -140,7 +169,7 @@ export default function RegistrarAgente() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        
+
         if (!validarFormulario()) {
             return;
         }
@@ -169,7 +198,38 @@ export default function RegistrarAgente() {
 
             if (response.ok) {
                 toast.success(data.mensaje, { duration: 3000 });
-                
+
+                // Subir documentos si existen
+                const agenteId = data.agente.id;
+                const uploadPromises = [];
+
+                for (const [key, files] of Object.entries(documentos)) {
+                    if (files.length > 0) {
+                        const formData = new FormData();
+                        // Mapear claves de frontend a tipos de backend (enum)
+                        let tipoBackend = 'OTRO';
+                        if (key === 'identificacion') tipoBackend = 'IDENTIFICACION';
+                        if (key === 'contrato') tipoBackend = 'CONTRATO';
+                        if (key === 'hoja_vida') tipoBackend = 'HOJA_VIDA';
+                        if (key === 'certificado') tipoBackend = 'CERTIFICADO';
+
+                        formData.append('tipo', tipoBackend);
+                        files.forEach(file => formData.append('documentos', file));
+
+                        uploadPromises.push(
+                            fetch(`http://localhost:3000/api/documentos/agente/${agenteId}`, {
+                                method: 'POST',
+                                headers: {
+                                    'Authorization': `Bearer ${token}`
+                                },
+                                body: formData
+                            })
+                        );
+                    }
+                }
+
+                await Promise.all(uploadPromises);
+
                 // Mostrar credenciales del agente creado
                 toast.success('Agente creado exitosamente', {
                     duration: 6000,
@@ -192,7 +252,7 @@ export default function RegistrarAgente() {
                     confirmPassword: ''
                 });
                 setErrores({});
-                
+
                 // Redirigir al panel de agentes después de 2 segundos
                 setTimeout(() => {
                     navigate('/admin/panel-agentes');
@@ -216,17 +276,13 @@ export default function RegistrarAgente() {
         return false;
     };
 
-    const handleCancel = () => {
-        if (hayCambios()) {
-            setShowConfirmModal(true);
-        } else {
-            navigate('/admin');
-        }
-    };
+    const blocker = useBlocker(
+        ({ currentLocation, nextLocation }) =>
+            hayCambios() && currentLocation.pathname !== nextLocation.pathname
+    );
 
-    const confirmarSalida = () => {
-        setShowConfirmModal(false);
-        navigate('/admin');
+    const handleCancel = () => {
+        navigate('/admin/panel-agentes');
     };
 
     if (loading) {
@@ -237,7 +293,7 @@ export default function RegistrarAgente() {
         <div className="max-w-3xl mx-auto mt-10 p-4 md:p-8 bg-white shadow-lg rounded-2xl border border-gray-100">
             <h2 className="text-3xl font-extrabold text-center mb-2 text-blue-900 tracking-tight">Registrar Agente</h2>
             <p className="text-center text-gray-600 mb-8">Completa los datos para crear una nueva cuenta de agente inmobiliario</p>
-            
+
             <form onSubmit={handleSubmit} className="space-y-8">
                 {/* DATOS PERSONALES */}
                 <section className="bg-gray-50 rounded-xl p-6 shadow-sm border border-gray-200">
@@ -295,14 +351,23 @@ export default function RegistrarAgente() {
                         {/* CONTRASEÑA */}
                         <div>
                             <label className="block text-base font-semibold text-blue-800 mb-1">Contraseña <span className="text-red-500">*</span></label>
-                            <input
-                                type="password"
-                                name="password"
-                                value={datos.password}
-                                onChange={handleInputChange}
-                                className={`w-full border-2 border-blue-100 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300 bg-white shadow-sm transition ${errores.password ? 'border-red-400' : 'border-blue-100'}`}
-                                placeholder="Mínimo 6 caracteres"
-                            />
+                            <div className="relative">
+                                <input
+                                    type={showPassword ? "text" : "password"}
+                                    name="password"
+                                    value={datos.password}
+                                    onChange={handleInputChange}
+                                    className={`w-full border-2 border-blue-100 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300 bg-white shadow-sm transition ${errores.password ? 'border-red-400' : 'border-blue-100'}`}
+                                    placeholder="Mínimo 6 caracteres"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 hover:text-blue-600 transition-colors"
+                                >
+                                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                                </button>
+                            </div>
                             {errores.password && <p className="text-red-600 text-sm mt-1 font-medium">{errores.password}</p>}
                             <p className="text-sm text-gray-500 mt-1">La contraseña debe tener al menos 6 caracteres</p>
                         </div>
@@ -310,17 +375,37 @@ export default function RegistrarAgente() {
                         {/* CONFIRMAR CONTRASEÑA */}
                         <div>
                             <label className="block text-base font-semibold text-blue-800 mb-1">Confirmar contraseña <span className="text-red-500">*</span></label>
-                            <input
-                                type="password"
-                                name="confirmPassword"
-                                value={datos.confirmPassword}
-                                onChange={handleInputChange}
-                                className={`w-full border-2 border-blue-100 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300 bg-white shadow-sm transition ${errores.confirmPassword ? 'border-red-400' : 'border-blue-100'}`}
-                                placeholder="Repite la contraseña"
-                            />
+                            <div className="relative">
+                                <input
+                                    type={showConfirmPassword ? "text" : "password"}
+                                    name="confirmPassword"
+                                    value={datos.confirmPassword}
+                                    onChange={handleInputChange}
+                                    className={`w-full border-2 border-blue-100 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300 bg-white shadow-sm transition ${errores.confirmPassword ? 'border-red-400' : 'border-blue-100'}`}
+                                    placeholder="Repite la contraseña"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 hover:text-blue-600 transition-colors"
+                                >
+                                    {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                                </button>
+                            </div>
                             {errores.confirmPassword && <p className="text-red-600 text-sm mt-1 font-medium">{errores.confirmPassword}</p>}
                         </div>
                     </div>
+                </section>
+
+                {/* DOCUMENTOS (RRHH) */}
+                <section className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+                    <h3 className="text-xl font-bold text-blue-800 mb-4">Documentación (RRHH)</h3>
+                    <DocumentManager
+                        mode="agente"
+                        documentos={documentos}
+                        onUpload={handleUpload}
+                        onDelete={handleDelete}
+                    />
                 </section>
 
                 {/* INFORMACIÓN IMPORTANTE */}
@@ -354,7 +439,7 @@ export default function RegistrarAgente() {
             </form>
 
             {/* Modal de confirmación */}
-            {showConfirmModal && (
+            {blocker.state === 'blocked' && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
                     <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md border border-gray-200 transition-all duration-300">
                         <h3 className="text-xl font-bold text-center text-yellow-700 mb-4 flex items-center justify-center gap-2">
@@ -363,14 +448,15 @@ export default function RegistrarAgente() {
                         <p className="text-gray-700 text-center mb-6">Tienes cambios sin guardar. ¿Seguro que quieres salir?</p>
                         <div className="flex justify-end gap-2 mt-4">
                             <button
-                                ref={cancelarRef}
-                                onClick={() => setShowConfirmModal(false)}
+                                type="button"
+                                onClick={() => blocker.reset()}
                                 className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium text-sm px-4 py-2 rounded-lg shadow-sm transition"
                             >
                                 Cancelar
                             </button>
                             <button
-                                onClick={confirmarSalida}
+                                type="button"
+                                onClick={() => blocker.proceed()}
                                 className="bg-yellow-500 hover:bg-yellow-600 text-white font-medium text-sm px-4 py-2 rounded-lg shadow-md transition"
                             >
                                 Salir sin guardar

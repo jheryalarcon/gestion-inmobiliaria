@@ -1,10 +1,10 @@
 import React from 'react';
 
-function Spinner({ 
-    size = 'md', 
-    text = 'Cargando...', 
-    color = 'blue',
-    className = '' 
+function Spinner({
+    size = 'md',
+    text = 'Cargando...',
+    color = 'orange',
+    className = ''
 }) {
     const sizeClasses = {
         sm: 'h-6 w-6',
@@ -19,7 +19,8 @@ function Spinner({
         red: 'border-red-600',
         purple: 'border-purple-600',
         gray: 'border-gray-600',
-        white: 'border-white'
+        white: 'border-white',
+        orange: 'border-orange-600'
     };
 
     const textSizeClasses = {
@@ -31,7 +32,7 @@ function Spinner({
 
     return (
         <div className={`flex flex-col items-center justify-center ${className}`}>
-            <div 
+            <div
                 className={`animate-spin rounded-full border-b-2 ${sizeClasses[size]} ${colorClasses[color]} mb-4`}
             ></div>
             {text && (
@@ -44,12 +45,10 @@ function Spinner({
 }
 
 // Componente específico para páginas completas
-export function PageSpinner({ text = 'Cargando...', size = 'md', color = 'blue' }) {
+export function PageSpinner({ text = 'Cargando...', size = 'md', color = 'orange' }) {
     return (
-        <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
-            <div className="flex justify-center items-center h-64">
-                <Spinner text={text} size={size} color={color} />
-            </div>
+        <div className="flex justify-center items-center min-h-[70vh] w-full">
+            <Spinner text={text} size={size} color={color} />
         </div>
     );
 }
@@ -58,8 +57,8 @@ export function PageSpinner({ text = 'Cargando...', size = 'md', color = 'blue' 
 export function ButtonSpinner({ size = 'sm', color = 'white' }) {
     return (
         <div className="flex items-center justify-center">
-            <div 
-                className={`animate-spin rounded-full border-b-2 ${size === 'sm' ? 'h-4 w-4' : 'h-6 w-6'} ${color === 'white' ? 'border-white' : 'border-blue-600'}`}
+            <div
+                className={`animate-spin rounded-full border-b-2 ${size === 'sm' ? 'h-4 w-4' : 'h-6 w-6'} ${color === 'white' ? 'border-white' : 'border-orange-600'}`}
             ></div>
         </div>
     );
@@ -70,9 +69,9 @@ export function OverlaySpinner({ text = 'Cargando...', show = false }) {
     if (!show) return null;
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-8 shadow-xl">
-                <Spinner text={text} size="lg" color="blue" />
+        <div className="fixed inset-0 bg-white z-50 flex items-center justify-center transition-opacity duration-300">
+            <div className="flex flex-col items-center animate-in fade-in zoom-in duration-200">
+                <Spinner text={text} size="lg" color="orange" />
             </div>
         </div>
     );

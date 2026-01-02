@@ -3,28 +3,28 @@ import axios from 'axios';
 import { verificarToken } from '../utils/tokenUtils';
 
 export default function ModalActualizarEstado({
-                                                  propiedadId,
-                                                  estadoActual,
-                                                  onClose,
-                                                  onSuccess
-                                              }) {
+    propiedadId,
+    estadoActual,
+    onClose,
+    onSuccess
+}) {
     const [nuevoEstado, setNuevoEstado] = useState(estadoActual);
     const [mensaje, setMensaje] = useState('');
     const [cargando, setCargando] = useState(false);
     const tokenInfo = verificarToken();
-    
+
     if (!tokenInfo.valido) {
         setMensaje(`Error de autenticación: ${tokenInfo.mensaje}`);
         return;
     }
-    
+
     const token = localStorage.getItem('token');
 
     const estadosPermitidos = ['disponible', 'vendida', 'arrendada', 'reservada', 'inactiva'];
 
     const handleActualizar = async () => {
         console.log('Intentando actualizar estado:', { propiedadId, nuevoEstado, token: token ? 'Presente' : 'Ausente' });
-        
+
         if (!estadosPermitidos.includes(nuevoEstado)) {
             setMensaje('Estado no válido.');
             return;
@@ -35,7 +35,7 @@ export default function ModalActualizarEstado({
             console.log('Enviando petición a:', `http://localhost:3000/api/propiedades/${propiedadId}/estado`);
             console.log('Datos enviados:', { nuevoEstado });
             console.log('Headers:', { Authorization: `Bearer ${token}` });
-            
+
             const response = await axios.patch(
                 `http://localhost:3000/api/propiedades/${propiedadId}/estado`,
                 { nuevoEstado },
@@ -81,9 +81,8 @@ export default function ModalActualizarEstado({
                 </select>
 
                 {mensaje && (
-                    <p className={`text-sm text-center mb-3 font-medium ${
-                        mensaje.includes('correctamente') ? 'text-green-600' : 'text-red-600'
-                    }`}>
+                    <p className={`text-sm text-center mb-3 font-medium ${mensaje.includes('correctamente') ? 'text-green-600' : 'text-red-600'
+                        }`}>
                         {mensaje}
                     </p>
                 )}
@@ -99,9 +98,8 @@ export default function ModalActualizarEstado({
                     <button
                         onClick={handleActualizar}
                         disabled={cargando}
-                        className={`bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm px-4 py-2 rounded-lg shadow-md transition ${
-                            cargando ? 'opacity-50 cursor-not-allowed' : ''
-                        }`}
+                        className={`bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm px-4 py-2 rounded-lg shadow-md transition ${cargando ? 'opacity-50 cursor-not-allowed' : ''
+                            }`}
                     >
                         {cargando ? 'Guardando...' : 'Guardar'}
                     </button>

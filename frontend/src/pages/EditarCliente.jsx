@@ -1,9 +1,11 @@
 import { useEffect, useState, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useBlocker } from 'react-router-dom';
 import axios from 'axios';
 import { jwtDecode } from 'jwt-decode';
 import SelectTipoCliente from '../components/SelectTipoCliente';
+import DocumentManager from '../components/DocumentManager';
 import { toast } from 'sonner';
+import { PageSpinner, ButtonSpinner } from '../components/Spinner';
 
 export default function EditarCliente() {
     const { id } = useParams();
@@ -11,6 +13,15 @@ export default function EditarCliente() {
     const [usuario, setUsuario] = useState(null);
     const [cliente, setCliente] = useState(null);
     const [agentes, setAgentes] = useState([]);
+
+    // Estado para documentos
+    const [documentos, setDocumentos] = useState({
+        cedula: [],
+        papeleta_votacion: [],
+        poder: [],
+        otro: []
+    });
+
     const [datos, setDatos] = useState({
         nombre: '',
         telefono: '',
@@ -23,7 +34,6 @@ export default function EditarCliente() {
     const [errores, setErrores] = useState({});
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
-    const [showConfirmModal, setShowConfirmModal] = useState(false);
     const cancelarRef = useRef(null);
 
     const initialDatos = {
@@ -33,6 +43,46 @@ export default function EditarCliente() {
         tipo_cliente: '',
         observaciones: '',
         agenteId: ''
+    };
+
+    // Helper para mapear tipos de BD a claves de estado
+    const mapDocTypeToKey = (tipo) => {
+        const mapping = {
+            'CEDULA': 'cedula',
+            'PAPELETA_VOTACION': 'papeleta_votacion',
+            'PODER': 'poder',
+            'OTRO': 'otro'
+        };
+        return mapping[tipo] || 'otro';
+    };
+
+    const mapKeyToDocType = (key) => {
+        const mapping = {
+            'cedula': 'CEDULA',
+            'papeleta_votacion': 'PAPELETA_VOTACION',
+            'poder': 'PODER',
+            'otro': 'OTRO'
+        };
+        return mapping[key] || 'OTRO';
+    };
+
+    const organizeDocuments = (docs) => {
+        const organized = {
+            cedula: [],
+            papeleta_votacion: [],
+            poder: [],
+            otro: []
+        };
+
+        if (Array.isArray(docs)) {
+            docs.forEach(doc => {
+                const key = mapDocTypeToKey(doc.tipo);
+                if (organized[key]) {
+                    organized[key].push(doc);
+                }
+            });
+        }
+        return organized;
     };
 
     useEffect(() => {
@@ -52,7 +102,7 @@ export default function EditarCliente() {
 
         // Cargar datos del cliente
         cargarCliente(token);
-        
+
         // Cargar agentes si es admin
         if (decoded.rol === 'admin') {
             cargarAgentes(token);
@@ -67,7 +117,7 @@ export default function EditarCliente() {
 
             const clienteData = response.data.cliente;
             setCliente(clienteData);
-            
+
             setDatos({
                 nombre: clienteData.nombre || '',
                 telefono: clienteData.telefono || '',
@@ -76,6 +126,11 @@ export default function EditarCliente() {
                 observaciones: clienteData.observaciones || '',
                 agenteId: clienteData.agenteId?.toString() || ''
             });
+
+            // Cargar documentos
+            if (clienteData.documentos) {
+                setDocumentos(organizeDocuments(clienteData.documentos));
+            }
 
             // Guardar datos iniciales para comparación
             initialDatos.nombre = clienteData.nombre || '';
@@ -181,28 +236,84 @@ export default function EditarCliente() {
 
     const validarFormulario = () => {
         const nuevosErrores = {};
-        
+
         if (!datos.nombre.trim()) nuevosErrores.nombre = 'El nombre es obligatorio';
         if (!datos.telefono.trim()) nuevosErrores.telefono = 'El teléfono es obligatorio';
         if (!datos.email.trim()) nuevosErrores.email = 'El correo electrónico es obligatorio';
         if (!datos.tipo_cliente) nuevosErrores.tipo_cliente = 'Selecciona un tipo de cliente';
-        
+
         // Validación de formato de email
         if (datos.email.trim() && !/^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$/.test(datos.email)) {
             nuevosErrores.email = 'Formato de correo electrónico inválido';
         }
-        
+
         // Validación de teléfono
         if (datos.telefono.trim() && !/^[\d\s\-\+\(\)]+$/.test(datos.telefono)) {
             nuevosErrores.telefono = 'Formato de teléfono inválido';
         }
-        
+
         return nuevosErrores;
+    };
+
+    const handleUploadDocumento = async (e, key) => {
+        const files = Array.from(e.target.files);
+        if (files.length === 0) return;
+
+        const uploadPromise = async () => {
+            const formData = new FormData();
+            files.forEach(file => formData.append('documentos', file));
+            formData.append('tipo', mapKeyToDocType(key));
+
+            const token = localStorage.getItem('token');
+            const response = await axios.post(`http://localhost:3000/api/documentos/cliente/${id}`, formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                    Authorization: `Bearer ${token}`
+                }
+            });
+            return response.data.documentos; // Retorna array de docs creados
+        };
+
+        toast.promise(uploadPromise(), {
+            loading: 'Subiendo documentos...',
+            success: (newDocs) => {
+                setDocumentos(prev => ({
+                    ...prev,
+                    [key]: [...prev[key], ...newDocs]
+                }));
+                return 'Documentos subidos correctamente';
+            },
+            error: 'Error al subir documentos'
+        });
+    };
+
+    const handleDeleteDocumento = async (key, index) => {
+        const docToDelete = documentos[key][index];
+        if (!docToDelete?.id) return;
+
+        const deletePromise = async () => {
+            const token = localStorage.getItem('token');
+            await axios.delete(`http://localhost:3000/api/documentos/cliente/${docToDelete.id}`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+        };
+
+        toast.promise(deletePromise(), {
+            loading: 'Eliminando documento...',
+            success: () => {
+                setDocumentos(prev => ({
+                    ...prev,
+                    [key]: prev[key].filter((_, i) => i !== index)
+                }));
+                return 'Documento eliminado';
+            },
+            error: 'Error al eliminar documento'
+        });
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        
+
         // Verificar si el cliente está inactivo
         if (!cliente.activo) {
             toast.error('No se puede editar un cliente inactivo. Solo un administrador puede reactivarlo.');
@@ -270,20 +381,12 @@ export default function EditarCliente() {
         return false;
     };
 
-    const handleCancel = () => {
-        if (hayCambios()) {
-            setShowConfirmModal(true);
-        } else {
-            if (usuario?.rol === 'admin') {
-                navigate('/admin/panel-clientes');
-            } else {
-                navigate('/agente/panel-clientes');
-            }
-        }
-    };
+    const blocker = useBlocker(
+        ({ currentLocation, nextLocation }) =>
+            hayCambios() && currentLocation.pathname !== nextLocation.pathname
+    );
 
-    const confirmarSalida = () => {
-        setShowConfirmModal(false);
+    const handleCancel = () => {
         if (usuario?.rol === 'admin') {
             navigate('/admin/panel-clientes');
         } else {
@@ -302,11 +405,7 @@ export default function EditarCliente() {
     };
 
     if (loading) {
-        return (
-            <div className="flex justify-center items-center h-64">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-            </div>
-        );
+        return <PageSpinner text="Cargando datos del cliente..." />;
     }
 
     if (!cliente) {
@@ -317,7 +416,7 @@ export default function EditarCliente() {
         <div className="max-w-3xl mx-auto mt-10 p-4 md:p-8 bg-white shadow-lg rounded-2xl border border-gray-100">
             <h2 className="text-3xl font-extrabold text-center mb-2 text-blue-900 tracking-tight">Editar Cliente</h2>
             <p className="text-center text-gray-600 mb-8">Modifica los datos del cliente y guarda los cambios</p>
-            
+
             <form onSubmit={handleSubmit} className="space-y-8">
                 {/* DATOS PERSONALES */}
                 <section className="bg-gray-50 rounded-xl p-6 shadow-sm border border-gray-200">
@@ -377,6 +476,21 @@ export default function EditarCliente() {
                     </div>
                 </section>
 
+                {/* DOCUMENTACIÓN (Modo Cliente) */}
+                <section className="bg-blue-50 rounded-xl p-6 shadow-sm border border-blue-200 mt-6">
+                    <h3 className="text-xl font-bold text-blue-900 mb-4 flex items-center gap-2">
+                        📄 Documentación del Cliente
+                    </h3>
+                    <div className="w-full">
+                        <DocumentManager
+                            mode="cliente"
+                            documentos={documentos}
+                            onUpload={handleUploadDocumento}
+                            onDelete={handleDeleteDocumento}
+                        />
+                    </div>
+                </section>
+
                 {/* INFORMACIÓN ADICIONAL */}
                 <section className="bg-gray-50 rounded-xl p-6 shadow-sm border border-gray-200">
                     <h3 className="text-xl font-bold text-blue-800 mb-4">Información Adicional</h3>
@@ -416,7 +530,7 @@ export default function EditarCliente() {
                                         <p><strong>Desactivado por:</strong> {cliente.usuario_desactivador.name} ({cliente.usuario_desactivador.email})</p>
                                     )}
                                     <p className="text-xs text-red-600 mt-2">
-                                        Este cliente está inactivo y no puede ser editado. 
+                                        Este cliente está inactivo y no puede ser editado.
                                         Solo un administrador puede reactivarlo.
                                     </p>
                                 </div>
@@ -438,16 +552,15 @@ export default function EditarCliente() {
                     <button
                         type="submit"
                         disabled={saving || !cliente.activo}
-                        className={`px-6 py-3 rounded-lg font-semibold transition duration-200 flex items-center gap-2 ${
-                            cliente.activo 
-                                ? 'bg-blue-600 text-white hover:bg-blue-700' 
-                                : 'bg-gray-400 text-gray-600 cursor-not-allowed'
-                        } ${saving ? 'opacity-50' : ''}`}
+                        className={`px-6 py-3 rounded-lg font-semibold transition duration-200 flex items-center gap-2 ${cliente.activo
+                            ? 'bg-blue-600 text-white hover:bg-blue-700'
+                            : 'bg-gray-400 text-gray-600 cursor-not-allowed'
+                            } ${saving ? 'opacity-50' : ''}`}
                     >
                         {saving ? (
                             <>
-                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                                Guardando...
+                                <ButtonSpinner />
+                                <span>Guardando...</span>
                             </>
                         ) : (
                             cliente.activo ? 'Guardar Cambios' : 'Cliente Inactivo'
@@ -457,7 +570,7 @@ export default function EditarCliente() {
             </form>
 
             {/* Modal de confirmación */}
-            {showConfirmModal && (
+            {blocker.state === 'blocked' && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
                     <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md border border-gray-200 transition-all duration-300">
                         <h3 className="text-xl font-bold text-center text-yellow-700 mb-4 flex items-center justify-center gap-2">
@@ -466,14 +579,15 @@ export default function EditarCliente() {
                         <p className="text-gray-700 text-center mb-6">Tienes cambios sin guardar. ¿Seguro que quieres salir?</p>
                         <div className="flex justify-end gap-2 mt-4">
                             <button
-                                ref={cancelarRef}
-                                onClick={() => setShowConfirmModal(false)}
+                                type="button"
+                                onClick={() => blocker.reset()}
                                 className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium text-sm px-4 py-2 rounded-lg shadow-sm transition"
                             >
                                 Cancelar
                             </button>
                             <button
-                                onClick={confirmarSalida}
+                                type="button"
+                                onClick={() => blocker.proceed()}
                                 className="bg-yellow-500 hover:bg-yellow-600 text-white font-medium text-sm px-4 py-2 rounded-lg shadow-md transition"
                             >
                                 Salir sin guardar

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'sonner';
+import Spinner from './Spinner';
 
 export default function FavoritoIcon({ propiedadId, isFavorito = false, onToggle }) {
     const [favorito, setFavorito] = useState(isFavorito);
@@ -46,7 +47,7 @@ export default function FavoritoIcon({ propiedadId, isFavorito = false, onToggle
                 toast.success('Propiedad removida de favoritos', { duration: 2000 });
             } else {
                 // Agregar a favoritos
-                await axios.post('http://localhost:3000/api/favoritos', 
+                await axios.post('http://localhost:3000/api/favoritos',
                     { propiedadId },
                     { headers: { Authorization: `Bearer ${token}` } }
                 );
@@ -60,7 +61,7 @@ export default function FavoritoIcon({ propiedadId, isFavorito = false, onToggle
             }
         } catch (error) {
             console.error('Error al manejar favorito:', error);
-            
+
             if (error.response?.status === 200 && error.response?.data?.message === 'Ya está en favoritos.') {
                 toast.info('Esta propiedad ya está en tus favoritos', { duration: 2000 });
                 setFavorito(true);
@@ -77,7 +78,7 @@ export default function FavoritoIcon({ propiedadId, isFavorito = false, onToggle
         return (
             <button
                 onClick={toggleFavorito}
-                className="absolute top-3 left-3 p-2 bg-white/80 backdrop-blur-sm rounded-full shadow-md hover:bg-white transition-all duration-200 z-10"
+                className={`p-2 bg-white/80 backdrop-blur-sm rounded-full shadow-md hover:bg-white transition-all duration-200 z-10 ${onToggle ? '' : 'absolute top-3 right-3'}`} // Fallback position if not customized
                 title="Inicia sesión para guardar favoritos"
             >
                 <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -91,20 +92,19 @@ export default function FavoritoIcon({ propiedadId, isFavorito = false, onToggle
         <button
             onClick={toggleFavorito}
             disabled={cargando}
-            className={`absolute top-3 left-3 p-2 rounded-full shadow-md transition-all duration-200 z-10 ${
-                favorito 
-                    ? 'bg-red-500 hover:bg-red-600' 
-                    : 'bg-white/80 backdrop-blur-sm hover:bg-white'
-            } ${cargando ? 'opacity-50 cursor-not-allowed' : ''}`}
+            className={`p-2 rounded-full shadow-md transition-all duration-200 z-10 ${favorito
+                ? 'bg-red-500 hover:bg-red-600'
+                : 'bg-white/80 backdrop-blur-sm hover:bg-white'
+                } ${cargando ? 'opacity-50 cursor-not-allowed' : ''} ${onToggle ? '' : 'absolute top-3 right-3'}`}
             title={favorito ? 'Quitar de favoritos' : 'Agregar a favoritos'}
         >
             {cargando ? (
-                <div className="w-5 h-5 border-2 border-gray-300 border-t-red-500 rounded-full animate-spin"></div>
+                <Spinner size="sm" color="red" />
             ) : (
-                <svg 
-                    className={`w-5 h-5 ${favorito ? 'text-white' : 'text-gray-600'}`} 
-                    fill={favorito ? 'currentColor' : 'none'} 
-                    stroke="currentColor" 
+                <svg
+                    className={`w-5 h-5 ${favorito ? 'text-white' : 'text-gray-600'}`}
+                    fill={favorito ? 'currentColor' : 'none'}
+                    stroke="currentColor"
                     viewBox="0 0 24 24"
                 >
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />

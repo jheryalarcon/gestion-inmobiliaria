@@ -53,7 +53,7 @@ const HistorialSeguimientos = ({ negociacion, usuario, onSeguimientoCreado }) =>
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        
+
         if (!nuevoSeguimiento.comentario.trim()) {
             toast.error('Por favor ingresa un comentario');
             return;
@@ -71,14 +71,14 @@ const HistorialSeguimientos = ({ negociacion, usuario, onSeguimientoCreado }) =>
             );
 
             toast.success('✅ Seguimiento registrado correctamente');
-            
+
             // Limpiar formulario
             setNuevoSeguimiento({ comentario: '', tipo: 'otro' });
             setShowForm(false);
-            
+
             // Recargar seguimientos
             await cargarSeguimientos();
-            
+
             // Notificar al componente padre
             if (onSeguimientoCreado) {
                 onSeguimientoCreado(response.data.seguimiento);
@@ -97,8 +97,8 @@ const HistorialSeguimientos = ({ negociacion, usuario, onSeguimientoCreado }) =>
 
     const canCreateSeguimiento = () => {
         // Solo el agente responsable puede crear seguimientos
-        return usuario?.rol === 'agente' && 
-               negociacion?.agenteId === usuario?.id;
+        return usuario?.rol === 'agente' &&
+            negociacion?.agenteId === usuario?.id;
     };
 
     const formatearFecha = (fecha) => {
@@ -142,7 +142,7 @@ const HistorialSeguimientos = ({ negociacion, usuario, onSeguimientoCreado }) =>
                             {seguimientos.length} seguimiento{seguimientos.length !== 1 ? 's' : ''} registrado{seguimientos.length !== 1 ? 's' : ''}
                         </p>
                     </div>
-                    
+
                     {/* Botón para agregar seguimiento */}
                     {canCreateSeguimiento() && (
                         <button
@@ -241,7 +241,7 @@ const HistorialSeguimientos = ({ negociacion, usuario, onSeguimientoCreado }) =>
                             No hay seguimientos registrados
                         </h4>
                         <p className="text-gray-500">
-                            {canCreateSeguimiento() 
+                            {canCreateSeguimiento()
                                 ? 'Comienza registrando el primer seguimiento de esta negociación.'
                                 : 'El agente responsable aún no ha registrado seguimientos.'
                             }
@@ -255,7 +255,7 @@ const HistorialSeguimientos = ({ negociacion, usuario, onSeguimientoCreado }) =>
                                 <div className="text-2xl mt-1">
                                     {getTipoIcon(seguimiento.tipo)}
                                 </div>
-                                
+
                                 {/* Contenido del seguimiento */}
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-2 mb-2">
@@ -269,7 +269,7 @@ const HistorialSeguimientos = ({ negociacion, usuario, onSeguimientoCreado }) =>
                                             {getTipoLabel(seguimiento.tipo)}
                                         </span>
                                     </div>
-                                    
+
                                     <p className="text-gray-700 text-sm leading-relaxed">
                                         {seguimiento.comentario}
                                     </p>
@@ -286,7 +286,7 @@ const HistorialSeguimientos = ({ negociacion, usuario, onSeguimientoCreado }) =>
                     <div className="flex items-center gap-2 text-blue-800 text-sm">
                         <span className="text-lg">ℹ️</span>
                         <span>
-                            <strong>Modo Administrador:</strong> Solo puedes visualizar los seguimientos. 
+                            <strong>Modo Administrador:</strong> Solo puedes visualizar los seguimientos.
                             Los agentes responsables son los únicos que pueden agregar nuevos seguimientos.
                         </span>
                     </div>
@@ -295,7 +295,7 @@ const HistorialSeguimientos = ({ negociacion, usuario, onSeguimientoCreado }) =>
 
             {/* Sección de Notas Internas Privadas */}
             <div className="mt-6">
-                <NotasInternas 
+                <NotasInternas
                     negociacion={negociacion}
                     usuario={usuario}
                     onNotaCreada={(nota) => {

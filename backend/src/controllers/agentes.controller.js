@@ -110,7 +110,7 @@ export const obtenerAgentes = async (req, res) => {
 
         // Construir filtros de búsqueda
         const whereClause = {
-            rol: 'agente'
+            rol: { in: ['agente', 'admin'] }
         };
 
         // Agregar filtro de estado
@@ -229,7 +229,8 @@ export const obtenerAgentePorId = async (req, res) => {
                         fecha_inicio: true,
                         createdAt: true
                     }
-                }
+                },
+                documentos: true
             }
         });
 
@@ -428,7 +429,7 @@ export const obtenerEstadisticasAgentes = async (req, res) => {
         });
 
         const agentesActivos = await prisma.usuario.count({
-            where: { 
+            where: {
                 rol: 'agente',
                 activo: true
             }
@@ -448,6 +449,62 @@ export const obtenerEstadisticasAgentes = async (req, res) => {
         console.error('Error al obtener estadísticas:', error);
         res.status(500).json({
             error: 'Error interno del servidor al obtener estadísticas'
+        });
+    }
+};
+
+// Cambiar contraseña de agente
+export const cambiarPasswordAgente = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { password } = req.body;
+
+        // Verificar que solo administradores puedan cambiar contraseñas
+        if (req.usuario.rol !== 'admin') {
+            return res.status(403).json({
+                error: 'Solo los administradores pueden cambiar contraseñas de agentes'
+            });
+        }
+
+        // Validar contraseña
+        if (!password || password.length < 6) {
+            return res.status(400).json({
+                error: 'La contraseña debe tener al menos 6 caracteres'
+            });
+        }
+
+        // Verificar que el agente existe
+        const agente = await prisma.usuario.findFirst({
+            where: {
+                id: parseInt(id),
+                rol: 'agente'
+            }
+        });
+
+        if (!agente) {
+            return res.status(404).json({
+                error: 'Agente no encontrado'
+            });
+        }
+
+        // Encriptar nueva contraseña
+        const saltRounds = 10;
+        const hashedPassword = await bcrypt.hash(password, saltRounds);
+
+        // Actualizar contraseña
+        await prisma.usuario.update({
+            where: { id: parseInt(id) },
+            data: { password: hashedPassword }
+        });
+
+        res.json({
+            mensaje: '✅ Contraseña actualizada exitosamente'
+        });
+
+    } catch (error) {
+        console.error('Error al cambiar contraseña:', error);
+        res.status(500).json({
+            error: 'Error interno del servidor al cambiar la contraseña'
         });
     }
 };

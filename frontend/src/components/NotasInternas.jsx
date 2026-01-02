@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
+import Spinner, { ButtonSpinner } from './Spinner';
 
 const NotasInternas = ({ negociacion, usuario, onNotaCreada }) => {
     const [notasInternas, setNotasInternas] = useState([]);
@@ -26,7 +27,7 @@ const NotasInternas = ({ negociacion, usuario, onNotaCreada }) => {
         try {
             setLoading(true);
             setError(null);
-            
+
             const token = localStorage.getItem('token');
             const response = await axios.get(
                 `http://localhost:3000/api/notas-internas/${negociacion.id}`,
@@ -37,7 +38,7 @@ const NotasInternas = ({ negociacion, usuario, onNotaCreada }) => {
             setNotasInternas(response.data.notasInternas);
         } catch (error) {
             console.error('Error al cargar notas internas:', error);
-            
+
             if (error.response?.status === 403) {
                 setError('No tienes acceso a las notas internas de esta negociación');
             } else {
@@ -50,7 +51,7 @@ const NotasInternas = ({ negociacion, usuario, onNotaCreada }) => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        
+
         if (!nuevaNota.contenido.trim()) {
             toast.error('Por favor ingresa el contenido de la nota');
             return;
@@ -68,14 +69,14 @@ const NotasInternas = ({ negociacion, usuario, onNotaCreada }) => {
             );
 
             toast.success('✅ Nota interna guardada correctamente');
-            
+
             // Limpiar formulario
             setNuevaNota({ contenido: '' });
             setShowForm(false);
-            
+
             // Recargar notas internas
             await cargarNotasInternas();
-            
+
             // Notificar al componente padre
             if (onNotaCreada) {
                 onNotaCreada(response.data.notaInterna);
@@ -94,14 +95,14 @@ const NotasInternas = ({ negociacion, usuario, onNotaCreada }) => {
 
     const canAccessNotas = () => {
         // Solo el agente responsable puede acceder a las notas internas
-        return usuario?.rol === 'agente' && 
-               negociacion?.agenteId === usuario?.id;
+        return usuario?.rol === 'agente' &&
+            negociacion?.agenteId === usuario?.id;
     };
 
     const canViewNotas = () => {
         // Solo el agente responsable puede ver las notas internas
-        return usuario?.rol === 'agente' && 
-               negociacion?.agenteId === usuario?.id;
+        return usuario?.rol === 'agente' &&
+            negociacion?.agenteId === usuario?.id;
     };
 
     const formatearFecha = (fecha) => {
@@ -117,7 +118,7 @@ const NotasInternas = ({ negociacion, usuario, onNotaCreada }) => {
     if (loading) {
         return (
             <div className="flex justify-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+                <Spinner color="purple" />
             </div>
         );
     }
@@ -156,7 +157,7 @@ const NotasInternas = ({ negociacion, usuario, onNotaCreada }) => {
                                 Como administrador, no puedes acceder a las notas internas de los agentes.
                             </p>
                             <p className="text-blue-600 text-xs">
-                                💡 <strong>Política de Privacidad:</strong> Las notas internas son completamente privadas 
+                                💡 <strong>Política de Privacidad:</strong> Las notas internas son completamente privadas
                                 y solo visibles para el agente responsable de cada negociación.
                             </p>
                         </div>
@@ -198,7 +199,7 @@ const NotasInternas = ({ negociacion, usuario, onNotaCreada }) => {
                             Solo tú puedes ver estas notas. No son visibles para otros usuarios.
                         </p>
                     </div>
-                    
+
                     {/* Botón para agregar nota */}
                     <button
                         onClick={() => setShowForm(!showForm)}
@@ -253,7 +254,7 @@ const NotasInternas = ({ negociacion, usuario, onNotaCreada }) => {
                             >
                                 {submitting ? (
                                     <span className="flex items-center">
-                                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                                        <ButtonSpinner />
                                         Guardando...
                                     </span>
                                 ) : (
@@ -277,7 +278,7 @@ const NotasInternas = ({ negociacion, usuario, onNotaCreada }) => {
                             Comienza registrando tus primeras observaciones privadas sobre esta negociación.
                         </p>
                         <p className="text-xs text-purple-600">
-                            💡 <strong>Tip:</strong> Usa las notas internas para recordar objeciones del cliente, 
+                            💡 <strong>Tip:</strong> Usa las notas internas para recordar objeciones del cliente,
                             estrategias de venta, o cualquier detalle que te ayude en futuras interacciones.
                         </p>
                     </div>
@@ -289,7 +290,7 @@ const NotasInternas = ({ negociacion, usuario, onNotaCreada }) => {
                                 <div className="text-2xl mt-1 text-purple-600">
                                     🔒
                                 </div>
-                                
+
                                 {/* Contenido de la nota */}
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-2 mb-2">
@@ -300,11 +301,11 @@ const NotasInternas = ({ negociacion, usuario, onNotaCreada }) => {
                                             {formatearFecha(nota.fecha)}
                                         </span>
                                     </div>
-                                    
+
                                     <p className="text-gray-700 text-sm leading-relaxed">
                                         {nota.contenido}
                                     </p>
-                                    
+
                                     <div className="mt-2 text-xs text-gray-400">
                                         <span>📝 Nota personal - No editable</span>
                                     </div>
@@ -320,7 +321,7 @@ const NotasInternas = ({ negociacion, usuario, onNotaCreada }) => {
                 <div className="flex items-center gap-2 text-purple-800 text-sm">
                     <span className="text-lg">🔒</span>
                     <span>
-                        <strong>Privacidad Garantizada:</strong> Estas notas son completamente privadas. 
+                        <strong>Privacidad Garantizada:</strong> Estas notas son completamente privadas.
                         Solo tú puedes verlas y no se comparten con clientes, administradores ni otros agentes.
                     </span>
                 </div>

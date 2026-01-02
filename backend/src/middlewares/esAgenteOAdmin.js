@@ -4,14 +4,14 @@ const esAgenteOAdmin = (req, res, next) => {
         // Verificar que el usuario esté autenticado
         if (!req.usuario) {
             return res.status(401).json({ 
-                mensaje: '❌ No autorizado - Usuario no autenticado' 
+                mensaje: 'No autorizado - Usuario no autenticado'
             });
         }
 
         // Verificar que el rol sea agente o admin
         if (req.usuario.rol !== 'agente' && req.usuario.rol !== 'admin') {
             return res.status(403).json({ 
-                mensaje: '❌ Acceso denegado - Solo agentes y administradores pueden realizar esta acción' 
+                mensaje: 'Acceso denegado - Solo agentes y administradores pueden realizar esta acción'
             });
         }
 
@@ -20,7 +20,7 @@ const esAgenteOAdmin = (req, res, next) => {
     } catch (error) {
         console.error('Error en middleware esAgenteOAdmin:', error);
         return res.status(500).json({ 
-            mensaje: '❌ Error interno del servidor' 
+            mensaje: 'Error interno del servidor'
         });
     }
 };

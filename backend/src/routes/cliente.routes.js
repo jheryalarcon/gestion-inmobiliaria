@@ -1,18 +1,22 @@
 import express from 'express';
-import { 
-    crearCliente, 
-    obtenerClientes, 
-    obtenerCliente, 
-    actualizarCliente, 
+import {
+    crearCliente,
+    obtenerClientes,
+    obtenerCliente,
+    actualizarCliente,
     eliminarCliente,
     obtenerEstadisticas,
     desactivarCliente,
-    reactivarCliente
+    reactivarCliente,
+    registrarContactoPublico
 } from '../controllers/cliente.controller.js';
 import verificarToken from '../middlewares/verificarToken.js';
 import esAdmin from '../middlewares/esAdmin.js';
 
 const router = express.Router();
+
+// Ruta pública para captura de leads (Formulario Web)
+router.post('/contacto-publico', registrarContactoPublico);
 
 // Middleware para verificar si es agente o admin
 const esAgenteOAdmin = (req, res, next) => {

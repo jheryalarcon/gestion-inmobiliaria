@@ -20,14 +20,20 @@ const storage = multer.diskStorage({
 const upload = multer({
     storage,
     limits: {
-        fileSize: 5 * 1024 * 1024, // ✅ 5MB por archivo
+        fileSize: 10 * 1024 * 1024, // ✅ 10MB por archivo (Estandarizado con Frontend)
     },
     fileFilter: (req, file, cb) => {
-        const tiposPermitidos = /jpeg|jpg|png|webp/;
-        const mimetype = tiposPermitidos.test(file.mimetype);
+        const tiposPermitidos = /jpeg|jpg|png|webp|pdf|doc|docx/;
         const extname = tiposPermitidos.test(path.extname(file.originalname).toLowerCase());
-        if (mimetype && extname) return cb(null, true);
-        cb(new Error('Formato de archivo no permitido'));
+        // Relaxing mimetype check slightly or including common document mimetypes
+        // For simplicity, checking extname is critical, mimetype is often enough if it matches 'image/' or 'application/'
+        // But strict regex test on mimetype might fail for docx.
+        // Let's rely on extension for doc/docx/pdf combined with basic mime check or just allow if extension is valid.
+
+        if (extname) {
+            return cb(null, true);
+        }
+        cb(new Error('Formato de archivo no permitido. Se permiten imágenes, PDF y documentos Word.'));
     },
 });
 
@@ -53,7 +59,7 @@ const uploadNegociacion = multer({
         const tiposPermitidos = /pdf|jpeg|jpg|png/;
         const mimetype = tiposPermitidos.test(file.mimetype);
         const extname = tiposPermitidos.test(path.extname(file.originalname).toLowerCase());
-        
+
         if (mimetype && extname) return cb(null, true);
         cb(new Error('Solo se permiten archivos PDF, JPG y PNG'));
     },

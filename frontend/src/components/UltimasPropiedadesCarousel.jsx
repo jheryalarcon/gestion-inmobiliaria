@@ -76,12 +76,12 @@ export default function UltimasPropiedadesCarousel() {
                 <div className="relative">
                     <button className="custom-swiper-prev absolute left-2 top-1/2 -translate-y-1/2 z-30 bg-white rounded-full shadow-md p-2" aria-label="Anterior">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M15 18L9 12L15 6" stroke="#1f2937" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                            <path d="M15 18L9 12L15 6" stroke="#1f2937" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                         </svg>
                     </button>
                     <button className="custom-swiper-next absolute right-2 top-1/2 -translate-y-1/2 z-30 bg-white rounded-full shadow-md p-2" aria-label="Siguiente">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M9 18L15 12L9 6" stroke="#1f2937" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                            <path d="M9 18L15 12L9 6" stroke="#1f2937" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                         </svg>
                     </button>
 
@@ -95,16 +95,16 @@ export default function UltimasPropiedadesCarousel() {
                         speed={800}
                         navigation={{ nextEl: '.custom-swiper-next', prevEl: '.custom-swiper-prev' }}
                         pagination={{ clickable: true }}
-                    breakpoints={{
-                        0: { slidesPerView: 1 },
-                        640: { slidesPerView: 2 },
-                        1024: { slidesPerView: 3 },
-                        1280: { slidesPerView: 4 },
-                    }}
-                    className="pb-6 relative"
-                >
-                    {/* Styles for circular smaller navigation buttons */}
-                    <style>{`
+                        breakpoints={{
+                            0: { slidesPerView: 1 },
+                            640: { slidesPerView: 2 },
+                            1024: { slidesPerView: 3 },
+                            1280: { slidesPerView: 4 },
+                        }}
+                        className="pb-6 relative"
+                    >
+                        {/* Styles for circular smaller navigation buttons */}
+                        <style>{`
                         .custom-swiper-prev, .custom-swiper-next {
                             pointer-events: auto !important;
                             display: inline-flex !important;
@@ -121,15 +121,15 @@ export default function UltimasPropiedadesCarousel() {
                             .custom-swiper-prev, .custom-swiper-next { width: 36px !important; height: 36px !important; }
                         }
                     `}</style>
-                    {propiedades.map((prop) => (
-                        <SwiperSlide key={prop.id}>
-                            <div className="h-[26rem] flex items-stretch">
-                                <CardPropiedadPublica propiedad={prop} className="h-full" />
-                            </div>
-                        </SwiperSlide>
-                    ))}
-                </Swiper>
-                    </div>
+                        {propiedades.map((prop) => (
+                            <SwiperSlide key={prop.id}>
+                                <div className="h-[26rem] flex items-stretch">
+                                    <CardPropiedadPublica propiedad={prop} className="h-full" />
+                                </div>
+                            </SwiperSlide>
+                        ))}
+                    </Swiper>
+                </div>
             </div>
         </section>
     );

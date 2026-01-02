@@ -9,33 +9,33 @@ const ActualizarEtapaForm = ({ negociacion, onSuccess, onCancel }) => {
 
     // Etapas válidas según el esquema
     const etapasValidas = [
-        { 
-            value: 'interes', 
-            label: 'Interés', 
+        {
+            value: 'interes',
+            label: 'Interés',
             description: 'El cliente ha mostrado interés por una propiedad, pero aún no se ha tomado acción concreta.',
             acciones: 'El agente crea la negociación. Se espera contactar al cliente o agendar una visita.'
         },
-        { 
-            value: 'negociacion', 
-            label: 'Negociación', 
+        {
+            value: 'negociacion',
+            label: 'Negociación',
             description: 'El cliente ha visto la propiedad o ha solicitado más información. Ya se está en contacto activo.',
             acciones: 'Visitas programadas, contraofertas, revisión de condiciones.'
         },
-        { 
-            value: 'cierre', 
-            label: 'Cierre', 
+        {
+            value: 'cierre',
+            label: 'Cierre',
             description: 'Las condiciones están casi acordadas. Se está gestionando la documentación o contrato.',
             acciones: 'Firma de promesa de compraventa, validación legal o financiera.'
         },
-        { 
-            value: 'finalizada', 
-            label: 'Finalizada', 
+        {
+            value: 'finalizada',
+            label: 'Finalizada',
             description: 'La operación terminó satisfactoriamente (venta o arriendo realizado).',
             acciones: 'Se puede cerrar la negociación con éxito.'
         },
-        { 
-            value: 'cancelada', 
-            label: 'Cancelada', 
+        {
+            value: 'cancelada',
+            label: 'Cancelada',
             description: 'El cliente desistió, no está interesado, o no se concretó la operación por otros motivos.',
             acciones: 'El agente cierra la negociación manualmente.'
         }
@@ -43,7 +43,7 @@ const ActualizarEtapaForm = ({ negociacion, onSuccess, onCancel }) => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        
+
         if (!etapa || etapa === negociacion?.etapa) {
             toast.error('Por favor selecciona una etapa diferente');
             return;
@@ -89,8 +89,8 @@ const ActualizarEtapaForm = ({ negociacion, onSuccess, onCancel }) => {
                 >
                     <option value="">Selecciona una nueva etapa</option>
                     {etapasValidas.map(etapaOption => (
-                        <option 
-                            key={etapaOption.value} 
+                        <option
+                            key={etapaOption.value}
                             value={etapaOption.value}
                             disabled={etapaOption.value === negociacion?.etapa}
                         >

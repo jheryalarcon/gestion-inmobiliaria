@@ -1,0 +1,76 @@
+
+--- LISTADO DE USUARIOS ---
+[
+  {
+    "id": 12,
+    "name": "Fernando Alarcon",
+    "email": "fernandos-98@hotmail.com",
+    "rol": "cliente",
+    "activo": true
+  },
+  {
+    "id": 4,
+    "name": "Tatiana Morillo",
+    "email": "alarconfernando75@gmail.com",
+    "rol": "cliente",
+    "activo": true
+  },
+  {
+    "id": 8,
+    "name": "Fercho Alarcon",
+    "email": "ferchito311@gmail.com",
+    "rol": "cliente",
+    "activo": true
+  },
+  {
+    "id": 13,
+    "name": "Leonardo Vallejo",
+    "email": "jheryalarcon98@gmail.com",
+    "rol": "cliente",
+    "activo": true
+  },
+  {
+    "id": 11,
+    "name": "Jhery Alarcon",
+    "email": "alarconjhery@gmail.com",
+    "rol": "admin",
+    "activo": true
+  },
+  {
+    "id": 2,
+    "name": "Jhery Fernando Alarcon",
+    "email": "jfalarconm@pucesd.edu.ec",
+    "rol": "agente",
+    "activo": true
+  },
+  {
+    "id": 1,
+    "name": "Jhery Alarcon",
+    "email": "alarcon@gmail.com",
+    "rol": "admin",
+    "activo": true
+  }
+]
+
+--- FILTRO ACTUAL ---
+[
+  {
+    "id": 11,
+    "name": "Jhery Alarcon",
+    "email": "alarconjhery@gmail.com",
+    "rol": "admin"
+  },
+  {
+    "id": 2,
+    "name": "Jhery Fernando Alarcon",
+    "email": "jfalarconm@pucesd.edu.ec",
+    "rol": "agente"
+  },
+  {
+    "id": 1,
+    "name": "Jhery Alarcon",
+    "email": "alarcon@gmail.com",
+    "rol": "admin"
+  }
+]
+  

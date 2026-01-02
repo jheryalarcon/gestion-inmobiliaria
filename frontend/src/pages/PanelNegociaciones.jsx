@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'sonner';
 import CrearNegociacion from '../components/CrearNegociacion';
@@ -10,6 +10,7 @@ import { PageSpinner } from '../components/Spinner';
 
 const PanelNegociaciones = () => {
     const navigate = useNavigate();
+    const [searchParams, setSearchParams] = useSearchParams(); // Hook para leer URL params
     const [usuario, setUsuario] = useState(null);
     const [negociaciones, setNegociaciones] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -20,11 +21,16 @@ const PanelNegociaciones = () => {
     const [showArchivosModal, setShowArchivosModal] = useState(false);
     const [showEtapasInfo, setShowEtapasInfo] = useState(false);
     const [negociacionSeleccionada, setNegociacionSeleccionada] = useState(null);
+
+    // Inicializar filtros desde la URL si existen
     const [filtros, setFiltros] = useState({
-        search: '',
-        etapa: '',
-        page: 1
+        search: searchParams.get('search') || '',
+        etapa: searchParams.get('etapa') || '',
+        clienteId: searchParams.get('clienteId') || '',
+        propiedadId: searchParams.get('propiedadId') || '',
+        page: parseInt(searchParams.get('page')) || 1
     });
+
     const [paginacion, setPaginacion] = useState({
         pagina: 1,
         limite: 10,
@@ -41,10 +47,20 @@ const PanelNegociaciones = () => {
 
         const decodedToken = JSON.parse(atob(token.split('.')[1]));
         setUsuario(decodedToken);
-        cargarNegociaciones();
+
+        // No cargamos aquí, el useEffect de filtros se encargará
     }, [navigate]);
 
     useEffect(() => {
+        // Sincronizar URL con estado de filtros (opcional, pero buena práctica)
+        const params = {};
+        if (filtros.search) params.search = filtros.search;
+        if (filtros.etapa) params.etapa = filtros.etapa;
+        if (filtros.clienteId) params.clienteId = filtros.clienteId; // Nuevo
+        if (filtros.propiedadId) params.propiedadId = filtros.propiedadId; // Nuevo
+        if (filtros.page > 1) params.page = filtros.page;
+        setSearchParams(params);
+
         cargarNegociaciones();
     }, [filtros]);
 
@@ -55,6 +71,8 @@ const PanelNegociaciones = () => {
             const params = new URLSearchParams({
                 search: filtros.search,
                 etapa: filtros.etapa,
+                clienteId: filtros.clienteId, // Enviar al backend
+                propiedadId: filtros.propiedadId, // Enviar al backend
                 page: filtros.page
             });
 
@@ -87,6 +105,8 @@ const PanelNegociaciones = () => {
         setFiltros({
             search: '',
             etapa: '',
+            clienteId: '',
+            propiedadId: '',
             page: 1
         });
     };
@@ -140,8 +160,8 @@ const PanelNegociaciones = () => {
 
     const handleEtapaActualizada = (negociacionActualizada) => {
         // Actualizar la negociación en el estado local
-        setNegociaciones(prev => 
-            prev.map(n => 
+        setNegociaciones(prev =>
+            prev.map(n =>
                 n.id === negociacionActualizada.id ? negociacionActualizada : n
             )
         );
@@ -270,6 +290,32 @@ const PanelNegociaciones = () => {
                     </div>
                 </div>
 
+                {/* Banner de Filtro Activo */}
+                {(filtros.propiedadId || filtros.clienteId) && (
+                    <div className="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6 flex justify-between items-center rounded-r-lg shadow-sm">
+                        <div className="flex items-center">
+                            <div className="flex-shrink-0">
+                                <svg className="h-5 w-5 text-blue-500" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fillRule="evenodd" d="M3 3a1 1 0 011-1h12a1 1 0 011 1v3a1 1 0 01-.293.707L12 11.414V15a1 1 0 01-.293.707l-2 2A1 1 0 018 17v-5.586L3.293 6.707A1 1 0 013 6V3z" clipRule="evenodd" />
+                                </svg>
+                            </div>
+                            <div className="ml-3">
+                                <p className="text-sm text-blue-700">
+                                    {filtros.propiedadId && <span>Filtrado por <strong>Propiedad</strong> </span>}
+                                    {filtros.clienteId && <span>Filtrado por <strong>Cliente</strong></span>}
+                                    {/* Podríamos mostrar el nombre aquí si el backend lo devolviera en metadatos, por ahora es genérico */}
+                                </p>
+                            </div>
+                        </div>
+                        <button
+                            onClick={limpiarFiltros}
+                            className="text-sm font-medium text-blue-600 hover:text-blue-500 underline"
+                        >
+                            Ver todas las negociaciones
+                        </button>
+                    </div>
+                )}
+
                 {/* Tabla de Negociaciones */}
                 <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
                     <div className="overflow-x-auto">
@@ -298,10 +344,10 @@ const PanelNegociaciones = () => {
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
                                 {negociaciones.map((negociacion) => (
-                                    <tr key={negociacion.id} className="hover:bg-gray-50">
+                                    <tr key={negociacion.id} className={`hover:bg-gray-50 ${negociacion.esConfidencial ? 'bg-gray-50/50 italic' : ''}`}>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <div>
-                                                <div className="text-sm font-medium text-gray-900">
+                                                <div className={`text-sm font-medium ${negociacion.esConfidencial ? 'text-gray-500' : 'text-gray-900'}`}>
                                                     {negociacion.cliente.nombre}
                                                 </div>
                                                 <div className="text-sm text-gray-500">
@@ -343,40 +389,56 @@ const PanelNegociaciones = () => {
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                             <div className="flex justify-end gap-2">
-                                                <button
-                                                    onClick={() => handleVerHistorial(negociacion)}
-                                                    className="text-green-600 hover:text-green-900 transition duration-200"
-                                                    title="Ver historial de seguimientos"
-                                                >
-                                                    Historial
-                                                </button>
-                                                
-                                                {(usuario?.rol === 'admin' || (usuario?.rol === 'agente' && negociacion.agenteId === usuario?.id)) && (
-                                                    <button
-                                                        onClick={() => handleVerArchivos(negociacion)}
-                                                        className="text-purple-600 hover:text-purple-900 transition duration-200"
-                                                        title="Ver archivos adjuntos"
-                                                    >
-                                                        Archivos
-                                                    </button>
+                                                {/* Solo permitir acciones si NO es confidencial (es mi negociación o soy admin) */}
+                                                {!negociacion.esConfidencial ? (
+                                                    <>
+                                                        <button
+                                                            onClick={() => handleVerHistorial(negociacion)}
+                                                            className="text-green-600 hover:text-green-900 transition duration-200"
+                                                            title="Ver historial de seguimientos"
+                                                        >
+                                                            Historial
+                                                        </button>
+
+                                                        {(usuario?.rol === 'admin' || (usuario?.rol === 'agente' && negociacion.agenteId === usuario?.id)) && (
+                                                            <button
+                                                                onClick={() => handleVerArchivos(negociacion)}
+                                                                className="text-purple-600 hover:text-purple-900 transition duration-200"
+                                                                title="Ver archivos adjuntos"
+                                                            >
+                                                                Archivos
+                                                            </button>
+                                                        )}
+
+                                                        {usuario?.rol === 'agente' && negociacion.agenteId === usuario?.id && (
+                                                            negociacion.propiedad.estado_publicacion === 'disponible' ||
+                                                                (negociacion.propiedad.estado_publicacion === 'reservada' && negociacion.etapa === 'cierre') ? (
+                                                                <button
+                                                                    onClick={() => handleActualizarEtapa(negociacion)}
+                                                                    className="text-indigo-600 hover:text-indigo-900 transition duration-200"
+                                                                    title="Actualizar etapa de la negociación"
+                                                                >
+                                                                    Etapa
+                                                                </button>
+                                                            ) : (
+                                                                <span className="text-gray-400 cursor-not-allowed text-sm py-1" title={`Propiedad no disponible (${negociacion.propiedad.estado_publicacion})`}>
+                                                                    ⏸️ Pausada
+                                                                </span>
+                                                            )
+                                                        )}
+
+                                                        <button
+                                                            onClick={() => handleDesactivar(negociacion)}
+                                                            className="text-red-600 hover:text-red-900 transition duration-200"
+                                                        >
+                                                            Desactivar
+                                                        </button>
+                                                    </>
+                                                ) : (
+                                                    <span className="text-gray-400 text-xs italic">
+                                                        Confidencial
+                                                    </span>
                                                 )}
-                                                
-                                                {usuario?.rol === 'agente' && negociacion.agenteId === usuario?.id && (
-                                                    <button
-                                                        onClick={() => handleActualizarEtapa(negociacion)}
-                                                        className="text-indigo-600 hover:text-indigo-900 transition duration-200"
-                                                        title="Actualizar etapa de la negociación"
-                                                    >
-                                                        Etapa
-                                                    </button>
-                                                )}
-                                                
-                                                <button
-                                                    onClick={() => handleDesactivar(negociacion)}
-                                                    className="text-red-600 hover:text-red-900 transition duration-200"
-                                                >
-                                                    Desactivar
-                                                </button>
                                             </div>
                                         </td>
                                     </tr>
@@ -420,11 +482,10 @@ const PanelNegociaciones = () => {
                                             <button
                                                 key={page}
                                                 onClick={() => setFiltros({ ...filtros, page })}
-                                                className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
-                                                    page === filtros.page
-                                                        ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
-                                                        : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
-                                                }`}
+                                                className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${page === filtros.page
+                                                    ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
+                                                    : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                                                    }`}
                                             >
                                                 {page}
                                             </button>
@@ -534,7 +595,7 @@ const PanelNegociaciones = () => {
                                 <div className="space-y-1 text-sm text-gray-600">
                                     <p><strong>Cliente:</strong> {negociacionSeleccionada.cliente?.nombre}</p>
                                     <p><strong>Propiedad:</strong> {negociacionSeleccionada.propiedad?.titulo}</p>
-                                    <p><strong>Etapa actual:</strong> 
+                                    <p><strong>Etapa actual:</strong>
                                         <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
                                             {getEtapaText(negociacionSeleccionada.etapa)}
                                         </span>
@@ -543,7 +604,7 @@ const PanelNegociaciones = () => {
                             </div>
 
                             {/* Formulario de actualización */}
-                            <ActualizarEtapaForm 
+                            <ActualizarEtapaForm
                                 negociacion={negociacionSeleccionada}
                                 onSuccess={handleEtapaActualizada}
                                 onCancel={() => {
@@ -586,7 +647,7 @@ const PanelNegociaciones = () => {
 
                         {/* Contenido */}
                         <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
-                            <HistorialSeguimientos 
+                            <HistorialSeguimientos
                                 negociacion={negociacionSeleccionada}
                                 usuario={usuario}
                                 onSeguimientoCreado={(seguimiento) => {

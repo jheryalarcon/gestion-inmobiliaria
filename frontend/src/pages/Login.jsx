@@ -9,6 +9,7 @@ import {
 } from '@heroicons/react/24/solid';
 import { jwtDecode } from 'jwt-decode';
 import LayoutPublic from '../components/LayoutPublic';
+import { PageSpinner, ButtonSpinner } from '../components/Spinner';
 
 export default function Login() {
     const [email, setEmail] = useState('');
@@ -18,6 +19,7 @@ export default function Login() {
     const [errores, setErrores] = useState({});
     const navigate = useNavigate();
     const [checkingAuth, setCheckingAuth] = useState(true);
+    const [cargando, setCargando] = useState(false);
 
     useEffect(() => {
         const token = localStorage.getItem('token');
@@ -52,6 +54,7 @@ export default function Login() {
         }
 
         try {
+            setCargando(true);
             const respuesta = await axios.post('http://localhost:3000/api/auth/login', {
                 email,
                 password,
@@ -71,16 +74,30 @@ export default function Login() {
             else navigate('/');
         } catch (error) {
             setMensaje(error.response?.data?.mensaje || 'Error al iniciar sesión');
+        } finally {
+            setCargando(false);
         }
     };
 
-    if (checkingAuth) return <div className="text-center mt-10">Cargando...</div>;
+    if (checkingAuth) return <PageSpinner text="Cargando..." />;
 
     return (
         <LayoutPublic>
-            <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-100 via-white to-blue-200 px-4 py-12">
-                <div className="bg-white shadow-xl rounded-lg p-8 w-full max-w-md">
-                    <h2 className="text-2xl font-semibold text-center mb-6 text-gray-800">Iniciar Sesión</h2>
+            <div className="min-h-screen flex items-start pt-16 sm:pt-24 justify-center bg-slate-50 px-4 pb-12">
+                <div className="bg-white shadow-2xl rounded-2xl p-8 sm:p-10 w-full max-w-lg border border-slate-100">
+                    <div className="flex flex-col items-center mb-6">
+                        <img
+                            src="/logo-rectangular.jpg"
+                            alt="Inmobiliaria Escudero"
+                            className="h-16 w-auto object-contain mb-4"
+                        />
+                        <h2 className="text-2xl font-bold text-slate-900 tracking-tight text-center">
+                            Bienvenido de nuevo
+                        </h2>
+                        <p className="mt-1 text-sm text-slate-500 text-center">
+                            Ingresa a tu cuenta para gestionar tus propiedades
+                        </p>
+                    </div>
 
                     <form onSubmit={handleSubmit} className="space-y-4">
                         {/* Correo */}
@@ -91,9 +108,8 @@ export default function Login() {
                                 placeholder="Correo electrónico"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
-                                className={`w-full pl-10 pr-3 py-2 border rounded focus:outline-none focus:ring-2 ${
-                                    errores.email ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-500'
-                                }`}
+                                className={`w-full pl-10 pr-3 py-2.5 border rounded-lg bg-slate-50 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all text-sm ${errores.email ? 'border-red-300 focus:ring-red-200' : 'border-slate-200'
+                                    }`}
                             />
                             {errores.email && <p className="text-xs text-red-600 mt-1">{errores.email}</p>}
                         </div>
@@ -106,9 +122,8 @@ export default function Login() {
                                 placeholder="Contraseña"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
-                                className={`w-full pl-10 pr-10 py-2 border rounded focus:outline-none focus:ring-2 ${
-                                    errores.password ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-500'
-                                }`}
+                                className={`w-full pl-10 pr-10 py-2.5 border rounded-lg bg-slate-50 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all text-sm ${errores.password ? 'border-red-300 focus:ring-red-200' : 'border-slate-200'
+                                    }`}
                             />
                             <button
                                 type="button"
@@ -122,7 +137,13 @@ export default function Login() {
                                     <EyeIcon className="w-5 h-5" />
                                 )}
                             </button>
-                            {errores.password && <p className="text-xs text-red-600 mt-1">{errores.password}</p>}
+                            {errores.password && <p className="text-xs text-red-600 mt-1 font-medium">{errores.password}</p>}
+                        </div>
+
+                        <div className="flex justify-end">
+                            <Link to="/olvide-password" className="text-sm text-orange-600 hover:text-orange-700 font-semibold transition-colors">
+                                ¿Olvidaste tu contraseña?
+                            </Link>
                         </div>
 
                         {/* Mensaje global de error */}
@@ -133,18 +154,26 @@ export default function Login() {
                         {/* Botón */}
                         <button
                             type="submit"
-                            className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded shadow-md transition duration-200 font-semibold"
+                            disabled={cargando}
+                            className="w-full bg-slate-900 hover:bg-black text-white py-2.5 rounded-lg shadow-md shadow-slate-200 transition-all duration-200 font-semibold text-base flex justify-center items-center space-x-2 disabled:opacity-70 disabled:cursor-not-allowed hover:-translate-y-0.5"
                         >
-                            Ingresar
+                            {cargando ? (
+                                <>
+                                    <ButtonSpinner />
+                                    <span>Ingresando...</span>
+                                </>
+                            ) : (
+                                <span>Iniciar Sesión</span>
+                            )}
                         </button>
                     </form>
 
                     {/* No tiene cuenta */}
-                    <p className="text-center text-sm text-gray-600 mt-4">
+                    <p className="text-center text-sm text-slate-500 mt-8">
                         ¿No tienes una cuenta?{' '}
                         <Link
                             to="/registro"
-                            className="text-blue-600 font-medium hover:underline transition duration-150"
+                            className="text-orange-600 font-bold hover:text-orange-700 transition duration-150"
                         >
                             Regístrate aquí
                         </Link>

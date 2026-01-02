@@ -335,11 +335,10 @@ export default function PanelClientes() {
                                             </td>
                                         )}
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                                                cliente.activo 
-                                                    ? 'bg-green-100 text-green-800' 
-                                                    : 'bg-red-100 text-red-800'
-                                            }`}>
+                                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${cliente.activo
+                                                ? 'bg-green-100 text-green-800'
+                                                : 'bg-red-100 text-red-800'
+                                                }`}>
                                                 {cliente.activo ? 'Activo' : 'Inactivo'}
                                             </span>
                                             {!cliente.activo && cliente.usuario_desactivador && (
@@ -353,6 +352,13 @@ export default function PanelClientes() {
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                             <div className="flex justify-end gap-2">
+                                                <button
+                                                    onClick={() => navigate(`${usuario?.rol === 'admin' ? '/admin' : '/agente'}/panel-negociaciones?clienteId=${cliente.id}`)}
+                                                    className="text-green-600 hover:text-green-900 transition duration-200"
+                                                    title="Ver historial de negociaciones"
+                                                >
+                                                    Historial
+                                                </button>
                                                 <button
                                                     onClick={() => navigate(`/admin/editar-cliente/${cliente.id}`)}
                                                     className="text-blue-600 hover:text-blue-900 transition duration-200"
@@ -430,21 +436,20 @@ export default function PanelClientes() {
                                             <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
                                         </svg>
                                     </button>
-                                    
+
                                     {Array.from({ length: paginacion.paginas }, (_, i) => i + 1).map((page) => (
                                         <button
                                             key={page}
                                             onClick={() => handlePageChange(page)}
-                                            className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
-                                                page === paginacion.pagina
-                                                    ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
-                                                    : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
-                                            }`}
+                                            className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${page === paginacion.pagina
+                                                ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
+                                                : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                                                }`}
                                         >
                                             {page}
                                         </button>
                                     ))}
-                                    
+
                                     <button
                                         onClick={() => handlePageChange(paginacion.pagina + 1)}
                                         disabled={paginacion.pagina === paginacion.paginas}
@@ -475,7 +480,7 @@ export default function PanelClientes() {
                             </p>
                             <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 text-sm">
                                 <p className="text-orange-800">
-                                    Esta acción ocultará al cliente de tu vista y no podrás gestionarlo 
+                                    Esta acción ocultará al cliente de tu vista y no podrás gestionarlo
                                     a menos que sea reactivado por un administrador.
                                 </p>
                             </div>

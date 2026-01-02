@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
+import { ButtonSpinner } from './Spinner';
 
-const ModalActualizarEtapaNegociacion = ({ 
-    isOpen, 
-    onClose, 
-    onSuccess, 
-    negociacion, 
-    usuario 
+const ModalActualizarEtapaNegociacion = ({
+    isOpen,
+    onClose,
+    onSuccess,
+    negociacion,
+    usuario
 }) => {
     const [etapa, setEtapa] = useState(negociacion?.etapa || 'interes');
     const [loading, setLoading] = useState(false);
@@ -24,7 +25,7 @@ const ModalActualizarEtapaNegociacion = ({
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        
+
         if (!etapa || etapa === negociacion?.etapa) {
             toast.error('Por favor selecciona una etapa diferente');
             return;
@@ -86,7 +87,7 @@ const ModalActualizarEtapaNegociacion = ({
                         <div className="space-y-1 text-sm text-gray-600">
                             <p><strong>Cliente:</strong> {negociacion?.cliente?.nombre}</p>
                             <p><strong>Propiedad:</strong> {negociacion?.propiedad?.titulo}</p>
-                            <p><strong>Etapa actual:</strong> 
+                            <p><strong>Etapa actual:</strong>
                                 <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
                                     {etapasValidas.find(e => e.value === negociacion?.etapa)?.label}
                                 </span>
@@ -108,8 +109,8 @@ const ModalActualizarEtapaNegociacion = ({
                                 disabled={loading}
                             >
                                 {etapasValidas.map(etapaOption => (
-                                    <option 
-                                        key={etapaOption.value} 
+                                    <option
+                                        key={etapaOption.value}
                                         value={etapaOption.value}
                                         disabled={etapaOption.value === negociacion?.etapa}
                                     >
@@ -148,7 +149,7 @@ const ModalActualizarEtapaNegociacion = ({
                             >
                                 {loading ? (
                                     <span className="flex items-center">
-                                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                                        <ButtonSpinner />
                                         Actualizando...
                                     </span>
                                 ) : (

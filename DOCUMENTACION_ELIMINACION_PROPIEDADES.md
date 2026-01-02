@@ -1,0 +1,9 @@
+# Historia de Usuario: Eliminación de Propiedades
+
+La información detallada en la historia se puede hallar en el anexo correspondiente. Para el desarrollo de esta funcionalidad, se implementó la eliminación de propiedades mediante soft delete, cambiando el estado de publicación a `inactiva` en lugar de eliminar físicamente el registro. Esto asegura que los datos no se pierdan permanentemente y que las propiedades eliminadas no se muestren en los listados normales.
+
+Se creó el componente `ModalConfirmarEliminar.jsx` utilizando React y Tailwind CSS que muestra un mensaje de confirmación indicando que la propiedad se marcará como inactiva. El componente `CardPropiedad.jsx` muestra un botón de eliminar (🗑) solo si el usuario tiene rol `admin`. Al hacer clic, se abre el modal que permite confirmar o cancelar la eliminación. Si confirma, envía una petición DELETE a `/api/propiedades/:id` con el token de autenticación, muestra mensajes de éxito o error mediante toasts, y después de una eliminación exitosa recarga la página completa para reflejar los cambios.
+
+En el backend se utilizó Node.js con Express.js y Prisma como ORM. La función `eliminarPropiedad` en `propiedad.controller.js` recibe el ID de la propiedad desde los parámetros, actualiza el campo `estado_publicacion` a `inactiva` usando `prisma.propiedad.update`, y retorna un mensaje de confirmación. Esta función no elimina físicamente el registro, sino que lo marca como inactivo para que no se muestre en las consultas normales mediante el filtro `estado_publicacion: { not: 'inactiva' }`.
+
+La ruta DELETE `/api/propiedades/:id` fue configurada en `propiedad.routes.js` con middlewares `verificarToken` (autenticación JWT) y `esAdmin` (autorización: solo administradores pueden eliminar propiedades), registrada en `index.js` bajo el prefijo `/api/propiedades`. El middleware `esAdmin` verifica que el usuario autenticado tenga el rol `admin`, retornando error 403 si no cumple.

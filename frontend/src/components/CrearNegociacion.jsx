@@ -51,7 +51,7 @@ const CrearNegociacion = ({ isOpen, onClose, onSuccess, usuario }) => {
 
             // 🏠 Filtrar propiedades según la preferencia del usuario
             let propiedadesFiltradas = propiedadesResponse.data || [];
-            
+
             // ✅ Para AGENTES: Si marca "Mostrar solo mis propiedades", filtrar por sus propiedades
             if (usuario?.rol === 'agente' && mostrarSoloPropias && Array.isArray(propiedadesFiltradas)) {
                 propiedadesFiltradas = propiedadesFiltradas.filter(
@@ -64,7 +64,7 @@ const CrearNegociacion = ({ isOpen, onClose, onSuccess, usuario }) => {
             setClientes(clientesFiltrados);
             setPropiedades(propiedadesFiltradas);
             setPropiedadesCompletas(propiedadesResponse.data || []); // Guardar todas las propiedades
-            
+
 
         } catch (error) {
             console.error('Error al cargar datos:', error);
@@ -76,7 +76,7 @@ const CrearNegociacion = ({ isOpen, onClose, onSuccess, usuario }) => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        
+
         if (!formData.clienteId || !formData.propiedadId) {
             toast.error('Por favor selecciona un cliente y una propiedad');
             return;
@@ -122,13 +122,13 @@ const CrearNegociacion = ({ isOpen, onClose, onSuccess, usuario }) => {
             // Filtro de búsqueda
             const texto = `${propiedad.titulo} ${propiedad.ciudad} ${propiedad.tipo_propiedad}`.toLowerCase();
             const coincideBusqueda = busqueda.trim() === '' || texto.includes(busqueda);
-            
+
             // Filtro de "solo mis propiedades" si está activo
             const coincideFiltro = !soloPropias || usuario?.rol !== 'agente' || propiedad.agente?.id === usuario.id;
-            
+
             return coincideBusqueda && coincideFiltro;
         });
-        
+
         setPropiedades(propiedadesFiltradas);
     };
 
@@ -156,189 +156,188 @@ const CrearNegociacion = ({ isOpen, onClose, onSuccess, usuario }) => {
                 {/* Contenido scrollable */}
                 <div className="flex-1 overflow-y-auto p-6">
 
-                {loadingData ? (
-                    <div className="flex justify-center items-center py-8">
-                        <Spinner size="md" text="Cargando datos..." />
-                    </div>
-                ) : (
-                    <form id="form-negociacion" onSubmit={handleSubmit} className="space-y-6">
-                        {/* Selección de Cliente */}
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Cliente <span className="text-red-500">*</span>
-                            </label>
-                            <select
-                                name="clienteId"
-                                value={formData.clienteId}
-                                onChange={handleChange}
-                                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                required
-                                disabled={!clientes || clientes.length === 0}
-                            >
-                                <option value="">Selecciona un cliente</option>
-                                {Array.isArray(clientes) && clientes.map(cliente => (
-                                    <option key={cliente.id} value={cliente.id}>
-                                        {cliente.nombre} - {cliente.email} ({cliente.tipo_cliente})
-                                    </option>
-                                ))}
-                            </select>
-                            {(!clientes || clientes.length === 0) && (
-                                <p className="text-sm text-orange-600 mt-1">
-                                    No hay clientes disponibles para crear negociaciones
-                                </p>
-                            )}
+                    {loadingData ? (
+                        <div className="flex justify-center items-center py-8">
+                            <Spinner size="md" text="Cargando datos..." />
                         </div>
-
-                        {/* Selección de Propiedad */}
-                        <div>
-                            {/* Toggle para filtrar propiedades (solo para agentes) */}
-                            {usuario?.rol === 'agente' && (
-                                <div className="mb-3 p-3 bg-gray-50 border border-gray-200 rounded-lg">
-                                    <label className="flex items-center space-x-2 cursor-pointer">
-                                        <input
-                                            type="checkbox"
-                                            checked={mostrarSoloPropias}
-                                            onChange={(e) => {
-                                                const nuevoValor = e.target.checked;
-                                                setMostrarSoloPropias(nuevoValor);
-                                                setFormData({ ...formData, propiedadId: '' }); // Limpiar selección
-
-                                                // 🏠 Aplicar filtros combinados (checkbox + búsqueda)
-                                                aplicarFiltrosCombinados(nuevoValor, textoBusqueda);
-                                            }}
-                                            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                                        />
-                                        <span className="text-sm font-medium text-gray-700">
-                                            Mostrar solo mis propiedades
-                                        </span>
-                                    </label>
-                                    <p className="text-xs text-gray-600 mt-1 ml-6">
-                                        {mostrarSoloPropias 
-                                            ? 'Mostrando solo propiedades que creaste'
-                                            : 'Mostrando todas las propiedades disponibles del sistema'
-                                        }
+                    ) : (
+                        <form id="form-negociacion" onSubmit={handleSubmit} className="space-y-6">
+                            {/* Selección de Cliente */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Cliente <span className="text-red-500">*</span>
+                                </label>
+                                <select
+                                    name="clienteId"
+                                    value={formData.clienteId}
+                                    onChange={handleChange}
+                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    required
+                                    disabled={!clientes || clientes.length === 0}
+                                >
+                                    <option value="">Selecciona un cliente</option>
+                                    {Array.isArray(clientes) && clientes.map(cliente => (
+                                        <option key={cliente.id} value={cliente.id}>
+                                            {cliente.nombre} - {cliente.email} ({cliente.tipo_cliente})
+                                        </option>
+                                    ))}
+                                </select>
+                                {(!clientes || clientes.length === 0) && (
+                                    <p className="text-sm text-orange-600 mt-1">
+                                        No hay clientes disponibles para crear negociaciones
                                     </p>
-                                </div>
-                            )}
-                            
-                            {/* Información del número de propiedades */}
-                            <div className="mb-2 flex justify-between items-center">
-                                <label className="block text-sm font-medium text-gray-700">
-                                Propiedad <span className="text-red-500">*</span>
-                            </label>
-                                <span className="text-xs text-gray-500">
-                                    {Array.isArray(propiedades) ? (
-                                        textoBusqueda || mostrarSoloPropias ? (
-                                            <span>
-                                                Mostrando {propiedades.length} de {propiedadesCompletas.length} propiedad(es)
-                                                {textoBusqueda && <span className="text-blue-600"> • Búsqueda: "{textoBusqueda}"</span>}
-                                                {mostrarSoloPropias && <span className="text-green-600"> • Solo mis propiedades</span>}
-                                            </span>
-                                        ) : (
-                                            `${propiedades.length} propiedad(es) disponible(s)`
-                                        )
-                                    ) : 'Cargando...'}
-                                </span>
+                                )}
                             </div>
-                            
-                            {/* 🔍 Campo de búsqueda para propiedades */}
-                            {Array.isArray(propiedadesCompletas) && propiedadesCompletas.length > 5 && (
-                                <div className="mb-3 relative">
-                                    <input
-                                        type="text"
-                                        placeholder="🔍 Buscar propiedad por título, ciudad o tipo..."
-                                        value={textoBusqueda}
-                                        className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                        onChange={(e) => {
-                                            const busqueda = e.target.value.toLowerCase();
-                                            setTextoBusqueda(busqueda);
-                                            
-                                            // Aplicar filtros combinados
-                                            aplicarFiltrosCombinados(mostrarSoloPropias, busqueda);
-                                        }}
-                                    />
-                                    {textoBusqueda && (
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                setTextoBusqueda('');
-                                                aplicarFiltrosCombinados(mostrarSoloPropias, '');
-                                            }}
-                                            className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
-                                            title="Limpiar búsqueda"
-                                        >
-                                            ✕
-                                        </button>
-                                    )}
-                                </div>
-                            )}
-                            <select
-                                name="propiedadId"
-                                value={formData.propiedadId}
-                                onChange={handleChange}
-                                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                required
-                                disabled={!propiedades || propiedades.length === 0}
-                            >
-                                <option value="">Selecciona una propiedad</option>
-                                {Array.isArray(propiedades) && propiedades.map(propiedad => {
-                                    const esPropia = propiedad.agente?.id === usuario?.id;
-                                    const agenteInfo = esPropia ? '🏠 MÍA' : `🤝 ${propiedad.agente?.name}`;
-                                    
-                                    return (
-                                    <option key={propiedad.id} value={propiedad.id}>
-                                            {propiedad.titulo} | ${propiedad.precio} | {propiedad.ciudad} | {propiedad.tipo_propiedad} | {agenteInfo}
-                                    </option>
-                                    );
-                                })}
-                            </select>
-                            {(!propiedades || propiedades.length === 0) && (
-                                <p className="text-sm text-orange-600 mt-1">
-                                    No hay propiedades disponibles para crear negociaciones
-                                </p>
-                            )}
-                            
-                            {/* Información detallada de la propiedad seleccionada */}
-                            {formData.propiedadId && Array.isArray(propiedades) && (
-                                (() => {
-                                    const propiedadSeleccionada = propiedades.find(p => p.id == formData.propiedadId);
-                                    if (propiedadSeleccionada) {
-                                        const esPropia = propiedadSeleccionada.agente?.id === usuario?.id;
-                                        
 
-                                        
+                            {/* Selección de Propiedad */}
+                            <div>
+                                {/* Toggle para filtrar propiedades (solo para agentes) */}
+                                {usuario?.rol === 'agente' && (
+                                    <div className="mb-3 p-3 bg-gray-50 border border-gray-200 rounded-lg">
+                                        <label className="flex items-center space-x-2 cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                checked={mostrarSoloPropias}
+                                                onChange={(e) => {
+                                                    const nuevoValor = e.target.checked;
+                                                    setMostrarSoloPropias(nuevoValor);
+                                                    setFormData({ ...formData, propiedadId: '' }); // Limpiar selección
+
+                                                    // 🏠 Aplicar filtros combinados (checkbox + búsqueda)
+                                                    aplicarFiltrosCombinados(nuevoValor, textoBusqueda);
+                                                }}
+                                                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                            />
+                                            <span className="text-sm font-medium text-gray-700">
+                                                Mostrar solo mis propiedades
+                                            </span>
+                                        </label>
+                                        <p className="text-xs text-gray-600 mt-1 ml-6">
+                                            {mostrarSoloPropias
+                                                ? 'Mostrando solo propiedades que creaste'
+                                                : 'Mostrando todas las propiedades disponibles del sistema'
+                                            }
+                                        </p>
+                                    </div>
+                                )}
+
+                                {/* Información del número de propiedades */}
+                                <div className="mb-2 flex justify-between items-center">
+                                    <label className="block text-sm font-medium text-gray-700">
+                                        Propiedad <span className="text-red-500">*</span>
+                                    </label>
+                                    <span className="text-xs text-gray-500">
+                                        {Array.isArray(propiedades) ? (
+                                            textoBusqueda || mostrarSoloPropias ? (
+                                                <span>
+                                                    Mostrando {propiedades.length} de {propiedadesCompletas.length} propiedad(es)
+                                                    {textoBusqueda && <span className="text-blue-600"> • Búsqueda: "{textoBusqueda}"</span>}
+                                                    {mostrarSoloPropias && <span className="text-green-600"> • Solo mis propiedades</span>}
+                                                </span>
+                                            ) : (
+                                                `${propiedades.length} propiedad(es) disponible(s)`
+                                            )
+                                        ) : 'Cargando...'}
+                                    </span>
+                                </div>
+
+                                {/* 🔍 Campo de búsqueda para propiedades */}
+                                {Array.isArray(propiedadesCompletas) && propiedadesCompletas.length > 5 && (
+                                    <div className="mb-3 relative">
+                                        <input
+                                            type="text"
+                                            placeholder="🔍 Buscar propiedad por título, ciudad o tipo..."
+                                            value={textoBusqueda}
+                                            className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                            onChange={(e) => {
+                                                const busqueda = e.target.value.toLowerCase();
+                                                setTextoBusqueda(busqueda);
+
+                                                // Aplicar filtros combinados
+                                                aplicarFiltrosCombinados(mostrarSoloPropias, busqueda);
+                                            }}
+                                        />
+                                        {textoBusqueda && (
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setTextoBusqueda('');
+                                                    aplicarFiltrosCombinados(mostrarSoloPropias, '');
+                                                }}
+                                                className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                                                title="Limpiar búsqueda"
+                                            >
+                                                ✕
+                                            </button>
+                                        )}
+                                    </div>
+                                )}
+                                <select
+                                    name="propiedadId"
+                                    value={formData.propiedadId}
+                                    onChange={handleChange}
+                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    required
+                                    disabled={!propiedades || propiedades.length === 0}
+                                >
+                                    <option value="">Selecciona una propiedad</option>
+                                    {Array.isArray(propiedades) && propiedades.map(propiedad => {
+                                        const esPropia = propiedad.agente?.id === usuario?.id;
+                                        const agenteInfo = esPropia ? '🏠 MÍA' : `🤝 ${propiedad.agente?.name}`;
+
                                         return (
-                                            <div className={`mt-3 p-4 rounded-lg border-2 ${
-                                                esPropia 
-                                                    ? 'bg-green-50 border-green-300 text-green-800' 
-                                                    : 'bg-blue-50 border-blue-300 text-blue-800'
-                                            }`}>
-                                                <div className="flex items-center gap-2 mb-2">
-                                                    <span className="text-lg">
-                                                        {esPropia ? '🏠' : '🤝'}
-                                                    </span>
-                                                    <h4 className="font-bold text-lg">
-                                                        {esPropia ? 'Propiedad Propia' : 'Propiedad de Otro Agente'}
-                                                    </h4>
-                                                </div>
-                                                
-                                                {/* Layout de dos columnas: Imagen + Información */}
-                                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                                    {/* Columna 1: Imagen */}
-                                                    <div className="md:col-span-1">
-                                                        {propiedadSeleccionada.imagenes && propiedadSeleccionada.imagenes.length > 0 ? (
-                                                            <img 
-                                                                src={propiedadSeleccionada.imagenes[0].url} 
-                                                                alt={propiedadSeleccionada.titulo}
-                                                                className="w-full h-48 object-cover rounded-lg border border-gray-200 shadow-sm"
-                                                                onLoad={(e) => {
-                                                                    console.log('✅ Imagen cargada exitosamente:', e.target.src);
-                                                                }}
-                                                                onError={(e) => {
-                                                                    console.error('❌ Error al cargar imagen:', e.target.src);
-                                                                    // Mostrar fallback en caso de error
-                                                                    e.target.style.display = 'none';
-                                                                    e.target.parentElement.innerHTML = `
+                                            <option key={propiedad.id} value={propiedad.id}>
+                                                {propiedad.titulo} | ${propiedad.precio} | {propiedad.ciudad} | {propiedad.tipo_propiedad} | {agenteInfo}
+                                            </option>
+                                        );
+                                    })}
+                                </select>
+                                {(!propiedades || propiedades.length === 0) && (
+                                    <p className="text-sm text-orange-600 mt-1">
+                                        No hay propiedades disponibles para crear negociaciones
+                                    </p>
+                                )}
+
+                                {/* Información detallada de la propiedad seleccionada */}
+                                {formData.propiedadId && Array.isArray(propiedades) && (
+                                    (() => {
+                                        const propiedadSeleccionada = propiedades.find(p => p.id == formData.propiedadId);
+                                        if (propiedadSeleccionada) {
+                                            const esPropia = propiedadSeleccionada.agente?.id === usuario?.id;
+
+
+
+                                            return (
+                                                <div className={`mt-3 p-4 rounded-lg border-2 ${esPropia
+                                                        ? 'bg-green-50 border-green-300 text-green-800'
+                                                        : 'bg-blue-50 border-blue-300 text-blue-800'
+                                                    }`}>
+                                                    <div className="flex items-center gap-2 mb-2">
+                                                        <span className="text-lg">
+                                                            {esPropia ? '🏠' : '🤝'}
+                                                        </span>
+                                                        <h4 className="font-bold text-lg">
+                                                            {esPropia ? 'Propiedad Propia' : 'Propiedad de Otro Agente'}
+                                                        </h4>
+                                                    </div>
+
+                                                    {/* Layout de dos columnas: Imagen + Información */}
+                                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                                        {/* Columna 1: Imagen */}
+                                                        <div className="md:col-span-1">
+                                                            {propiedadSeleccionada.imagenes && propiedadSeleccionada.imagenes.length > 0 ? (
+                                                                <img
+                                                                    src={propiedadSeleccionada.imagenes[0].url}
+                                                                    alt={propiedadSeleccionada.titulo}
+                                                                    className="w-full h-48 object-cover rounded-lg border border-gray-200 shadow-sm"
+                                                                    onLoad={(e) => {
+                                                                        console.log('✅ Imagen cargada exitosamente:', e.target.src);
+                                                                    }}
+                                                                    onError={(e) => {
+                                                                        console.error('❌ Error al cargar imagen:', e.target.src);
+                                                                        // Mostrar fallback en caso de error
+                                                                        e.target.style.display = 'none';
+                                                                        e.target.parentElement.innerHTML = `
                                                                         <div class="w-full h-48 bg-gray-100 rounded-lg border border-gray-200 flex items-center justify-center text-gray-500">
                                                                             <div class="text-center">
                                                                                 <div class="text-3xl mb-1">🏠</div>
@@ -346,108 +345,107 @@ const CrearNegociacion = ({ isOpen, onClose, onSuccess, usuario }) => {
                                                                             </div>
                                                                         </div>
                                                                     `;
-                                                                }}
-                                                            />
-                                                        ) : (
-                                                            <div className="w-full h-48 bg-gray-100 rounded-lg border border-gray-200 flex items-center justify-center text-gray-500">
-                                                                <div className="text-center">
-                                                                    <div className="text-3xl mb-1">🏠</div>
-                                                                    <p className="text-sm">Sin imagen</p>
+                                                                    }}
+                                                                />
+                                                            ) : (
+                                                                <div className="w-full h-48 bg-gray-100 rounded-lg border border-gray-200 flex items-center justify-center text-gray-500">
+                                                                    <div className="text-center">
+                                                                        <div className="text-3xl mb-1">🏠</div>
+                                                                        <p className="text-sm">Sin imagen</p>
+                                                                    </div>
+                                                                </div>
+                                                            )}
+                                                        </div>
+
+                                                        {/* Columna 2: Información de la propiedad */}
+                                                        <div className="md:col-span-2">
+                                                            {/* Información principal de la propiedad */}
+                                                            <div className="grid grid-cols-2 gap-3 mb-3">
+                                                                <div>
+                                                                    <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Título</p>
+                                                                    <p className="font-medium">{propiedadSeleccionada.titulo}</p>
+                                                                </div>
+                                                                <div>
+                                                                    <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Precio</p>
+                                                                    <p className="font-medium">${propiedadSeleccionada.precio}</p>
+                                                                </div>
+                                                                <div>
+                                                                    <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Ubicación</p>
+                                                                    <p className="font-medium">{propiedadSeleccionada.ciudad}, {propiedadSeleccionada.provincia}</p>
+                                                                </div>
+                                                                <div>
+                                                                    <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Tipo</p>
+                                                                    <p className="font-medium capitalize">{propiedadSeleccionada.tipo_propiedad?.replace('_', ' ')}</p>
                                                                 </div>
                                                             </div>
-                                                        )}
-                                                    </div>
-                                                    
-                                                    {/* Columna 2: Información de la propiedad */}
-                                                    <div className="md:col-span-2">
-                                                        {/* Información principal de la propiedad */}
-                                                        <div className="grid grid-cols-2 gap-3 mb-3">
-                                                            <div>
-                                                                <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Título</p>
-                                                                <p className="font-medium">{propiedadSeleccionada.titulo}</p>
+
+                                                            {/* Información del agente */}
+                                                            <div className={`p-2 rounded ${esPropia ? 'bg-green-100' : 'bg-blue-100'
+                                                                }`}>
+                                                                <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">
+                                                                    {esPropia ? 'Tu Propiedad' : 'Agente Responsable'}
+                                                                </p>
+                                                                <p className="font-medium">
+                                                                    {esPropia
+                                                                        ? 'Esta es tu propiedad, puedes gestionarla completamente.'
+                                                                        : `${propiedadSeleccionada.agente?.name} (${propiedadSeleccionada.agente?.email})`
+                                                                    }
+                                                                </p>
                                                             </div>
-                                                            <div>
-                                                                <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Precio</p>
-                                                                <p className="font-medium">${propiedadSeleccionada.precio}</p>
-                                                            </div>
-                                                            <div>
-                                                                <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Ubicación</p>
-                                                                <p className="font-medium">{propiedadSeleccionada.ciudad}, {propiedadSeleccionada.provincia}</p>
-                                                            </div>
-                                                            <div>
-                                                                <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Tipo</p>
-                                                                <p className="font-medium capitalize">{propiedadSeleccionada.tipo_propiedad?.replace('_', ' ')}</p>
-                                                            </div>
-                                                        </div>
-                                                        
-                                                        {/* Información del agente */}
-                                                        <div className={`p-2 rounded ${
-                                                            esPropia ? 'bg-green-100' : 'bg-blue-100'
-                                                        }`}>
-                                                            <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">
-                                                                {esPropia ? 'Tu Propiedad' : 'Agente Responsable'}
-                                                            </p>
-                                                <p className="font-medium">
-                                                    {esPropia 
-                                                        ? 'Esta es tu propiedad, puedes gestionarla completamente.'
-                                                                    : `${propiedadSeleccionada.agente?.name} (${propiedadSeleccionada.agente?.email})`
-                                                    }
-                                                </p>
                                                         </div>
                                                     </div>
                                                 </div>
-                                            </div>
-                                        );
-                                    }
-                                    return null;
-                                })()
-                            )}
-                        </div>
+                                            );
+                                        }
+                                        return null;
+                                    })()
+                                )}
+                            </div>
 
-                        {/* Información adicional */}
-                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                            <h4 className="text-sm font-semibold text-blue-800 mb-2">ℹ️ Información</h4>
-                            <ul className="text-sm text-blue-700 space-y-1">
-                                <li>• La negociación se creará con etapa "Interés"</li>
-                                <li>• Solo puedes vincular clientes que te pertenezcan</li>
-                                <li>• Puedes seleccionar cualquier propiedad disponible del sistema</li>
-                                <li>• Las propiedades pueden ser de otros agentes (se indica en el selector)</li>
-                                <li>• Usa el toggle para filtrar solo tus propiedades si lo prefieres</li>
-                                <li>• No se pueden crear negociaciones duplicadas</li>
-                                <li>• Podrás actualizar la etapa de la negociación después</li>
-                            </ul>
-                        </div>
-                    </form>
-                )}
-                        </div>
+                            {/* Información adicional */}
+                            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                <h4 className="text-sm font-semibold text-blue-800 mb-2">ℹ️ Información</h4>
+                                <ul className="text-sm text-blue-700 space-y-1">
+                                    <li>• La negociación se creará con etapa "Interés"</li>
+                                    <li>• Solo puedes vincular clientes que te pertenezcan</li>
+                                    <li>• Puedes seleccionar cualquier propiedad disponible del sistema</li>
+                                    <li>• Las propiedades pueden ser de otros agentes (se indica en el selector)</li>
+                                    <li>• Usa el toggle para filtrar solo tus propiedades si lo prefieres</li>
+                                    <li>• No se pueden crear negociaciones duplicadas</li>
+                                    <li>• Podrás actualizar la etapa de la negociación después</li>
+                                </ul>
+                            </div>
+                        </form>
+                    )}
+                </div>
 
                 {/* Footer fijo con botones */}
                 <div className="border-t border-gray-200 p-6 bg-gray-50">
                     <div className="flex justify-end gap-3">
-                            <button
-                                type="button"
-                                onClick={onClose}
-                                className="px-4 py-2 text-gray-600 hover:text-gray-800 font-medium transition-colors"
-                                disabled={loading}
-                            >
-                                Cancelar
-                            </button>
-                            <button
-                                type="submit"
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="px-4 py-2 text-gray-600 hover:text-gray-800 font-medium transition-colors"
+                            disabled={loading}
+                        >
+                            Cancelar
+                        </button>
+                        <button
+                            type="submit"
                             form="form-negociacion"
-                                disabled={loading || !formData.clienteId || !formData.propiedadId}
-                                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed font-medium transition-colors"
-                            >
-                                {loading ? (
-                                    <span className="flex items-center">
-                                        <ButtonSpinner size="sm" color="white" />
-                                        <span className="ml-2">Creando...</span>
-                                    </span>
-                                ) : (
-                                    'Crear Negociación'
-                                )}
-                            </button>
-                        </div>
+                            disabled={loading || !formData.clienteId || !formData.propiedadId}
+                            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed font-medium transition-colors"
+                        >
+                            {loading ? (
+                                <span className="flex items-center">
+                                    <ButtonSpinner size="sm" color="white" />
+                                    <span className="ml-2">Creando...</span>
+                                </span>
+                            ) : (
+                                'Crear Negociación'
+                            )}
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>

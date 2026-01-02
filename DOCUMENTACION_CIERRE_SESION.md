@@ -1,0 +1,9 @@
+# Historia de Usuario 2: Cierre de Sesión
+
+La información detallada en la historia se puede hallar en el anexo correspondiente. Para el desarrollo de la historia 2, se implementó la funcionalidad de cierre de sesión en múltiples componentes del frontend utilizando React. El cierre de sesión es completamente del lado del cliente ya que el sistema usa JWT stateless, por lo que no requiere comunicación con el backend.
+
+Se creó el componente reutilizable `BotonLogout.jsx` que implementa la función `cerrarSesion` utilizando `useNavigate` de React Router. La función elimina el token JWT y los datos del usuario de `localStorage` mediante `localStorage.removeItem('token')` y `localStorage.removeItem('usuario')`, y redirige a la página principal mediante `navigate('/')`. El componente retorna un botón con estilos de Tailwind CSS.
+
+Además, se implementó la función `handleCerrarSesion` en `LayoutPublic.jsx` que elimina el token y usuario de `localStorage`, actualiza el estado local para ocultar elementos del usuario autenticado, cierra el dropdown de usuario, dispara el evento `authChange` mediante `window.dispatchEvent(new Event('authChange'))` para actualizar componentes como navbar, y redirige a la página principal. En `Sidebar.jsx` se implementó un botón inline en el footer que elimina el token y redirige a `/login` usando `window.location.href` para forzar recarga completa de la página. En `NavbarPublica.jsx` se implementó la función `cerrarSesion` que además muestra un toast de éxito mediante la librería Sonner antes de redirigir.
+
+El componente `BotonLogout` se integra en `PanelAdmin.jsx` y `PanelAgente.jsx` para permitir cerrar sesión desde los paneles. El sistema dispara el evento `authChange` que permite sincronizar el estado de autenticación entre componentes sin necesidad de estado global, mejorando la arquitectura de la aplicación.

@@ -114,6 +114,7 @@
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
     @apply bg-background text-foreground;
   }
@@ -125,6 +126,7 @@
     opacity: 0;
     transform: translateY(20px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -172,10 +174,12 @@
     opacity: 1;
     background-color: #e5e7eb;
   }
+
   50% {
     opacity: 0.5;
     background-color: #f3f4f6;
   }
+
   100% {
     opacity: 1;
     background-color: #e5e7eb;
@@ -186,3 +190,22 @@
   animation: skeleton-loading 1.5s ease-in-out infinite;
 }
 
+/* Ocultar scrollbar pero mantener funcionalidad */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  /* IE and Edge */
+  scrollbar-width: none;
+  /* Firefox */
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+  /* Chrome, Safari and Opera */
+}
+
+/* Prevenir overflow horizontal en toda la aplicación */
+html,
+body {
+  overflow-x: hidden;
+  max-width: 100vw;
+}

@@ -2,12 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import Spinner from './Spinner';
 
-const ModalArchivosAdjuntos = ({ 
-    isOpen, 
-    onClose, 
-    negociacion, 
-    esAgenteResponsable, 
-    esAdmin 
+const ModalArchivosAdjuntos = ({
+    isOpen,
+    onClose,
+    negociacion,
+    esAgenteResponsable,
+    esAdmin
 }) => {
     const [archivos, setArchivos] = useState([]);
     const [cargando, setCargando] = useState(false);
@@ -221,7 +221,7 @@ const ModalArchivosAdjuntos = ({
                     {mostrarFormulario && (esAgenteResponsable || esAdmin) && (
                         <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4 mb-6">
                             <h4 className="font-semibold text-indigo-800 mb-3">Subir Nuevo Archivo</h4>
-                            
+
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -237,7 +237,7 @@ const ModalArchivosAdjuntos = ({
                                         Solo PDF, JPG, PNG. Máximo 5MB
                                     </p>
                                 </div>
-                                
+
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-2">
                                         Tipo de Archivo
