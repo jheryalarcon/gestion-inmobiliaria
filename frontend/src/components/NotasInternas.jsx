@@ -68,7 +68,7 @@ const NotasInternas = ({ negociacion, usuario, onNotaCreada }) => {
                 }
             );
 
-            toast.success('✅ Nota interna guardada correctamente');
+            toast.success('Nota interna guardada correctamente');
 
             // Limpiar formulario
             setNuevaNota({ contenido: '' });

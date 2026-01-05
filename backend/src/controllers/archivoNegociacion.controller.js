@@ -13,19 +13,16 @@ export const subirArchivo = async (req, res) => {
         const { negociacionId, tipo } = req.body;
         const agenteId = req.usuario.id;
 
-        console.log('Debug - Usuario:', req.usuario);
-        console.log('Debug - NegociacionId:', negociacionId);
-        console.log('Debug - AgenteId:', agenteId);
-
         // Verificar que la negociación existe
         const negociacion = await prisma.negociacion.findFirst({
             where: {
                 id: parseInt(negociacionId),
                 activo: true
+            },
+            include: {
+                propiedad: true // Necesario para validar Captador
             }
         });
-
-        console.log('Debug - Negociacion encontrada:', negociacion);
 
         if (!negociacion) {
             return res.status(404).json({
@@ -33,8 +30,12 @@ export const subirArchivo = async (req, res) => {
             });
         }
 
-        // Verificar permisos: admin puede subir a cualquier negociación, agente solo a las suyas
-        if (req.usuario.rol !== 'admin' && negociacion.agenteId !== agenteId) {
+        // Verificar permisos: Admin, Vendedor o Captador
+        const esAdmin = req.usuario.rol === 'admin';
+        const esVendedor = negociacion.agenteId === agenteId;
+        const esCaptador = negociacion.propiedad.agenteId === agenteId;
+
+        if (!esAdmin && !esVendedor && !esCaptador) {
             return res.status(403).json({
                 error: 'No tienes permisos para subir archivos a esta negociación'
             });
@@ -83,7 +84,6 @@ export const obtenerArchivos = async (req, res) => {
     try {
         const { negociacionId } = req.params;
         const usuarioId = req.usuario.id;
-        const rol = req.usuario.rol;
 
         // Verificar que la negociación existe
         const negociacion = await prisma.negociacion.findFirst({
@@ -92,6 +92,7 @@ export const obtenerArchivos = async (req, res) => {
                 activo: true
             },
             include: {
+                propiedad: true,
                 agente: true
             }
         });
@@ -102,8 +103,12 @@ export const obtenerArchivos = async (req, res) => {
             });
         }
 
-        // Verificar permisos: solo el agente responsable o admin puede ver
-        if (rol !== 'admin' && negociacion.agenteId !== usuarioId) {
+        // Verificar permisos
+        const esAdmin = req.usuario.rol === 'admin';
+        const esVendedor = negociacion.agenteId === usuarioId;
+        const esCaptador = negociacion.propiedad.agenteId === usuarioId;
+
+        if (!esAdmin && !esVendedor && !esCaptador) {
             return res.status(403).json({
                 error: 'No tienes permisos para ver los archivos de esta negociación'
             });
@@ -150,7 +155,6 @@ export const descargarArchivo = async (req, res) => {
     try {
         const { archivoId } = req.params;
         const usuarioId = req.usuario.id;
-        const rol = req.usuario.rol;
 
         // Obtener archivo con información de la negociación
         const archivo = await prisma.archivoNegociacion.findFirst({
@@ -160,8 +164,8 @@ export const descargarArchivo = async (req, res) => {
             },
             include: {
                 negociacion: {
-                    select: {
-                        agenteId: true
+                    include: {
+                        propiedad: true
                     }
                 }
             }
@@ -173,8 +177,12 @@ export const descargarArchivo = async (req, res) => {
             });
         }
 
-        // Verificar permisos: solo el agente responsable o admin puede descargar
-        if (rol !== 'admin' && archivo.negociacion.agenteId !== usuarioId) {
+        // Verificar permisos
+        const esAdmin = req.usuario.rol === 'admin';
+        const esVendedor = archivo.negociacion.agenteId === usuarioId;
+        const esCaptador = archivo.negociacion.propiedad.agenteId === usuarioId;
+
+        if (!esAdmin && !esVendedor && !esCaptador) {
             return res.status(403).json({
                 error: 'No tienes permisos para descargar este archivo'
             });
@@ -203,13 +211,15 @@ export const obtenerEstadisticas = async (req, res) => {
     try {
         const { negociacionId } = req.params;
         const usuarioId = req.usuario.id;
-        const rol = req.usuario.rol;
 
         // Verificar permisos
         const negociacion = await prisma.negociacion.findFirst({
             where: {
                 id: parseInt(negociacionId),
                 activo: true
+            },
+            include: {
+                propiedad: true
             }
         });
 
@@ -219,7 +229,11 @@ export const obtenerEstadisticas = async (req, res) => {
             });
         }
 
-        if (rol !== 'admin' && negociacion.agenteId !== usuarioId) {
+        const esAdmin = req.usuario.rol === 'admin';
+        const esVendedor = negociacion.agenteId === usuarioId;
+        const esCaptador = negociacion.propiedad.agenteId === usuarioId;
+
+        if (!esAdmin && !esVendedor && !esCaptador) {
             return res.status(403).json({
                 error: 'No tienes permisos para ver las estadísticas de esta negociación'
             });

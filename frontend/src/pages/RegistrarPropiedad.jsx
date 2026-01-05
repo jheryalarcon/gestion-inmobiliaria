@@ -13,27 +13,83 @@ import FormNegocio from '../components/propiedad/form/FormNegocio';
 import FormImagenes from '../components/propiedad/form/FormImagenes';
 import { FolderCheck } from 'lucide-react';
 
+
+const initialDocumentos = {
+    escritura: [],
+    gravamenes: [],
+    predial: [],
+    datos_generales: [],
+    autorizacion_venta: [],
+    contrato_exclusividad: [],
+    planos: [],
+    ficha_catastral: [],
+    uso_suelo: [],
+    reglamento_ph: [],
+    certificado_expensas: [],
+    certificado_alicuota: [],
+    planilla_luz: [],
+    planilla_agua: [],
+    planilla_alicuota: [],
+    otros: []
+};
+
+const initialDatos = {
+    titulo: '',
+    descripcion: '',
+    tipo_propiedad: '',
+    uso_propiedad: '',
+    estado_propiedad: '',
+    transaccion: '',
+    precio: '',
+    moneda: 'USD',
+    direccion: '',
+    ciudad: '',
+    provincia: '',
+    codigo_postal: '',
+    sector: '',
+    referencia: '',
+    latitud: '',
+    longitud: '',
+    area_terreno: '',
+    unidad_area_terreno: 'm2',
+    area_construccion: '',
+    unidad_area_construccion: 'm2',
+    nro_habitaciones: '',
+    nro_banos: '',
+    nro_parqueaderos: '',
+    nro_pisos: '',
+    anio_construccion: '',
+    estado_publicacion: 'disponible',
+    agenteId: '',
+    propietarioId: '',
+    propietarios: [],
+    fecha_captacion: '',
+    comision: '',
+    tipo_comision: 'porcentaje',
+    precio_minimo: '',
+    valor_garantia: '',
+    tipo_contrato: '',
+    fecha_fin_contrato: '',
+    orientacion: '',
+    tiene_balcon: false,
+    tiene_terraza: false,
+    tiene_patio: false,
+    tiene_bodega: false,
+    tiene_area_bbq: false,
+    tiene_piscina: false,
+    tiene_ascensor: false,
+    tiene_seguridad: false,
+    tiene_areas_comunales: false,
+    tiene_gas_centralizado: false,
+    tiene_lavanderia: false,
+    tiene_cisterna: false,
+    amoblado: false
+};
+
 export default function RegistrarPropiedad() {
     const navigate = useNavigate();
     const [imagenes, setImagenes] = useState([]);
-    const [documentos, setDocumentos] = useState({
-        escritura: [],
-        gravamenes: [],
-        predial: [],
-        datos_generales: [],
-        autorizacion_venta: [],
-        contrato_exclusividad: [],
-        planos: [],
-        ficha_catastral: [],
-        uso_suelo: [],
-        reglamento_ph: [],
-        certificado_expensas: [], // ADDED
-        certificado_alicuota: [],
-        planilla_luz: [],
-        planilla_agua: [],
-        planilla_alicuota: [],
-        otros: []
-    });
+    const [documentos, setDocumentos] = useState(initialDocumentos);
 
     const [usuario, setUsuario] = useState(null);
     const [agentes, setAgentes] = useState([]);
@@ -112,58 +168,7 @@ export default function RegistrarPropiedad() {
         }
     ];
 
-    const [datos, setDatos] = useState({
-        titulo: '',
-        descripcion: '',
-        tipo_propiedad: '',
-        uso_propiedad: '',
-        estado_propiedad: '',
-        transaccion: '',
-        precio: '',
-        moneda: 'USD',
-        direccion: '',
-        ciudad: '',
-        provincia: '',
-        codigo_postal: '',
-        sector: '',
-        referencia: '',
-        latitud: '',
-        longitud: '',
-        area_terreno: '',
-        unidad_area_terreno: 'm2',
-        area_construccion: '',
-        unidad_area_construccion: 'm2',
-        nro_habitaciones: '',
-        nro_banos: '',
-        nro_parqueaderos: '',
-        nro_pisos: '',
-        anio_construccion: '',
-        estado_publicacion: 'disponible',
-        agenteId: '',
-        propietarioId: '',
-        propietarios: [],
-        fecha_captacion: '',
-        comision: '',
-        tipo_comision: 'porcentaje',
-        precio_minimo: '',
-        valor_garantia: '',
-        tipo_contrato: '',
-        fecha_fin_contrato: '',
-        orientacion: '',
-        tiene_balcon: false,
-        tiene_terraza: false,
-        tiene_patio: false,
-        tiene_bodega: false,
-        tiene_area_bbq: false,
-        tiene_piscina: false,
-        tiene_ascensor: false,
-        tiene_seguridad: false,
-        tiene_areas_comunales: false,
-        tiene_gas_centralizado: false,
-        tiene_lavanderia: false,
-        tiene_cisterna: false,
-        amoblado: false
-    });
+    const [datos, setDatos] = useState(initialDatos);
 
     const [errores, setErrores] = useState({});
     const [loading, setLoading] = useState(true);
@@ -281,7 +286,7 @@ export default function RegistrarPropiedad() {
 
         const archivosValidos = files.filter(file => {
             if (file.size > maxSizeBytes) {
-                toast.error(`❌ El archivo "${file.name}" supera los ${maxSizeMB} MB`);
+                toast.error(`El archivo "${file.name}" supera los ${maxSizeMB} MB`);
                 return false;
             }
             return true;
@@ -453,12 +458,12 @@ export default function RegistrarPropiedad() {
             if (datos.tipo_contrato === 'exclusividad') {
                 if (!documentos.contrato_exclusividad || documentos.contrato_exclusividad.length === 0) {
                     // Usamos toast directos para documentos ya que no tienen inputs asociados con estado de error visual simple
-                    toast.error('⚠️ Falta: Contrato de Exclusividad');
+                    toast.error('Falta: Contrato de Exclusividad');
                     nuevosErrores.documentos = 'Falta Contrato de Exclusividad';
                 }
             } else {
                 if (!documentos.autorizacion_venta || documentos.autorizacion_venta.length === 0) {
-                    toast.error('⚠️ Falta: Autorización de Venta');
+                    toast.error('Falta: Autorización de Venta');
                     nuevosErrores.documentos = 'Falta Autorización de Venta';
                 }
             }
@@ -586,9 +591,9 @@ export default function RegistrarPropiedad() {
         } catch (error) {
             console.error(error);
             if (error.response?.data?.errores?.length) {
-                error.response.data.errores.forEach(err => toast.error(`❌ ${err}`, { duration: 3000 }));
+                error.response.data.errores.forEach(err => toast.error(`${err}`, { duration: 3000 }));
             } else if (error.response?.data?.mensaje) {
-                toast.error(`❌ ${error.response.data.mensaje}: ${error.response.data.error || ''}`);
+                toast.error(`${error.response.data.mensaje}: ${error.response.data.error || ''}`);
             } else {
                 toast.error('Ocurrió un error al registrar la propiedad.');
             }
@@ -596,9 +601,17 @@ export default function RegistrarPropiedad() {
     };
 
     const hayCambios = () => {
-        // Simple dirty check logic similar to original but less strict on initialDatos
+        for (const key in initialDatos) {
+            if (key === 'propietarios') {
+                if (datos.propietarios.length > 0) return true;
+            } else {
+                if (datos[key] !== initialDatos[key]) return true;
+            }
+        }
         if (imagenes.length > 0) return true;
-        if (datos.titulo !== '' || datos.precio !== '') return true; // Minimal dirty check
+        for (const key in initialDocumentos) {
+            if (documentos[key].length > 0) return true;
+        }
         return false;
     };
 
@@ -621,10 +634,11 @@ export default function RegistrarPropiedad() {
             {/* ENCABEZADO */}
             <div className="bg-white shadow-sm rounded-xl p-6 mb-6 border border-gray-100">
                 <h2 className="text-2xl font-bold text-center text-gray-900 mb-2">Registrar Propiedad</h2>
-                <div className="flex justify-center flex-wrap gap-2 text-sm text-gray-500">
+                <div className="flex justify-center flex-wrap gap-2 text-sm text-gray-500 mb-2">
                     <span>Paso {currentStep} de {steps.length}:</span>
                     <span className="font-semibold text-orange-600">{steps[currentStep - 1].title}</span>
                 </div>
+                <p className="text-xs text-gray-400 text-center"><span className="text-red-500 font-bold">*</span> Campos obligatorios</p>
             </div>
 
             {/* STEPPER PROGRESS BAR */}
@@ -812,24 +826,27 @@ export default function RegistrarPropiedad() {
             </form>
 
             {blocker.state === 'blocked' && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
-                    <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md border border-gray-200 transition-all duration-300">
-                        <h3 className="text-xl font-bold text-center text-yellow-700 mb-4 flex items-center justify-center gap-2">
-                            <span className="text-2xl">⚠️</span> Cambios sin guardar
-                        </h3>
-                        <p className="text-gray-700 text-center mb-6">Tienes cambios sin guardar. ¿Seguro que quieres salir?</p>
-                        <div className="flex justify-end gap-2 mt-4">
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm p-4">
+                    <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-sm border border-gray-200 animate-in fade-in zoom-in duration-200">
+                        <div className="text-center mb-6">
+                            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-yellow-100 mb-4">
+                                <span className="text-2xl">⚠️</span>
+                            </div>
+                            <h3 className="text-lg font-bold text-gray-900">Cambios sin guardar</h3>
+                            <p className="text-sm text-gray-500 mt-2">Tienes cambios pendientes. ¿Estás seguro que deseas salir sin guardar?</p>
+                        </div>
+                        <div className="flex gap-3">
                             <button
                                 type="button"
                                 onClick={() => blocker.reset()}
-                                className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium text-sm px-4 py-2 rounded-lg shadow-sm transition"
+                                className="flex-1 bg-white border border-gray-300 text-gray-700 font-medium py-2 rounded-lg hover:bg-gray-50 transition-colors"
                             >
-                                Cancelar
+                                Volver
                             </button>
                             <button
                                 type="button"
                                 onClick={() => blocker.proceed()}
-                                className="bg-yellow-500 hover:bg-yellow-600 text-white font-medium text-sm px-4 py-2 rounded-lg shadow-md transition"
+                                className="flex-1 bg-yellow-600 text-white font-medium py-2 rounded-lg hover:bg-yellow-700 transition-colors"
                             >
                                 Salir sin guardar
                             </button>

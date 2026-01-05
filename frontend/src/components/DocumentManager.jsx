@@ -43,6 +43,7 @@ const DocumentRow = ({ label, files, onUpload, onDelete, required = false, accep
                         </div>
 
                         <button
+                            type="button"
                             onClick={() => onDelete(0)}
                             className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
                             title="Eliminar"
@@ -104,7 +105,7 @@ export default function DocumentManager({ documentos, onUpload, onDelete, tipoCo
                                     files={documentos.cedula}
                                     onUpload={(f) => handleUploadWrapper(f, 'cedula')}
                                     onDelete={(idx) => onDelete('cedula', idx)}
-                                    required={true}
+                                    required={false}
                                     accept=".pdf,.jpg,.png"
                                 />
                                 <DocumentRow

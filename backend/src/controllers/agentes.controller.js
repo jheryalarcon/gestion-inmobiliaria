@@ -6,7 +6,7 @@ const prisma = new PrismaClient();
 // Crear nuevo agente inmobiliario
 export const crearAgente = async (req, res) => {
     try {
-        const { name, email, telefono, password } = req.body;
+        const { name, email, telefono, password, cedula, direccion } = req.body;
         const adminId = req.usuario.id;
 
         // Verificar que solo administradores puedan crear agentes
@@ -17,9 +17,16 @@ export const crearAgente = async (req, res) => {
         }
 
         // Validaciones
-        if (!name || !email || !telefono || !password) {
+        if (!name || !email || !telefono || !password || !cedula) {
             return res.status(400).json({
-                error: 'El nombre, email, teléfono y contraseña son obligatorios'
+                error: 'El nombre, email, teléfono, contraseña y cédula son obligatorios'
+            });
+        }
+
+        // Validar cédula
+        if (!/^\d{10,13}$/.test(cedula)) {
+            return res.status(400).json({
+                error: 'La cédula debe contener solo números (10-13 dígitos)'
             });
         }
 
@@ -57,11 +64,23 @@ export const crearAgente = async (req, res) => {
             });
         }
 
+        // Verificar Cédula duplicada (si se envía)
+        if (cedula) {
+            const cedulaExistente = await prisma.usuario.findUnique({
+                where: { cedula }
+            });
+            if (cedulaExistente) {
+                return res.status(400).json({
+                    error: 'Ya existe un usuario con esta cédula'
+                });
+            }
+        }
+
         // Encriptar contraseña
         const saltRounds = 10;
         const hashedPassword = await bcrypt.hash(password, saltRounds);
 
-        // Crear el agente
+        // Crear el agente (auto-verificado porque lo crea un admin)
         const nuevoAgente = await prisma.usuario.create({
             data: {
                 name,
@@ -69,13 +88,16 @@ export const crearAgente = async (req, res) => {
                 telefono,
                 password: hashedPassword,
                 rol: 'agente',
-                activo: true
+                cedula,
+                direccion: direccion || null,
+                activo: true,
+                verificado: true  // Auto-verificado
             }
         });
 
         // Retornar respuesta exitosa (sin contraseña)
         res.status(201).json({
-            mensaje: '✅ Agente creado exitosamente',
+            mensaje: 'Agente creado exitosamente',
             agente: {
                 id: nuevoAgente.id,
                 name: nuevoAgente.name,
@@ -110,7 +132,7 @@ export const obtenerAgentes = async (req, res) => {
 
         // Construir filtros de búsqueda
         const whereClause = {
-            rol: { in: ['agente', 'admin'] }
+            rol: 'agente'
         };
 
         // Agregar filtro de estado
@@ -200,6 +222,8 @@ export const obtenerAgentePorId = async (req, res) => {
                 name: true,
                 email: true,
                 telefono: true,
+                cedula: true,
+                direccion: true,
                 rol: true,
                 activo: true,
                 createdAt: true,
@@ -250,11 +274,11 @@ export const obtenerAgentePorId = async (req, res) => {
     }
 };
 
-// Actualizar estado del agente (activar/desactivar)
+// Actualizar estado del agente (activar/desactivar con reasignación)
 export const actualizarEstadoAgente = async (req, res) => {
     try {
         const { id } = req.params;
-        const { activo } = req.body;
+        const { activo, nuevoAgenteId } = req.body;
 
         // Verificar que solo administradores puedan cambiar estado
         if (req.usuario.rol !== 'admin') {
@@ -284,28 +308,102 @@ export const actualizarEstadoAgente = async (req, res) => {
             });
         }
 
-        // Actualizar estado
-        const agenteActualizado = await prisma.usuario.update({
-            where: { id: parseInt(id) },
-            data: { activo },
-            select: {
-                id: true,
-                name: true,
-                email: true,
-                activo: true,
-                updatedAt: true
+        // Si se está activando, no hay problema
+        if (activo) {
+            const agenteActualizado = await prisma.usuario.update({
+                where: { id: parseInt(id) },
+                data: { activo: true },
+                select: { id: true, name: true, activo: true }
+            });
+            return res.json({
+                mensaje: 'Agente activado correctamente',
+                agente: agenteActualizado
+            });
+        }
+
+        // === LÓGICA DE DESACTIVACIÓN ===
+
+        // 1. Contar responsabilidades activas
+        const [clientesActivos, propiedadesActivas, negociacionesActivas] = await Promise.all([
+            prisma.cliente.count({ where: { agenteId: parseInt(id), activo: true } }),
+            prisma.propiedad.count({ where: { agenteId: parseInt(id), estado_publicacion: { in: ['disponible', 'reservada'] } } }),
+            prisma.negociacion.count({ where: { agenteId: parseInt(id), activo: true } })
+        ]);
+
+        const totalPendientes = clientesActivos + propiedadesActivas + negociacionesActivas;
+
+        // 2. Si tiene pendientes y NO se pasó un nuevo agente, bloquear
+        if (totalPendientes > 0 && !nuevoAgenteId) {
+            return res.status(400).json({
+                error: 'El agente tiene responsabilidades activas. Debes seleccionar un nuevo agente para transferirlas.',
+                pendientes: {
+                    clientes: clientesActivos,
+                    propiedades: propiedadesActivas,
+                    negociaciones: negociacionesActivas
+                },
+                requiereReasignacion: true
+            });
+        }
+
+        // 3. Ejecutar transacción (Traslado + Desactivación)
+        await prisma.$transaction(async (tx) => {
+            if (totalPendientes > 0 && nuevoAgenteId) {
+                // Verificar que el nuevo agente exista y sea válido
+                const nuevoAgente = await tx.usuario.findFirst({
+                    where: { id: parseInt(nuevoAgenteId), rol: 'agente', activo: true }
+                });
+
+                if (!nuevoAgente) {
+                    throw new Error('El agente seleccionado para la reasignación no es válido o está inactivo.');
+                }
+
+                if (nuevoAgente.id === parseInt(id)) {
+                    throw new Error('No puedes reasignar al mismo agente que estás desactivando.');
+                }
+
+                // Transferir Clientes
+                if (clientesActivos > 0) {
+                    await tx.cliente.updateMany({
+                        where: { agenteId: parseInt(id), activo: true },
+                        data: { agenteId: parseInt(nuevoAgenteId) }
+                    });
+                }
+
+                // Transferir Propiedades
+                if (propiedadesActivas > 0) {
+                    await tx.propiedad.updateMany({
+                        where: { agenteId: parseInt(id), estado_publicacion: { in: ['disponible', 'reservada'] } },
+                        data: { agenteId: parseInt(nuevoAgenteId) }
+                    });
+                }
+
+                // Transferir Negociaciones
+                if (negociacionesActivas > 0) {
+                    await tx.negociacion.updateMany({
+                        where: { agenteId: parseInt(id), activo: true },
+                        data: { agenteId: parseInt(nuevoAgenteId) }
+                    });
+                }
             }
+
+            // Desactivar Agente
+            await tx.usuario.update({
+                where: { id: parseInt(id) },
+                data: { activo: false }
+            });
         });
 
         res.json({
-            mensaje: `Agente ${activo ? 'activado' : 'desactivado'} correctamente`,
-            agente: agenteActualizado
+            mensaje: totalPendientes > 0
+                ? `Agente desactivado y ${totalPendientes} registros transferidos correctamente.`
+                : 'Agente desactivado correctamente.',
+            agente: { id: parseInt(id), activo: false }
         });
 
     } catch (error) {
         console.error('Error al actualizar estado del agente:', error);
         res.status(500).json({
-            error: 'Error interno del servidor al actualizar el estado del agente'
+            error: error.message || 'Error interno del servidor al actualizar el estado del agente'
         });
     }
 };
@@ -314,7 +412,7 @@ export const actualizarEstadoAgente = async (req, res) => {
 export const actualizarAgente = async (req, res) => {
     try {
         const { id } = req.params;
-        const { name, email, telefono, activo } = req.body;
+        const { name, email, telefono, cedula, direccion } = req.body;
 
         // Verificar que solo administradores puedan actualizar agentes
         if (req.usuario.rol !== 'admin') {
@@ -350,7 +448,7 @@ export const actualizarAgente = async (req, res) => {
         const agenteExistente = await prisma.usuario.findFirst({
             where: {
                 id: parseInt(id),
-                rol: 'agente'
+                rol: 'agente' // Solo permite actualizar agentes
             }
         });
 
@@ -374,14 +472,31 @@ export const actualizarAgente = async (req, res) => {
             });
         }
 
+        // Verificar Cédula duplicada (si se envía y es diferente a la actual)
+        if (cedula) {
+            const cedulaDuplicada = await prisma.usuario.findFirst({
+                where: {
+                    cedula: cedula,
+                    id: { not: parseInt(id) }
+                }
+            });
+            if (cedulaDuplicada) {
+                return res.status(400).json({
+                    error: 'Ya existe un usuario con esta cédula'
+                });
+            }
+        }
+
         // Actualizar el agente
+        // NOTA: No permitimos actualizar 'activo' aquí para evitar bypass de la lógica de reasignación
         const agenteActualizado = await prisma.usuario.update({
             where: { id: parseInt(id) },
             data: {
                 name,
                 email,
                 telefono,
-                activo: activo !== undefined ? activo : agenteExistente.activo
+                cedula: cedula || null,
+                direccion: direccion || null
             },
             select: {
                 id: true,
@@ -396,7 +511,7 @@ export const actualizarAgente = async (req, res) => {
         });
 
         res.json({
-            mensaje: '✅ Agente actualizado exitosamente',
+            mensaje: 'Agente actualizado exitosamente',
             agente: agenteActualizado
         });
 
@@ -498,7 +613,7 @@ export const cambiarPasswordAgente = async (req, res) => {
         });
 
         res.json({
-            mensaje: '✅ Contraseña actualizada exitosamente'
+            mensaje: 'Contraseña actualizada exitosamente'
         });
 
     } catch (error) {

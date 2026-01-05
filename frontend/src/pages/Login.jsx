@@ -26,8 +26,8 @@ export default function Login() {
         if (token) {
             try {
                 const usuario = jwtDecode(token);
-                if (usuario.rol === 'admin') return navigate('/admin');
-                if (usuario.rol === 'agente') return navigate('/agente');
+                if (usuario.rol === 'admin') return navigate('/admin/panel-propiedades');
+                if (usuario.rol === 'agente') return navigate('/agente/panel-propiedades');
                 if (usuario.rol === 'cliente') return navigate('/');
             } catch (e) {
                 // Token inválido, no hacer nada
@@ -68,8 +68,8 @@ export default function Login() {
             // Disparar evento para actualizar navbar
             window.dispatchEvent(new Event('authChange'));
 
-            if (usuario.rol === 'admin') navigate('/admin');
-            else if (usuario.rol === 'agente') navigate('/agente');
+            if (usuario.rol === 'admin') navigate('/admin/panel-propiedades');
+            else if (usuario.rol === 'agente') navigate('/agente/panel-propiedades');
             else if (usuario.rol === 'cliente') navigate('/');
             else navigate('/');
         } catch (error) {

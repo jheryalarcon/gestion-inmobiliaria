@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { jwtDecode } from 'jwt-decode';
+import { UserPlus, Search, Filter, RotateCw, Edit, Trash2, CheckCircle } from 'lucide-react';
 import { PageSpinner } from '../components/Spinner';
 
 export default function PanelAgentes() {
@@ -23,8 +24,35 @@ export default function PanelAgentes() {
     });
     const [showDesactivarModal, setShowDesactivarModal] = useState(false);
     const [showReactivarModal, setShowReactivarModal] = useState(false);
+    const [showReasignarModal, setShowReasignarModal] = useState(false);
+    const [agenteParaDesactivar, setAgenteParaDesactivar] = useState(null);
+    const [targetAgenteId, setTargetAgenteId] = useState('');
+    const [statsPendientes, setStatsPendientes] = useState(null);
     const [agenteSeleccionado, setAgenteSeleccionado] = useState(null);
     const [error, setError] = useState(null);
+    const [searchInput, setSearchInput] = useState(''); // Input local para debounce
+    const debounceTimer = React.useRef(null);
+
+    // Debounce para búsqueda
+    useEffect(() => {
+        if (debounceTimer.current) {
+            clearTimeout(debounceTimer.current);
+        }
+
+        debounceTimer.current = setTimeout(() => {
+            setFiltros(prev => ({
+                ...prev,
+                search: searchInput,
+                page: 1
+            }));
+        }, 400); // 400ms de espera
+
+        return () => {
+            if (debounceTimer.current) {
+                clearTimeout(debounceTimer.current);
+            }
+        };
+    }, [searchInput]);
 
     useEffect(() => {
         const token = localStorage.getItem('token');
@@ -295,16 +323,14 @@ export default function PanelAgentes() {
                     <div>
                         <h1 className="text-3xl font-bold text-gray-900">Gestión de Agentes</h1>
                         <p className="text-gray-600 mt-2">
-                            Administra los agentes inmobiliarios del sistema
+                            Administra los agentes inmobiliarios del sistema ({paginacion.total} en total)
                         </p>
                     </div>
                     <button
                         onClick={() => navigate('/admin/registrar-agente')}
-                        className="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition duration-200 flex items-center gap-2"
+                        className="bg-orange-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-orange-700 transition duration-200 flex items-center gap-2 shadow-sm"
                     >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                        </svg>
+                        <UserPlus className="w-5 h-5" />
                         Nuevo Agente
                     </button>
                 </div>
@@ -312,33 +338,40 @@ export default function PanelAgentes() {
 
             {/* FILTROS */}
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-                <h2 className="text-lg font-semibold text-gray-900 mb-4">Filtros de búsqueda</h2>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="flex items-center gap-2 mb-4 text-gray-900 font-semibold">
+                    <Filter className="w-5 h-5 text-gray-500" />
+                    <h2>Filtros de búsqueda</h2>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     {/* Búsqueda */}
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <div className="relative md:col-span-2">
+                        <label className="block text-xs font-medium text-gray-500 mb-1 uppercase tracking-wider">
                             Buscar
                         </label>
-                        <input
-                            type="text"
-                            name="search"
-                            value={filtros.search}
-                            onChange={handleFiltroChange}
-                            placeholder="Nombre o email..."
-                            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        />
+                        <div className="relative">
+                            <input
+                                type="text"
+                                name="search"
+                                value={searchInput}
+                                onChange={(e) => setSearchInput(e.target.value)}
+                                placeholder="Nombre o email..."
+                                className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                            />
+                            <Search className="w-4 h-4 text-gray-400 absolute left-3 top-2.5" />
+                        </div>
                     </div>
 
                     {/* Estado del agente */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-xs font-medium text-gray-500 mb-1 uppercase tracking-wider">
                             Estado
                         </label>
                         <select
                             name="estado"
                             value={filtros.estado}
                             onChange={handleFiltroChange}
-                            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                         >
                             <option value="activo">Activos</option>
                             <option value="inactivo">Inactivos</option>
@@ -349,10 +382,15 @@ export default function PanelAgentes() {
                     {/* Botón limpiar */}
                     <div className="flex items-end">
                         <button
-                            onClick={() => setFiltros({ search: '', estado: 'activo', page: 1 })}
-                            className="w-full bg-gray-100 text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-200 transition duration-200"
+                            type="button"
+                            onClick={() => {
+                                setSearchInput('');
+                                setFiltros({ search: '', estado: 'activo', page: 1 });
+                            }}
+                            className="w-full bg-gray-100 text-gray-600 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-200 transition duration-200 flex items-center justify-center gap-2"
                         >
-                            Limpiar filtros
+                            <RotateCw className="w-4 h-4" />
+                            Limpiar
                         </button>
                     </div>
                 </div>
@@ -395,11 +433,11 @@ export default function PanelAgentes() {
                                 <tr>
                                     <td colSpan="8" className="px-6 py-12 text-center text-gray-500">
                                         <div className="flex flex-col items-center">
-                                            <svg className="w-12 h-12 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
-                                            </svg>
-                                            <p className="text-lg font-medium">No se encontraron agentes</p>
-                                            <p className="text-sm">Intenta ajustar los filtros de búsqueda</p>
+                                            <div className="bg-gray-100 p-3 rounded-full mb-3">
+                                                <Search className="w-6 h-6 text-gray-400" />
+                                            </div>
+                                            <p className="text-lg font-medium text-gray-900">No se encontraron agentes</p>
+                                            <p className="text-sm text-gray-500 mt-1">Intenta ajustar los filtros de búsqueda</p>
                                         </div>
                                     </td>
                                 </tr>
@@ -449,8 +487,8 @@ export default function PanelAgentes() {
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${agente.activo
-                                                    ? 'bg-green-100 text-green-800'
-                                                    : 'bg-red-100 text-red-800'
+                                                ? 'bg-green-100 text-green-800'
+                                                : 'bg-red-100 text-red-800'
                                                 }`}>
                                                 {agente.activo ? 'Activo' : 'Inactivo'}
                                             </span>
@@ -462,28 +500,31 @@ export default function PanelAgentes() {
                                             <div className="flex justify-end space-x-2">
                                                 <button
                                                     onClick={() => navigate(`/admin/editar-agente/${agente.id}`)}
-                                                    className="text-blue-600 hover:text-blue-900 transition duration-200"
+                                                    className="text-blue-600 hover:text-blue-900 transition duration-200 flex items-center gap-1"
                                                     title="Editar agente"
                                                 >
-                                                    📝 Editar
+                                                    <Edit className="w-4 h-4" />
+                                                    Editar
                                                 </button>
                                                 {agente.activo ? (
                                                     <button
                                                         onClick={() => handleDesactivar(agente)}
                                                         disabled={submitting}
-                                                        className="text-red-600 hover:text-red-900 transition duration-200 disabled:opacity-50"
+                                                        className="text-red-600 hover:text-red-900 transition duration-200 disabled:opacity-50 flex items-center gap-1"
                                                         title="Desactivar agente"
                                                     >
-                                                        🚫 Desactivar
+                                                        <Trash2 className="w-4 h-4" />
+                                                        Desactivar
                                                     </button>
                                                 ) : (
                                                     <button
                                                         onClick={() => handleReactivar(agente)}
                                                         disabled={submitting}
-                                                        className="text-green-600 hover:text-green-900 transition duration-200 disabled:opacity-50"
+                                                        className="text-green-600 hover:text-green-900 transition duration-200 disabled:opacity-50 flex items-center gap-1"
                                                         title="Activar agente"
                                                     >
-                                                        ✅ Activar
+                                                        <CheckCircle className="w-4 h-4" />
+                                                        Activar
                                                     </button>
                                                 )}
                                             </div>
@@ -531,8 +572,8 @@ export default function PanelAgentes() {
                                             key={page}
                                             onClick={() => handlePageChange(page)}
                                             className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${page === filtros.page
-                                                    ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
-                                                    : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                                                ? 'z-10 bg-orange-50 border-orange-500 text-orange-600'
+                                                : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
                                                 }`}
                                         >
                                             {page}
@@ -606,7 +647,83 @@ export default function PanelAgentes() {
                     </div>
                 </div>
             )}
+            {/* Modal de Reasignación */}
+            {showReasignarModal && agenteParaDesactivar && statsPendientes && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+                    <div className="bg-white rounded-lg max-w-md w-full p-6 shadow-xl">
+                        <div className="flex items-center gap-3 mb-4 text-orange-600">
+                            <Briefcase className="w-6 h-6" />
+                            <h3 className="text-lg font-bold">Transferir Responsabilidades</h3>
+                        </div>
+
+                        <p className="text-gray-600 mb-4">
+                            El agente <strong>{agenteParaDesactivar.name}</strong> tiene registros activos que deben ser transferidos antes de desactivarlo:
+                        </p>
+
+                        <div className="bg-orange-50 p-4 rounded-lg mb-6 space-y-2 text-sm">
+                            <div className="flex justify-between">
+                                <span className="text-gray-600">Clientes Activos:</span>
+                                <span className="font-bold text-orange-800">{statsPendientes.clientes}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-gray-600">Propiedades Activas:</span>
+                                <span className="font-bold text-orange-800">{statsPendientes.propiedades}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-gray-600">Negociaciones Activas:</span>
+                                <span className="font-bold text-orange-800">{statsPendientes.negociaciones}</span>
+                            </div>
+                        </div>
+
+                        <div className="mb-6">
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Transferir a:
+                            </label>
+                            <select
+                                value={targetAgenteId}
+                                onChange={(e) => setTargetAgenteId(e.target.value)}
+                                className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                            >
+                                <option value="">Selecciona un agente...</option>
+                                {agentes
+                                    .filter(a => a.activo && a.id !== agenteParaDesactivar.id)
+                                    .map(agente => (
+                                        <option key={agente.id} value={agente.id}>
+                                            {agente.name} ({agente.email})
+                                        </option>
+                                    ))
+                                }
+                            </select>
+                        </div>
+
+                        <div className="flex justify-end gap-3">
+                            <button
+                                onClick={() => {
+                                    setShowReasignarModal(false);
+                                    setAgenteParaDesactivar(null);
+                                    setStatsPendientes(null);
+                                }}
+                                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                onClick={confirmarReasignacion}
+                                disabled={!targetAgenteId}
+                                className={`px-4 py-2 text-white rounded-lg transition-colors flex items-center gap-2
+                                    ${!targetAgenteId
+                                        ? 'bg-gray-400 cursor-not-allowed'
+                                        : 'bg-orange-600 hover:bg-orange-700 shadow-sm'}`}
+                            >
+                                <RotateCw className="w-4 h-4" />
+                                Transferir y Desactivar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
+
 

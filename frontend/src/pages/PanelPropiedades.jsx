@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { jwtDecode } from 'jwt-decode';
-import FiltroPropiedades from '../components/FiltroPropiedades';
+import FiltroPropiedadesAdmin from '../components/FiltroPropiedadesAdmin';
 import CardPropiedad from '../components/CardPropiedad';
 import ModalConfirmarEliminar from '../components/ModalConfirmarEliminar';
 
@@ -314,7 +314,7 @@ export default function PanelPropiedades() {
                     </div>
                 </div>
 
-                <FiltroPropiedades
+                <FiltroPropiedadesAdmin
                     busqueda={busqueda}
                     setBusqueda={setBusqueda}
                     filtros={filtros}

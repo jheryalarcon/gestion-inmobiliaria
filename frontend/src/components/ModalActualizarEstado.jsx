@@ -20,7 +20,9 @@ export default function ModalActualizarEstado({
 
     const token = localStorage.getItem('token');
 
-    const estadosPermitidos = ['disponible', 'vendida', 'arrendada', 'reservada', 'inactiva'];
+    // 🔒 BLINDAJE: Solo permitir estados administrativos.
+    // Los estados transaccionales (vendida, reservada, arrendada) se gestionan vía Negociación.
+    const estadosPermitidos = ['disponible', 'inactiva'];
 
     const handleActualizar = async () => {
         console.log('Intentando actualizar estado:', { propiedadId, nuevoEstado, token: token ? 'Presente' : 'Ausente' });
@@ -67,6 +69,16 @@ export default function ModalActualizarEstado({
                 <h3 className="text-xl font-bold text-center text-indigo-700 mb-4 flex items-center justify-center gap-2">
                     <span className="text-2xl">🌀</span> Cambiar estado de la propiedad
                 </h3>
+
+                {/* --- MENSAJE INFORMATIVO DE BLINDAJE --- */}
+                <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-xs text-blue-800">
+                    <p className="font-semibold mb-1">ℹ️ Nota Importante:</p>
+                    <p>
+                        Desde aquí solo puedes gestionar la disponibilidad administrativa.
+                        Para marcar como <strong>Vendida, Reservada o Arrendada</strong>, debes
+                        finalizar una <span className="underline cursor-pointer font-bold">Negociación</span>.
+                    </p>
+                </div>
 
                 <select
                     value={nuevoEstado}

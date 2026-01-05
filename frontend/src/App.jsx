@@ -1,4 +1,4 @@
-import { createBrowserRouter, RouterProvider, createRoutesFromElements, Route, Outlet } from 'react-router-dom';
+import { createBrowserRouter, RouterProvider, createRoutesFromElements, Route, Outlet, Navigate } from 'react-router-dom';
 import Login from './pages/Login';
 import Registro from './pages/Registro';
 import PanelAdmin from './pages/PanelAdmin';
@@ -83,7 +83,7 @@ const router = createBrowserRouter(
                     </RutaPrivada>
                 }
             >
-                <Route index element={<PanelAdmin />} />
+                <Route index element={<Navigate to="panel-propiedades" replace />} />
                 <Route path="registrar-propiedad" element={<RegistrarPropiedad />} />
                 <Route path="panel-propiedades" element={<PanelPropiedades />} />
                 <Route path="propiedad/:id" element={<DetallePropiedadAdmin />} />
@@ -106,7 +106,7 @@ const router = createBrowserRouter(
                     </RutaPrivada>
                 }
             >
-                <Route index element={<PanelAgente />} />
+                <Route index element={<Navigate to="panel-propiedades" replace />} />
                 <Route path="registrar-propiedad" element={<RegistrarPropiedad />} />
                 <Route path="panel-propiedades" element={<PanelPropiedades />} />
                 <Route path="propiedad/:id" element={<DetallePropiedadAdmin />} />

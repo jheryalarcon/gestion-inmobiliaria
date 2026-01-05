@@ -20,6 +20,8 @@ model Usuario {
   name        String // nombre de la persona
   email       String      @unique
   telefono    String? // teléfono de contacto (opcional para clientes, obligatorio para admin/agente)
+  cedula      String?     @unique // Nueva: Identificación única (opcional para flexibilidad)
+  direccion   String?     // Nueva: Dirección domiciliaria
   password    String
   rol         Rol // "cliente", "agente", "admin"
   activo      Boolean     @default(true) //permite desactivar cuentas sin borrarlas
@@ -310,8 +312,8 @@ model Cliente {
   id          Int       @id @default(autoincrement())
   nombre      String    // Nombre completo del cliente
   telefono    String    // Teléfono de contacto
-  email       String    @unique // Correo electrónico único
-  cedula      String?   @unique
+  email       String?   // Correo electrónico (opcional para prospectos)
+  cedula      String?   // Cédula/RUC (opcional para prospectos)
   estado_civil EstadoCivil?
   documentos  DocumentoCliente[]
   tipo_cliente TipoCliente // Tipo de cliente (comprador, arrendatario, etc.)
@@ -352,6 +354,7 @@ enum TipoCliente {
   vendedor
   inversionista
   consultor
+  prospecto
 }
 
 // MODELO de negociaciones (vínculo entre cliente y propiedad)

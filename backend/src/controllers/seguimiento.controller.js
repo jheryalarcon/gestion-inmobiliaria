@@ -6,18 +6,19 @@ const obtenerSeguimientos = async (req, res) => {
     try {
         const { negociacionId } = req.params;
         const token = req.headers.authorization?.split(' ')[1];
-        
+
         if (!token) {
             return res.status(401).json({ mensaje: '❌ Token no proporcionado' });
         }
 
         // Verificar que la negociación existe y está activa
         const negociacion = await prisma.negociacion.findFirst({
-            where: { 
+            where: {
                 id: parseInt(negociacionId),
-                activo: true 
+                activo: true
             },
             include: {
+                propiedad: true, // Necesario para validar al Captador
                 agente: {
                     select: { id: true, name: true, email: true, rol: true }
                 }
@@ -28,11 +29,28 @@ const obtenerSeguimientos = async (req, res) => {
             return res.status(404).json({ mensaje: '❌ Negociación no encontrada' });
         }
 
+        // 🛡️ SEGURIDAD: Validar que quien consulta tiene permisos
+        // Permisos: Admin, Vendedor (Dueño Negociación) o Captador (Dueño Propiedad)
+        const investigadorId = req.usuario.id; // ID del usuario que hace la petición
+        const esAdmin = req.usuario.rol === 'admin';
+        const esVendedor = negociacion.agenteId === investigadorId;
+        const esCaptador = negociacion.propiedad.agenteId === investigadorId;
+
+        if (!esAdmin && !esVendedor && !esCaptador) {
+            return res.status(403).json({
+                mensaje: '⛔ Acceso Denegado: No tienes permisos para ver el historial de esta negociación.'
+            });
+        }
+
+        if (!negociacion) {
+            return res.status(404).json({ mensaje: '❌ Negociación no encontrada' });
+        }
+
         // Obtener seguimientos ordenados por fecha (más recientes primero)
         const seguimientos = await prisma.seguimiento.findMany({
-            where: { 
+            where: {
                 negociacionId: parseInt(negociacionId),
-                activo: true 
+                activo: true
             },
             include: {
                 agente: {
@@ -63,22 +81,25 @@ const crearSeguimiento = async (req, res) => {
 
         // ✅ REGLA: Validar campos requeridos
         if (!comentario || comentario.trim().length === 0) {
-            return res.status(400).json({ 
-                mensaje: '❌ El comentario es obligatorio' 
+            return res.status(400).json({
+                mensaje: '❌ El comentario es obligatorio'
             });
         }
 
         if (comentario.trim().length > 1000) {
-            return res.status(400).json({ 
-                mensaje: '❌ El comentario no puede exceder 1000 caracteres' 
+            return res.status(400).json({
+                mensaje: '❌ El comentario no puede exceder 1000 caracteres'
             });
         }
 
         // ✅ REGLA: Verificar que la negociación existe y está activa
         const negociacion = await prisma.negociacion.findFirst({
-            where: { 
+            where: {
                 id: parseInt(negociacionId),
-                activo: true 
+                activo: true
+            },
+            include: {
+                propiedad: true
             }
         });
 
@@ -86,18 +107,25 @@ const crearSeguimiento = async (req, res) => {
             return res.status(404).json({ mensaje: '❌ Negociación no encontrada' });
         }
 
-        // ✅ REGLA: Solo el agente responsable puede registrar seguimientos
-        if (negociacion.agenteId !== agenteId) {
-            return res.status(403).json({ 
-                mensaje: '❌ Solo el agente responsable puede registrar seguimientos en esta negociación' 
+        // ✅ REGLA DE PERMISOS AMPLIADA:
+        // 1. Agente Vendedor (Dueño de la negociación)
+        // 2. Agente Captador (Dueño de la propiedad)
+        // 3. Administrador
+        const esVendedor = negociacion.agenteId === agenteId;
+        const esCaptador = negociacion.propiedad.agenteId === agenteId;
+        const esAdmin = req.usuario.rol === 'admin';
+
+        if (!esVendedor && !esCaptador && !esAdmin) {
+            return res.status(403).json({
+                mensaje: '❌ No tienes permisos para registrar seguimientos en esta negociación. (Solo Vendedor, Captador o Admin)'
             });
         }
 
         // ✅ REGLA: Verificar que el tipo de seguimiento sea válido
         const tiposValidos = ['llamada', 'visita', 'mensaje', 'email', 'reunion', 'documento', 'otro'];
         if (!tiposValidos.includes(tipo)) {
-            return res.status(400).json({ 
-                mensaje: '❌ Tipo de seguimiento inválido' 
+            return res.status(400).json({
+                mensaje: '❌ Tipo de seguimiento inválido'
             });
         }
 
@@ -115,6 +143,13 @@ const crearSeguimiento = async (req, res) => {
                     select: { id: true, name: true, email: true }
                 }
             }
+        });
+
+        // ✅ ACTUALIZAR FECHA DE INTERACCIÓN EN LA NEGOCIACIÓN
+        // Esto asegura que en el panel de clientes esta aparezca como la "Última Interacción"
+        await prisma.negociacion.update({
+            where: { id: parseInt(negociacionId) },
+            data: { updatedAt: new Date() }
         });
 
         res.status(201).json({
@@ -137,9 +172,9 @@ const obtenerSeguimientosPaginados = async (req, res) => {
 
         // Verificar que la negociación existe
         const negociacion = await prisma.negociacion.findFirst({
-            where: { 
+            where: {
                 id: parseInt(negociacionId),
-                activo: true 
+                activo: true
             }
         });
 
@@ -150,9 +185,9 @@ const obtenerSeguimientosPaginados = async (req, res) => {
         // Obtener seguimientos con paginación
         const [seguimientos, total] = await Promise.all([
             prisma.seguimiento.findMany({
-                where: { 
+                where: {
                     negociacionId: parseInt(negociacionId),
-                    activo: true 
+                    activo: true
                 },
                 include: {
                     agente: {
@@ -164,9 +199,9 @@ const obtenerSeguimientosPaginados = async (req, res) => {
                 take: parseInt(limit)
             }),
             prisma.seguimiento.count({
-                where: { 
+                where: {
                     negociacionId: parseInt(negociacionId),
-                    activo: true 
+                    activo: true
                 }
             })
         ]);
@@ -197,9 +232,9 @@ const obtenerEstadisticasSeguimientos = async (req, res) => {
 
         // Verificar que la negociación existe
         const negociacion = await prisma.negociacion.findFirst({
-            where: { 
+            where: {
                 id: parseInt(negociacionId),
-                activo: true 
+                activo: true
             }
         });
 
@@ -211,24 +246,24 @@ const obtenerEstadisticasSeguimientos = async (req, res) => {
         const [totalSeguimientos, seguimientosPorTipo, seguimientosPorMes] = await Promise.all([
             // Total de seguimientos
             prisma.seguimiento.count({
-                where: { 
+                where: {
                     negociacionId: parseInt(negociacionId),
-                    activo: true 
+                    activo: true
                 }
             }),
             // Seguimientos por tipo
             prisma.seguimiento.groupBy({
                 by: ['tipo'],
-                where: { 
+                where: {
                     negociacionId: parseInt(negociacionId),
-                    activo: true 
+                    activo: true
                 },
                 _count: { tipo: true }
             }),
             // Seguimientos por mes (últimos 6 meses)
             prisma.seguimiento.groupBy({
                 by: ['fecha'],
-                where: { 
+                where: {
                     negociacionId: parseInt(negociacionId),
                     activo: true,
                     fecha: {

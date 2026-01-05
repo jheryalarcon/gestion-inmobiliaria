@@ -27,8 +27,8 @@ export default function Registro() {
         if (token) {
             try {
                 const usuario = jwtDecode(token);
-                if (usuario.rol === 'admin') return navigate('/admin');
-                if (usuario.rol === 'agente') return navigate('/agente');
+                if (usuario.rol === 'admin') return navigate('/admin/panel-propiedades');
+                if (usuario.rol === 'agente') return navigate('/agente/panel-propiedades');
                 if (usuario.rol === 'cliente') return navigate('/');
             } catch (e) {
                 // Token inválido, no hacer nada

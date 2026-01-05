@@ -127,6 +127,17 @@ export const crearPropiedad = async (req, res) => {
         errores.push('No tiene permisos para registrar propiedades');
     }
 
+    if (agenteId) {
+        const agenteExistente = await prisma.usuario.findUnique({
+            where: { id: agenteId }
+        });
+        if (!agenteExistente || !agenteExistente.activo) {
+            errores.push('El agente seleccionado no existe o no está activo');
+        } else if (agenteExistente.rol !== 'agente' && agenteExistente.rol !== 'admin') {
+            errores.push('El usuario seleccionado no tiene permisos de agente o admin');
+        }
+    }
+
     if (errores.length > 0) {
         return res.status(400).json({ mensaje: 'Validación fallida', errores });
     }
@@ -185,7 +196,7 @@ export const crearPropiedad = async (req, res) => {
                 nro_parqueaderos: nro_parqueaderos ? parseInt(nro_parqueaderos) : null,
                 nro_pisos: nro_pisos ? parseInt(nro_pisos) : null,
                 anio_construccion: anio_construccion ? parseInt(anio_construccion) : null,
-                estado_publicacion: estado_publicacion || 'disponible',
+                estado_publicacion: 'disponible', // 🔒 Siempre nace disponible (Anti-Fraude)
                 agenteId,
                 // Nuevos campos de captación
                 // propietarioId: PROPIETARIO PRINCIPAL (Legacy o derivado)
@@ -748,8 +759,31 @@ export const actualizarPropiedad = async (req, res) => {
         errores.push('No tiene permisos para editar propiedades');
     }
 
+    if (agenteId) {
+        const agenteExistente = await prisma.usuario.findUnique({
+            where: { id: agenteId }
+        });
+        if (!agenteExistente || !agenteExistente.activo) {
+            errores.push('El agente seleccionado no existe o no está activo');
+        } else if (agenteExistente.rol !== 'agente' && agenteExistente.rol !== 'admin') {
+            errores.push('El usuario seleccionado no tiene permisos de agente o admin');
+        }
+    }
+
     if (errores.length > 0) {
         return res.status(400).json({ mensaje: 'Errores de validación', errores });
+    }
+
+    // ⛔ BLINDAJE LÓGICO: Prevenir "Ventas Fantasma"
+    // No permitir cambiar manualmente a estados Transaccionales (Vendida, Reservada, Arrendada)
+    // Estos estados SOLO deben ser alcanzados a través de una Negociación finalizada.
+    const estadosRestringidos = ['vendida', 'reservada', 'arrendada'];
+    if (estado_publicacion && estadosRestringidos.includes(estado_publicacion)) {
+        return res.status(400).json({
+            mensaje: `⛔ OPERACIÓN RECHAZADA: No se puede cambiar manualmente el estado a "${estado_publicacion}".\n` +
+                `📉 Esto generaría una venta sin registrar comisiones ni cliente.\n` +
+                `👉 Por favor vaya al módulo de Negociaciones y cierre el trato correctamente.`
+        });
     }
 
     try {
@@ -795,7 +829,8 @@ export const actualizarPropiedad = async (req, res) => {
                 nro_parqueaderos: nro_parqueaderos ? parseInt(nro_parqueaderos) : null,
                 nro_pisos: nro_pisos ? parseInt(nro_pisos) : null,
                 anio_construccion: anio_construccion ? parseInt(anio_construccion) : null,
-                estado_publicacion: estado_publicacion || 'disponible',
+                estado_publicacion: estado_publicacion || propiedadExistente.estado_publicacion, // 🛡️ Mantiene el estado actual si no se envía uno nuevo
+
                 agente: { connect: { id: parseInt(agenteId) } },
                 usuarioActualizador: { connect: { id: usuario.id } },
                 // Nuevos campos de captación
@@ -925,6 +960,23 @@ export const actualizarEstadoPropiedad = async (req, res) => {
             return res.status(404).json({ mensaje: 'Propiedad no encontrada' });
         }
 
+        // 🛡️ REGLA: No desactivar si tiene negociaciones activas
+        if (nuevoEstado === 'inactiva') {
+            const negociacionesActivas = await prisma.negociacion.count({
+                where: {
+                    propiedadId: parseInt(id),
+                    activo: true,
+                    etapa: { notIn: ['finalizada', 'cancelada'] }
+                }
+            });
+
+            if (negociacionesActivas > 0) {
+                return res.status(400).json({
+                    mensaje: `⛔ No se puede desactivar la propiedad. Tiene ${negociacionesActivas} negociación(es) en curso.`
+                });
+            }
+        }
+
         const propiedad = await prisma.propiedad.update({
             where: { id: parseInt(id) },
             data: {
@@ -947,6 +999,21 @@ export const eliminarPropiedad = async (req, res) => {
     const { id } = req.params;
 
     try {
+        // 🛡️ REGLA: No eliminar si tiene negociaciones activas
+        const negociacionesActivas = await prisma.negociacion.count({
+            where: {
+                propiedadId: parseInt(id),
+                activo: true,
+                etapa: { notIn: ['finalizada', 'cancelada'] }
+            }
+        });
+
+        if (negociacionesActivas > 0) {
+            return res.status(400).json({
+                mensaje: `⛔ No se puede eliminar la propiedad. Tiene ${negociacionesActivas} negociación(es) en curso.`
+            });
+        }
+
         const propiedad = await prisma.propiedad.update({
             where: { id: parseInt(id) },
             data: {

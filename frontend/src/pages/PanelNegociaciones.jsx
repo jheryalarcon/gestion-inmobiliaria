@@ -1,11 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'sonner';
+import { Briefcase, Search, Filter, RotateCw, Info, History, FileText, RefreshCw, Trash2 } from 'lucide-react';
 import CrearNegociacion from '../components/CrearNegociacion';
 import ActualizarEtapaForm from '../components/ActualizarEtapaForm';
 import HistorialSeguimientos from '../components/HistorialSeguimientos';
 import ModalArchivosAdjuntos from '../components/ModalArchivosAdjuntos';
+import NotasInternas from '../components/NotasInternas';
 import { PageSpinner } from '../components/Spinner';
 
 const PanelNegociaciones = () => {
@@ -19,8 +21,11 @@ const PanelNegociaciones = () => {
     const [showActualizarEtapaModal, setShowActualizarEtapaModal] = useState(false);
     const [showHistorialModal, setShowHistorialModal] = useState(false);
     const [showArchivosModal, setShowArchivosModal] = useState(false);
+    const [showNotasPrivadasModal, setShowNotasPrivadasModal] = useState(false);
     const [showEtapasInfo, setShowEtapasInfo] = useState(false);
     const [negociacionSeleccionada, setNegociacionSeleccionada] = useState(null);
+    const [searchInput, setSearchInput] = useState(searchParams.get('search') || ''); // Input local para debounce
+    const debounceTimer = useRef(null);
 
     // Inicializar filtros desde la URL si existen
     const [filtros, setFiltros] = useState({
@@ -50,6 +55,27 @@ const PanelNegociaciones = () => {
 
         // No cargamos aquí, el useEffect de filtros se encargará
     }, [navigate]);
+
+    // Debounce para búsqueda
+    useEffect(() => {
+        if (debounceTimer.current) {
+            clearTimeout(debounceTimer.current);
+        }
+
+        debounceTimer.current = setTimeout(() => {
+            setFiltros(prev => ({
+                ...prev,
+                search: searchInput,
+                page: 1
+            }));
+        }, 400); // 400ms de espera
+
+        return () => {
+            if (debounceTimer.current) {
+                clearTimeout(debounceTimer.current);
+            }
+        };
+    }, [searchInput]);
 
     useEffect(() => {
         // Sincronizar URL con estado de filtros (opcional, pero buena práctica)
@@ -87,7 +113,7 @@ const PanelNegociaciones = () => {
             setPaginacion(response.data.paginacion);
         } catch (error) {
             console.error('Error al cargar negociaciones:', error);
-            toast.error('Error al cargar las negociaciones');
+            toast.error('Error al cargar las negociaciones', { id: 'error-cargar-negociaciones' });
         } finally {
             setLoading(false);
         }
@@ -102,6 +128,7 @@ const PanelNegociaciones = () => {
     };
 
     const limpiarFiltros = () => {
+        setSearchInput(''); // Limpiar también el input local
         setFiltros({
             search: '',
             etapa: '',
@@ -131,6 +158,11 @@ const PanelNegociaciones = () => {
         setShowArchivosModal(true);
     };
 
+    const handleVerNotasPrivadas = (negociacion) => {
+        setNegociacionSeleccionada(negociacion);
+        setShowNotasPrivadasModal(true);
+    };
+
     const confirmarDesactivar = async () => {
         if (!negociacionSeleccionada) return;
 
@@ -144,16 +176,16 @@ const PanelNegociaciones = () => {
                 }
             );
 
-            toast.success('✅ Negociación desactivada correctamente');
+            toast.success('Negociación desactivada correctamente', { id: 'desactivar-negociacion' });
             setShowDesactivarModal(false);
             setNegociacionSeleccionada(null);
             cargarNegociaciones();
         } catch (error) {
             console.error('Error al desactivar negociación:', error);
             if (error.response?.data?.mensaje) {
-                toast.error(error.response.data.mensaje);
+                toast.error(error.response.data.mensaje, { id: 'error-desactivar' });
             } else {
-                toast.error('Error al desactivar la negociación');
+                toast.error('Error al desactivar la negociación', { id: 'error-desactivar' });
             }
         }
     };
@@ -167,7 +199,7 @@ const PanelNegociaciones = () => {
         );
         setShowActualizarEtapaModal(false);
         setNegociacionSeleccionada(null);
-        toast.success('Etapa de negociación actualizada correctamente');
+        toast.success('Etapa de negociación actualizada correctamente', { id: 'etapa-actualizada' });
     };
 
     const getEtapaColor = (etapa) => {
@@ -216,58 +248,59 @@ const PanelNegociaciones = () => {
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 {/* Header */}
                 <div className="mb-8">
-                    <div className="flex justify-between items-center">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                         <div>
-                            <h1 className="text-3xl font-bold text-gray-900">
-                                Panel de Negociaciones
-                            </h1>
-                            <p className="mt-2 text-gray-600">
-                                Gestiona las negociaciones entre clientes y propiedades
+                            <h1 className="text-3xl font-bold text-gray-900">Gestión de Negociaciones</h1>
+                            <p className="text-gray-600 mt-2">
+                                Administra las negociaciones entre clientes y propiedades ({paginacion.total} en total)
                             </p>
                         </div>
                         <button
                             onClick={() => setShowCrearModal(true)}
-                            className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-3 rounded-lg shadow-lg transition-all duration-200 transform hover:scale-105"
+                            className="bg-orange-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-orange-700 transition duration-200 flex items-center gap-2 shadow-sm"
                         >
-                            Crear Negociación
+                            <Briefcase className="w-5 h-5" />
+                            Nueva Negociación
                         </button>
                     </div>
                 </div>
 
                 {/* Filtros */}
                 <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-                    <div className="flex justify-between items-center mb-4">
-                        <h3 className="text-lg font-semibold text-gray-900">Filtros</h3>
-                        <button
-                            onClick={() => setShowEtapasInfo(true)}
-                            className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center gap-1"
-                        >
-                            <span>i</span>
-                            ¿Qué significa cada etapa?
-                        </button>
+                    <div className="flex items-center gap-2 mb-4 text-gray-900 font-semibold">
+                        <Filter className="w-5 h-5 text-gray-500" />
+                        <h2>Filtros de búsqueda</h2>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                         {/* Búsqueda */}
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Buscar</label>
-                            <input
-                                type="text"
-                                name="search"
-                                value={filtros.search}
-                                onChange={handleFiltroChange}
-                                placeholder="Cliente o propiedad..."
-                                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            />
+                        <div className="relative">
+                            <label className="block text-xs font-medium text-gray-500 mb-1 uppercase tracking-wider">
+                                Buscar
+                            </label>
+                            <div className="relative">
+                                <input
+                                    type="text"
+                                    name="search"
+                                    value={searchInput}
+                                    onChange={(e) => setSearchInput(e.target.value)}
+                                    placeholder="Cliente o propiedad..."
+                                    className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                                />
+                                <Search className="w-4 h-4 text-gray-400 absolute left-3 top-2.5" />
+                            </div>
                         </div>
 
                         {/* Etapa */}
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Etapa</label>
+                            <label className="block text-xs font-medium text-gray-500 mb-1 uppercase tracking-wider">
+                                Etapa
+                            </label>
                             <select
                                 name="etapa"
                                 value={filtros.etapa}
                                 onChange={handleFiltroChange}
-                                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                             >
                                 <option value="">Todas las etapas</option>
                                 <option value="interes">Interés</option>
@@ -278,13 +311,27 @@ const PanelNegociaciones = () => {
                             </select>
                         </div>
 
+                        {/* Info Etapas */}
+                        <div className="flex items-end">
+                            <button
+                                type="button"
+                                onClick={() => setShowEtapasInfo(true)}
+                                className="w-full bg-blue-50 text-blue-600 px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-100 transition duration-200 flex items-center justify-center gap-2"
+                            >
+                                <Info className="w-4 h-4" />
+                                Info Etapas
+                            </button>
+                        </div>
+
                         {/* Botón limpiar */}
                         <div className="flex items-end">
                             <button
+                                type="button"
                                 onClick={limpiarFiltros}
-                                className="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium px-4 py-2 rounded-lg transition-colors"
+                                className="w-full bg-gray-100 text-gray-600 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-200 transition duration-200 flex items-center justify-center gap-2"
                             >
-                                Limpiar Filtros
+                                <RotateCw className="w-4 h-4" />
+                                Limpiar
                             </button>
                         </div>
                     </div>
@@ -394,30 +441,44 @@ const PanelNegociaciones = () => {
                                                     <>
                                                         <button
                                                             onClick={() => handleVerHistorial(negociacion)}
-                                                            className="text-green-600 hover:text-green-900 transition duration-200"
+                                                            className="text-green-600 hover:text-green-900 transition duration-200 flex items-center gap-1"
                                                             title="Ver historial de seguimientos"
                                                         >
+                                                            <History className="w-4 h-4" />
                                                             Historial
                                                         </button>
 
                                                         {(usuario?.rol === 'admin' || (usuario?.rol === 'agente' && negociacion.agenteId === usuario?.id)) && (
                                                             <button
                                                                 onClick={() => handleVerArchivos(negociacion)}
-                                                                className="text-purple-600 hover:text-purple-900 transition duration-200"
+                                                                className="text-purple-600 hover:text-purple-900 transition duration-200 flex items-center gap-1"
                                                                 title="Ver archivos adjuntos"
                                                             >
+                                                                <FileText className="w-4 h-4" />
                                                                 Archivos
                                                             </button>
                                                         )}
 
-                                                        {usuario?.rol === 'agente' && negociacion.agenteId === usuario?.id && (
+                                                        {(usuario?.rol === 'agente') && (
+                                                            <button
+                                                                onClick={() => handleVerNotasPrivadas(negociacion)}
+                                                                className="text-amber-600 hover:text-amber-900 transition duration-200 flex items-center gap-1"
+                                                                title="Ver mis notas privadas"
+                                                            >
+                                                                <span className="text-lg">🔒</span>
+                                                                Notas
+                                                            </button>
+                                                        )}
+
+                                                        {(usuario?.rol === 'admin' || (usuario?.rol === 'agente' && negociacion.agenteId === usuario?.id)) && (
                                                             negociacion.propiedad.estado_publicacion === 'disponible' ||
-                                                                (negociacion.propiedad.estado_publicacion === 'reservada' && negociacion.etapa === 'cierre') ? (
+                                                                (negociacion.propiedad.estado_publicacion === 'reservada' && negociacion.etapa === 'cierre') || usuario?.rol === 'admin' ? (
                                                                 <button
                                                                     onClick={() => handleActualizarEtapa(negociacion)}
-                                                                    className="text-indigo-600 hover:text-indigo-900 transition duration-200"
+                                                                    className="text-indigo-600 hover:text-indigo-900 transition duration-200 flex items-center gap-1"
                                                                     title="Actualizar etapa de la negociación"
                                                                 >
+                                                                    <RefreshCw className="w-4 h-4" />
                                                                     Etapa
                                                                 </button>
                                                             ) : (
@@ -429,8 +490,9 @@ const PanelNegociaciones = () => {
 
                                                         <button
                                                             onClick={() => handleDesactivar(negociacion)}
-                                                            className="text-red-600 hover:text-red-900 transition duration-200"
+                                                            className="text-red-600 hover:text-red-900 transition duration-200 flex items-center gap-1"
                                                         >
+                                                            <Trash2 className="w-4 h-4" />
                                                             Desactivar
                                                         </button>
                                                     </>
@@ -483,7 +545,7 @@ const PanelNegociaciones = () => {
                                                 key={page}
                                                 onClick={() => setFiltros({ ...filtros, page })}
                                                 className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${page === filtros.page
-                                                    ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
+                                                    ? 'z-10 bg-orange-50 border-orange-500 text-orange-600'
                                                     : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
                                                     }`}
                                             >
@@ -499,19 +561,23 @@ const PanelNegociaciones = () => {
 
                 {/* Mensaje cuando no hay negociaciones */}
                 {negociaciones.length === 0 && !loading && (
-                    <div className="text-center py-12">
-                        <h3 className="text-lg font-medium text-gray-900 mb-2">
-                            No hay negociaciones
-                        </h3>
-                        <p className="text-gray-500 mb-6">
-                            Comienza creando tu primera negociación entre un cliente y una propiedad.
-                        </p>
-                        <button
-                            onClick={() => setShowCrearModal(true)}
-                            className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-3 rounded-lg shadow-lg transition-all duration-200"
-                        >
-                            Crear Primera Negociación
-                        </button>
+                    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
+                        <div className="flex flex-col items-center">
+                            <div className="bg-gray-100 p-3 rounded-full mb-3">
+                                <Search className="w-6 h-6 text-gray-400" />
+                            </div>
+                            <p className="text-lg font-medium text-gray-900">No se encontraron negociaciones</p>
+                            <p className="text-gray-500 mb-6 mt-2">
+                                Comienza creando tu primera negociación entre un cliente y una propiedad.
+                            </p>
+                            <button
+                                onClick={() => setShowCrearModal(true)}
+                                className="bg-orange-600 hover:bg-orange-700 text-white font-medium px-6 py-3 rounded-lg shadow-sm transition-all duration-200 flex items-center gap-2"
+                            >
+                                <Briefcase className="w-5 h-5" />
+                                Crear Primera Negociación
+                            </button>
+                        </div>
                     </div>
                 )}
             </div>
@@ -523,6 +589,37 @@ const PanelNegociaciones = () => {
                 onSuccess={cargarNegociaciones}
                 usuario={usuario}
             />
+
+            {/* Modal de Notas Internas Privadas */}
+            {showNotasPrivadasModal && negociacionSeleccionada && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col overflow-hidden">
+                        <div className="flex justify-between items-center p-4 border-b border-gray-200 bg-purple-50">
+                            <h3 className="text-lg font-bold text-purple-900 flex items-center gap-2">
+                                <span>🔒</span> Mis Notas Privadas
+                            </h3>
+                            <button
+                                onClick={() => {
+                                    setShowNotasPrivadasModal(false);
+                                    setNegociacionSeleccionada(null);
+                                }}
+                                className="text-gray-400 hover:text-gray-600 transition-colors"
+                            >
+                                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto p-4 bg-gray-50">
+                            <NotasInternas
+                                negociacion={negociacionSeleccionada}
+                                usuario={usuario}
+                            />
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Modal de confirmación para desactivar */}
             {showDesactivarModal && negociacionSeleccionada && (

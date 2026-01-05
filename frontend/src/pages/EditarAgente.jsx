@@ -4,7 +4,7 @@ import { toast } from 'sonner';
 import { jwtDecode } from 'jwt-decode';
 import { PageSpinner } from '../components/Spinner';
 import DocumentManager from '../components/DocumentManager';
-import { Lock, Eye, EyeOff } from 'lucide-react';
+import { Lock, Eye, EyeOff, User, Mail, Phone, CreditCard, MapPin, Save, X } from 'lucide-react';
 
 export default function EditarAgente() {
     const navigate = useNavigate();
@@ -15,7 +15,9 @@ export default function EditarAgente() {
     const [datos, setDatos] = useState({
         name: '',
         email: '',
-        telefono: ''
+        telefono: '',
+        cedula: '',
+        direccion: ''
     });
     const [documentos, setDocumentos] = useState({
         identificacion: [],
@@ -38,6 +40,7 @@ export default function EditarAgente() {
 
     const cancelarRef = useRef(null);
     const initialDatos = useRef({});
+    const guardadoExitoso = useRef(false);
 
     useEffect(() => {
         const token = localStorage.getItem('token');
@@ -80,7 +83,9 @@ export default function EditarAgente() {
                 setDatos({
                     name: agente.name,
                     email: agente.email,
-                    telefono: agente.telefono || '0000000000'
+                    telefono: agente.telefono || '',
+                    cedula: agente.cedula || '',
+                    direccion: agente.direccion || ''
                 });
 
                 // Procesar documentos existentes
@@ -113,7 +118,9 @@ export default function EditarAgente() {
                 initialDatos.current = {
                     name: agente.name,
                     email: agente.email,
-                    telefono: agente.telefono || '0000000000'
+                    telefono: agente.telefono || '',
+                    cedula: agente.cedula || '',
+                    direccion: agente.direccion || ''
                 };
             } else {
                 const errorData = await response.json();
@@ -215,8 +222,14 @@ export default function EditarAgente() {
 
     const handleChangePassword = async (e) => {
         e.preventDefault();
-        if (passwordData.newPassword.length < 6) {
-            toast.error('La contraseña debe tener al menos 6 caracteres');
+
+        // Validar contraseña con política estricta
+        if (!passwordData.newPassword) {
+            toast.error('La contraseña es obligatoria');
+            return;
+        }
+        if (!/^(?=.*[A-Z])(?=.*\d).{8,}$/.test(passwordData.newPassword)) {
+            toast.error('Debe tener 8 caracteres, al menos una mayúscula y un número');
             return;
         }
         if (passwordData.newPassword !== passwordData.confirmPassword) {
@@ -260,7 +273,7 @@ export default function EditarAgente() {
         if (!datos.name.trim()) {
             nuevosErrores.name = 'El nombre es obligatorio';
         } else if (datos.name.trim().length < 2) {
-            nuevosErrores.name = 'El nombre debe tener al menos 2 caracteres';
+            nuevosErrores.name = 'El nombre es obligatorio';
         }
 
         // Validar email
@@ -273,25 +286,38 @@ export default function EditarAgente() {
             }
         }
 
-        // Validar teléfono
+        // Validar teléfono (10 dígitos exactos)
         if (!datos.telefono.trim()) {
             nuevosErrores.telefono = 'El teléfono es obligatorio';
-        } else {
-            const telefonoRegex = /^[0-9]{7,15}$/;
-            if (!telefonoRegex.test(datos.telefono)) {
-                nuevosErrores.telefono = 'El teléfono debe contener solo números y tener entre 7 y 15 dígitos';
-            }
+        } else if (!/^[0-9]{10}$/.test(datos.telefono.replace(/\s/g, ''))) {
+            nuevosErrores.telefono = 'El teléfono debe tener 10 dígitos';
         }
 
-        setErrores(nuevosErrores);
-        return Object.keys(nuevosErrores).length === 0;
+        // Validar Cédula (Obligatoria)
+        if (!datos.cedula.trim()) {
+            nuevosErrores.cedula = 'La cédula es obligatoria';
+        } else if (!/^\d{10,13}$/.test(datos.cedula)) {
+            nuevosErrores.cedula = 'La cédula debe tener 10-13 dígitos numéricos';
+        }
+
+        return nuevosErrores;
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        if (!validarFormulario()) {
-            toast.error('Por favor corrige los errores en el formulario');
+        const nuevosErrores = validarFormulario();
+        setErrores(nuevosErrores);
+
+        if (Object.keys(nuevosErrores).length > 0) {
+            toast.error('Por favor, corrige los errores del formulario');
+            // Auto-focus en el primer campo con error
+            const primerCampo = Object.keys(nuevosErrores)[0];
+            const elemento = document.querySelector(`[name="${primerCampo}"]`);
+            if (elemento) {
+                elemento.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                elemento.focus();
+            }
             return;
         }
 
@@ -309,10 +335,21 @@ export default function EditarAgente() {
 
             if (response.ok) {
                 const data = await response.json();
+                guardadoExitoso.current = true; // Marcar como guardado exitoso
                 toast.success(data.mensaje);
                 navigate('/admin/panel-agentes');
             } else {
                 const errorData = await response.json();
+
+                // Manejo de errores de duplicados para mostrar en los inputs
+                if (errorData.error) {
+                    if (errorData.error.includes('email')) {
+                        setErrores(prev => ({ ...prev, email: errorData.error }));
+                    } else if (errorData.error.includes('cédula')) {
+                        setErrores(prev => ({ ...prev, cedula: errorData.error }));
+                    }
+                }
+
                 toast.error(errorData.error || 'Error al actualizar el agente');
             }
         } catch (error) {
@@ -329,7 +366,7 @@ export default function EditarAgente() {
 
     const blocker = useBlocker(
         ({ currentLocation, nextLocation }) =>
-            hayCambios() && currentLocation.pathname !== nextLocation.pathname
+            !guardadoExitoso.current && hayCambios() && currentLocation.pathname !== nextLocation.pathname
     );
 
     const handleCancel = () => {
@@ -341,225 +378,303 @@ export default function EditarAgente() {
     }
 
     return (
-        <div className="max-w-3xl mx-auto mt-10 p-4 md:p-8 bg-white shadow-lg rounded-2xl border border-gray-100">
-            <h2 className="text-3xl font-extrabold text-center mb-2 text-blue-900 tracking-tight">Editar Agente</h2>
-            <p className="text-center text-gray-600 mb-8">Modifica la información del agente inmobiliario</p>
+        <div className="max-w-4xl mx-auto mt-8 mb-12">
+            <div className="bg-white shadow-xl rounded-2xl border border-gray-100 overflow-hidden">
 
-            <form onSubmit={handleSubmit} className="space-y-8">
-                {/* Datos Personales */}
-                <section className="bg-gray-50 rounded-xl p-6 shadow-sm border border-gray-200">
-                    <h3 className="text-xl font-bold text-blue-800 mb-4">Datos Personales</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                            <label className="block text-base font-semibold text-blue-800 mb-1">
-                                Nombre completo <span className="text-red-500">*</span>
-                            </label>
-                            <input
-                                type="text"
-                                name="name"
-                                value={datos.name}
-                                onChange={handleInputChange}
-                                className={`w-full border-2 border-blue-100 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300 bg-white shadow-sm transition ${errores.name ? 'border-red-400' : 'border-blue-100'
-                                    }`}
-                                placeholder="Ej: Juan Pérez"
-                            />
-                            {errores.name && (
-                                <p className="text-red-600 text-sm mt-1 font-medium">{errores.name}</p>
-                            )}
-                        </div>
-
-                        <div>
-                            <label className="block text-base font-semibold text-blue-800 mb-1">
-                                Correo electrónico <span className="text-red-500">*</span>
-                            </label>
-                            <input
-                                type="email"
-                                name="email"
-                                value={datos.email}
-                                onChange={handleInputChange}
-                                className={`w-full border-2 border-blue-100 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300 bg-white shadow-sm transition ${errores.email ? 'border-red-400' : 'border-blue-100'
-                                    }`}
-                                placeholder="Ej: juan.perez@email.com"
-                            />
-                            {errores.email && (
-                                <p className="text-red-600 text-sm mt-1 font-medium">{errores.email}</p>
-                            )}
-                        </div>
-
-                        <div>
-                            <label className="block text-base font-semibold text-blue-800 mb-1">
-                                Teléfono <span className="text-red-500">*</span>
-                            </label>
-                            <input
-                                type="tel"
-                                name="telefono"
-                                value={datos.telefono}
-                                onChange={handleInputChange}
-                                className={`w-full border-2 border-blue-100 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300 bg-white shadow-sm transition ${errores.telefono ? 'border-red-400' : 'border-blue-100'
-                                    }`}
-                                placeholder="Ej: 0991234567"
-                            />
-                            {errores.telefono && (
-                                <p className="text-red-600 text-sm mt-1 font-medium">{errores.telefono}</p>
-                            )}
-                            <p className="text-sm text-gray-500 mt-1">Solo números, entre 7 y 15 dígitos</p>
-                        </div>
+                {/* Header */}
+                <div className="bg-gray-50 px-8 py-6 border-b border-gray-200 border-t-4 border-blue-600 flex items-center justify-between">
+                    <div>
+                        <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-3">
+                            <div className="bg-white p-2 rounded-lg shadow-sm border border-blue-100">
+                                <User className="w-6 h-6 text-blue-600" />
+                            </div>
+                            Editar Agente
+                        </h2>
+                        <p className="text-gray-500 mt-1 text-sm ml-14">
+                            Modifica la información del agente inmobiliario
+                        </p>
                     </div>
-                </section>
-
-
-                {/* Documentación (RRHH) */}
-                <section className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-                    <h3 className="text-xl font-bold text-blue-800 mb-4">Documentación (RRHH)</h3>
-                    <DocumentManager
-                        mode="agente"
-                        documentos={documentos}
-                        onUpload={handleUploadDocumento}
-                        onDelete={eliminarDocumento}
-                    />
-                </section>
-
-                {/* Información Importante y Seguridad */}
-                <section className="bg-blue-50 rounded-xl p-6 shadow-sm border border-blue-200 space-y-4">
-                    <div className='flex justify-between items-center'>
-                        <h3 className="text-xl font-bold text-blue-800">ℹ️ Información y Seguridad</h3>
-                        <button
-                            type="button"
-                            onClick={() => setShowPasswordModal(true)}
-                            className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
-                        >
-                            <Lock size={16} />
-                            Cambiar Contraseña
-                        </button>
+                    <div className="text-xs text-gray-400">
+                        <span className="text-red-500 font-bold">*</span> Campos obligatorios
                     </div>
-
-                    <div className="space-y-2">
-                        <p className="text-sm text-blue-700">• Solo se pueden editar el nombre, email y teléfono del agente</p>
-                        <p className="text-sm text-blue-700">• El rol no se puede modificar desde esta vista</p>
-                        <p className="text-sm text-blue-700">• El email debe ser único en el sistema</p>
-                    </div>
-                </section>
-
-                {/* Botones */}
-                <div className="flex flex-col sm:flex-row gap-4 justify-end">
-                    <button
-                        type="button"
-                        onClick={handleCancel}
-                        ref={cancelarRef}
-                        className="px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition duration-200"
-                    >
-                        Cancelar
-                    </button>
-                    <button
-                        type="submit"
-                        disabled={submitting}
-                        className="px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                        {submitting ? '⏳ Guardando...' : '✅ Guardar Cambios'}
-                    </button>
                 </div>
-            </form>
 
-            {/* Modal de Cambio de Contraseña */}
-            {showPasswordModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-                    <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md">
-                        <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-                            <Lock className="text-blue-600" /> Cambiar Contraseña
-                        </h3>
-                        <p className="text-gray-600 mb-6 text-sm">Ingresa la nueva contraseña para el agente.</p>
-
-                        <form onSubmit={handleChangePassword} className="space-y-4">
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-1">Nueva Contraseña</label>
-                                <div className="relative">
+                <div className="p-8">
+                    <form onSubmit={handleSubmit} className="space-y-8">
+                        {/* SECCIÓN 1: DATOS PERSONALES */}
+                        <section>
+                            <h3 className="text-lg font-bold text-gray-800 mb-5 flex items-center gap-2 border-b pb-2">
+                                <User className="w-5 h-5 text-blue-500" />
+                                Información Personal
+                            </h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {/* Nombre */}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Nombre Completo <span className="text-red-500">*</span></label>
                                     <input
-                                        type={showNewPassword ? "text" : "password"}
-                                        value={passwordData.newPassword}
-                                        onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
-                                        className="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
-                                        placeholder="Mínimo 6 caracteres"
+                                        type="text"
+                                        name="name"
+                                        value={datos.name}
+                                        onChange={handleInputChange}
+                                        className={`w-full border rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500/20 bg-gray-50/50 transition-colors ${errores.name ? 'border-red-400 focus:border-red-400' : 'border-gray-300 focus:border-blue-500'}`}
+                                        placeholder="Ej: Laura Martínez"
                                     />
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowNewPassword(!showNewPassword)}
-                                        className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 hover:text-blue-600"
-                                    >
-                                        {showNewPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                                    </button>
+                                    {errores.name && <p className="text-red-500 text-xs mt-1 font-medium">{errores.name}</p>}
+                                </div>
+
+                                {/* Cédula */}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Cédula / DNI <span className="text-red-500">*</span></label>
+                                    <div className="relative">
+                                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+                                            <CreditCard className="w-4 h-4" />
+                                        </div>
+                                        <input
+                                            type="text"
+                                            name="cedula"
+                                            maxLength="13"
+                                            value={datos.cedula}
+                                            onChange={(e) => {
+                                                if (/^\d*$/.test(e.target.value)) handleInputChange(e);
+                                            }}
+                                            className={`w-full pl-10 border rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500/20 bg-gray-50/50 transition-colors ${errores.cedula ? 'border-red-400 focus:border-red-400' : 'border-gray-300 focus:border-blue-500'}`}
+                                            placeholder="Ej: 1712345678"
+                                        />
+                                    </div>
+                                    {errores.cedula && <p className="text-red-500 text-xs mt-1 font-medium">{errores.cedula}</p>}
+                                    {!errores.cedula && <p className="text-xs text-gray-500 mt-1">Debe ser única en el sistema</p>}
+                                </div>
+
+                                {/* Teléfono */}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Teléfono <span className="text-red-500">*</span></label>
+                                    <div className="relative">
+                                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+                                            <Phone className="w-4 h-4" />
+                                        </div>
+                                        <input
+                                            type="tel"
+                                            name="telefono"
+                                            maxLength="10"
+                                            value={datos.telefono}
+                                            onChange={(e) => {
+                                                if (/^\d*$/.test(e.target.value)) handleInputChange(e);
+                                            }}
+                                            className={`w-full pl-10 border rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500/20 bg-gray-50/50 transition-colors ${errores.telefono ? 'border-red-400 focus:border-red-400' : 'border-gray-300 focus:border-blue-500'}`}
+                                            placeholder="Ej: 0991234567"
+                                        />
+                                    </div>
+                                    {errores.telefono && <p className="text-red-500 text-xs mt-1 font-medium">{errores.telefono}</p>}
+                                    {!errores.telefono && <p className="text-xs text-gray-500 mt-1">Exactamente 10 dígitos</p>}
+                                </div>
+
+                                {/* Email */}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Correo Electrónico <span className="text-red-500">*</span></label>
+                                    <div className="relative">
+                                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+                                            <Mail className="w-4 h-4" />
+                                        </div>
+                                        <input
+                                            type="email"
+                                            name="email"
+                                            value={datos.email}
+                                            onChange={handleInputChange}
+                                            className={`w-full pl-10 border rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500/20 bg-gray-50/50 transition-colors ${errores.email ? 'border-red-400 focus:border-red-400' : 'border-gray-300 focus:border-blue-500'}`}
+                                            placeholder="Ej: laura.martinez@email.com"
+                                        />
+                                    </div>
+                                    {errores.email && <p className="text-red-500 text-xs mt-1 font-medium">{errores.email}</p>}
+                                    {!errores.email && <p className="text-xs text-gray-500 mt-1">Debe ser único en el sistema</p>}
+                                </div>
+
+                                {/* Dirección */}
+                                <div className="md:col-span-2">
+                                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Dirección Domiciliaria</label>
+                                    <div className="relative">
+                                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+                                            <MapPin className="w-4 h-4" />
+                                        </div>
+                                        <input
+                                            type="text"
+                                            name="direccion"
+                                            value={datos.direccion}
+                                            onChange={handleInputChange}
+                                            className="w-full pl-10 border rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500/20 bg-gray-50/50 transition-colors border-gray-300 focus:border-blue-500"
+                                            placeholder="Ej: Av. Amazonas N24-03"
+                                        />
+                                    </div>
                                 </div>
                             </div>
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-1">Confirmar Nueva Contraseña</label>
-                                <div className="relative">
-                                    <input
-                                        type={showConfirmNewPassword ? "text" : "password"}
-                                        value={passwordData.confirmPassword}
-                                        onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
-                                        className="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
-                                        placeholder="Repite la contraseña"
-                                    />
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowConfirmNewPassword(!showConfirmNewPassword)}
-                                        className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 hover:text-blue-600"
-                                    >
-                                        {showConfirmNewPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                                    </button>
-                                </div>
-                            </div>
+                        </section>
 
-                            <div className="flex justify-end gap-3 mt-6">
+
+                        {/* Documentación (RRHH) */}
+                        <section>
+                            <h3 className="text-lg font-bold text-gray-800 mb-5 flex items-center gap-2 border-b pb-2">
+                                <Lock className="w-5 h-5 text-blue-500" />
+                                Documentación (RRHH)
+                            </h3>
+                            <DocumentManager
+                                mode="agente"
+                                documentos={documentos}
+                                onUpload={handleUploadDocumento}
+                                onDelete={eliminarDocumento}
+                            />
+                        </section>
+
+                        {/* Información y Seguridad */}
+                        <section className="bg-blue-50/50 rounded-xl p-6 border border-blue-100">
+                            <div className='flex justify-between items-center mb-4'>
+                                <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+                                    <Lock className="w-5 h-5 text-blue-500" />
+                                    Seguridad
+                                </h3>
                                 <button
                                     type="button"
-                                    onClick={() => {
-                                        setShowPasswordModal(false);
-                                        setPasswordData({ newPassword: '', confirmPassword: '' });
-                                    }}
-                                    className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg font-medium transition"
+                                    onClick={() => setShowPasswordModal(true)}
+                                    className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-lg hover:bg-blue-700 transition text-sm font-medium"
                                 >
-                                    Cancelar
-                                </button>
-                                <button
-                                    type="submit"
-                                    disabled={submittingPassword}
-                                    className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition disabled:opacity-50"
-                                >
-                                    {submittingPassword ? 'Guardando...' : 'Actualizar'}
+                                    <Lock size={16} />
+                                    Cambiar Contraseña
                                 </button>
                             </div>
-                        </form>
-                    </div>
-                </div>
-            )}
 
-            {/* Modal de confirmación para cancelar */}
-            {blocker.state === 'blocked' && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
-                    <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md border border-gray-200 transition-all duration-300">
-                        <h3 className="text-xl font-bold text-center text-yellow-700 mb-4 flex items-center justify-center gap-2">
-                            <span className="text-2xl">⚠️</span> Cambios sin guardar
-                        </h3>
-                        <p className="text-gray-700 text-center mb-6">Tienes cambios sin guardar. ¿Seguro que quieres salir?</p>
-                        <div className="flex justify-end gap-2 mt-4">
+                            <div className="space-y-2 text-sm text-gray-600">
+                                <p>• Solo se pueden editar los datos personales del agente</p>
+                                <p>• El rol no se puede modificar desde esta vista</p>
+                                <p>• El email y cédula deben ser únicos en el sistema</p>
+                                <p>• El agente puede recuperar su contraseña desde la página de inicio de sesión</p>
+                            </div>
+                        </section>
+
+                        {/* Botones */}
+                        <div className="flex flex-col sm:flex-row gap-4 justify-end">
                             <button
                                 type="button"
-                                onClick={() => blocker.reset()}
-                                className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium text-sm px-4 py-2 rounded-lg shadow-sm transition"
+                                onClick={handleCancel}
+                                ref={cancelarRef}
+                                className="px-6 py-2.5 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 hover:text-gray-900 transition-colors flex items-center justify-center gap-2"
                             >
+                                <X className="w-4 h-4" />
                                 Cancelar
                             </button>
                             <button
-                                type="button"
-                                onClick={() => blocker.proceed()}
-                                className="bg-yellow-500 hover:bg-yellow-600 text-white font-medium text-sm px-4 py-2 rounded-lg shadow-md transition"
+                                type="submit"
+                                disabled={submitting}
+                                className="px-6 py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                             >
-                                Salir sin guardar
+                                <Save className="w-4 h-4" />
+                                {submitting ? 'Guardando...' : 'Guardar Cambios'}
                             </button>
                         </div>
-                    </div>
+                    </form>
+
+                    {/* Modal de Cambio de Contraseña */}
+                    {showPasswordModal && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+                            <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md">
+                                <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                                    <Lock className="text-blue-600" /> Cambiar Contraseña
+                                </h3>
+                                <p className="text-gray-600 mb-6 text-sm">Ingresa la nueva contraseña para el agente.</p>
+
+                                <form onSubmit={handleChangePassword} className="space-y-4">
+                                    <div>
+                                        <label className="block text-sm font-semibold text-gray-700 mb-1">Nueva Contraseña</label>
+                                        <div className="relative">
+                                            <input
+                                                type={showNewPassword ? "text" : "password"}
+                                                value={passwordData.newPassword}
+                                                onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+                                                className="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                                                placeholder="8+ caracteres, 1 mayúscula, 1 número"
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowNewPassword(!showNewPassword)}
+                                                className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 hover:text-blue-600"
+                                            >
+                                                {showNewPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-semibold text-gray-700 mb-1">Confirmar Nueva Contraseña</label>
+                                        <div className="relative">
+                                            <input
+                                                type={showConfirmNewPassword ? "text" : "password"}
+                                                value={passwordData.confirmPassword}
+                                                onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
+                                                className="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                                                placeholder="Repite la contraseña"
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowConfirmNewPassword(!showConfirmNewPassword)}
+                                                className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 hover:text-blue-600"
+                                            >
+                                                {showConfirmNewPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex justify-end gap-3 mt-6">
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setShowPasswordModal(false);
+                                                setPasswordData({ newPassword: '', confirmPassword: '' });
+                                            }}
+                                            className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg font-medium transition"
+                                        >
+                                            Cancelar
+                                        </button>
+                                        <button
+                                            type="submit"
+                                            disabled={submittingPassword}
+                                            className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition disabled:opacity-50"
+                                        >
+                                            {submittingPassword ? 'Guardando...' : 'Actualizar'}
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Modal de confirmación para cancelar */}
+                    {blocker.state === 'blocked' && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm p-4">
+                            <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-sm border border-gray-200 animate-in fade-in zoom-in duration-200">
+                                <div className="text-center mb-6">
+                                    <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-yellow-100 mb-4">
+                                        <span className="text-2xl">⚠️</span>
+                                    </div>
+                                    <h3 className="text-lg font-bold text-gray-900">Cambios sin guardar</h3>
+                                    <p className="text-sm text-gray-500 mt-2">Tienes información pendiente. ¿Deseas salir?</p>
+                                </div>
+                                <div className="flex gap-3">
+                                    <button
+                                        type="button"
+                                        onClick={() => blocker.reset()}
+                                        className="flex-1 bg-white border border-gray-300 text-gray-700 font-medium py-2 rounded-lg hover:bg-gray-50 transition-colors"
+                                    >
+                                        Volver
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => blocker.proceed()}
+                                        className="flex-1 bg-yellow-600 text-white font-medium py-2 rounded-lg hover:bg-yellow-700 transition-colors"
+                                    >
+                                        Salir sin guardar
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
-            )}
+            </div>
         </div>
     );
 }

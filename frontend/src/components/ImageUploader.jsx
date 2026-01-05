@@ -38,7 +38,7 @@ export default function ImageUploader({
         // Validamos máximo total de archivos
         const currentCount = images.length;
         if (currentCount + files.length > maxFiles) {
-            toast.error(`❌ Solo puedes subir un máximo de ${maxFiles} imágenes.`, { duration: 4000 });
+            toast.error(`Solo puedes subir un máximo de ${maxFiles} imágenes.`, { duration: 4000 });
             return;
         }
 
@@ -67,7 +67,7 @@ export default function ImageUploader({
                         if (file.size <= maxSizeMB * 1024 * 1024) {
                             validFiles.push(file);
                         } else {
-                            toast.error(`❌ No se pudo procesar la imagen ${file.name}`);
+                            toast.error(`No se pudo procesar la imagen ${file.name}`);
                         }
                     }
                 } else {
@@ -80,7 +80,7 @@ export default function ImageUploader({
 
             if (validFiles.length > 0) {
                 onImagesChange([...images, ...validFiles]);
-                toast.success(`✅ ${validFiles.length} imágenes procesadas correctamente`);
+                toast.success(`${validFiles.length} imágenes procesadas correctamente`);
             }
         } catch (err) {
             console.error(err);

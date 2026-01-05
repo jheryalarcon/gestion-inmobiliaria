@@ -58,23 +58,7 @@ export default function Sidebar() {
 
     const menuItems = {
         admin: [
-            {
-                title: 'Dashboard',
-                icon: (
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-                    </svg>
-                ),
-                color: 'text-indigo-600',
-                bg: 'bg-indigo-50',
-                items: [
-                    {
-                        name: 'Panel Principal',
-                        path: '/admin',
-                        icon: <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
-                    },
-                ]
-            },
+
             {
                 title: 'Propiedades',
                 icon: (
@@ -160,23 +144,7 @@ export default function Sidebar() {
             }
         ],
         agente: [
-            {
-                title: 'Dashboard',
-                icon: (
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-                    </svg>
-                ),
-                color: 'text-indigo-600',
-                bg: 'bg-indigo-50',
-                items: [
-                    {
-                        name: 'Mi Panel',
-                        path: '/agente',
-                        icon: <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
-                    },
-                ]
-            },
+
             {
                 title: 'Propiedades',
                 icon: (
@@ -337,17 +305,25 @@ export default function Sidebar() {
                 {/* Header */}
                 <div className="p-5 border-b border-gray-100 flex items-center justify-between">
                     {(!isMobile && !isOpen) ? (
-                        <div className="w-full flex justify-center">
-                            <div className="w-10 h-10 bg-orange-600 rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-orange-200">
-                                I
-                            </div>
+                        <div
+                            className="w-full flex justify-center py-2 cursor-pointer hover:scale-105 transition-transform"
+                            onClick={() => setIsOpen(true)}
+                            title="Expandir menú"
+                        >
+                            <img
+                                src="/logo-circular.png"
+                                alt="Logo"
+                                className="w-10 h-10 object-cover rounded-full shadow-md"
+                            />
                         </div>
                     ) : (
-                        <div className="flex flex-col">
-                            <h2 className="text-xl font-bold text-slate-900 tracking-tight">
-                                Inmobiliaria
-                            </h2>
-                            <p className="text-xs text-slate-500 font-medium uppercase tracking-wider">
+                        <div className="flex flex-col items-start">
+                            <img
+                                src="/logo-rectangular.jpg"
+                                alt="Inmobiliaria Escudero"
+                                className="h-10 w-auto object-contain mb-1"
+                            />
+                            <p className="text-xs text-slate-500 font-medium uppercase tracking-wider ml-1">
                                 {usuario?.rol || 'Panel'}
                             </p>
                         </div>
@@ -449,7 +425,13 @@ export default function Sidebar() {
 
                 {/* Footer User Profile */}
                 <div className="p-4 border-t border-gray-100 bg-gray-50/50 backdrop-blur-sm">
-                    <div className={`flex items-center gap-3 ${!isOpen && !isMobile ? 'justify-center' : ''}`}>
+                    <div
+                        className={`flex items-center gap-3 ${!isOpen && !isMobile ? 'justify-center cursor-pointer hover:bg-slate-100 p-1 rounded-lg transition-colors' : ''}`}
+                        onClick={() => {
+                            if (!isOpen && !isMobile) setIsOpen(true);
+                        }}
+                        title={!isOpen && !isMobile ? "Expandir menú" : ""}
+                    >
                         <div className="relative">
                             <div className="w-10 h-10 bg-gradient-to-br from-slate-700 to-slate-800 rounded-full flex items-center justify-center text-white font-bold shadow-md ring-2 ring-white">
                                 {(usuario?.nombre || usuario?.name)?.charAt(0)?.toUpperCase() || 'U'}

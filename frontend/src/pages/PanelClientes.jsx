@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { jwtDecode } from 'jwt-decode';
 import { toast } from 'sonner';
+import { Search, UserPlus, Filter, Briefcase, Edit, Trash2, RotateCw, ArrowUpDown, ArrowUp, ArrowDown, Info } from 'lucide-react';
 import SelectTipoCliente from '../components/SelectTipoCliente';
 import { PageSpinner } from '../components/Spinner';
 
@@ -11,10 +12,14 @@ export default function PanelClientes() {
     const [clientes, setClientes] = useState([]);
     const [loading, setLoading] = useState(true);
     const [usuario, setUsuario] = useState(null);
+    const [searchInput, setSearchInput] = useState(''); // Input local para debounce
     const [filtros, setFiltros] = useState({
         search: '',
         tipo_cliente: '',
         estado: 'activo',
+        search: '', // Aseguramos que search esté presente si no lo estaba
+        sortBy: 'createdAt',
+        order: 'desc',
         page: 1
     });
     const [paginacion, setPaginacion] = useState({
@@ -26,6 +31,28 @@ export default function PanelClientes() {
     const [showDesactivarModal, setShowDesactivarModal] = useState(false);
     const [showReactivarModal, setShowReactivarModal] = useState(false);
     const [clienteSeleccionado, setClienteSeleccionado] = useState(null);
+    const debounceTimer = useRef(null);
+
+    // Debounce para búsqueda
+    useEffect(() => {
+        if (debounceTimer.current) {
+            clearTimeout(debounceTimer.current);
+        }
+
+        debounceTimer.current = setTimeout(() => {
+            setFiltros(prev => ({
+                ...prev,
+                search: searchInput,
+                page: 1
+            }));
+        }, 400); // 400ms de espera
+
+        return () => {
+            if (debounceTimer.current) {
+                clearTimeout(debounceTimer.current);
+            }
+        };
+    }, [searchInput]);
 
     useEffect(() => {
         const token = localStorage.getItem('token');
@@ -52,8 +79,11 @@ export default function PanelClientes() {
                 page: filtros.page,
                 limit: 10,
                 search: filtros.search,
+                search: filtros.search,
                 tipo_cliente: filtros.tipo_cliente,
-                estado: filtros.estado
+                estado: filtros.estado,
+                sortBy: filtros.sortBy,
+                order: filtros.order
             });
 
             const response = await axios.get(`http://localhost:3000/api/clientes?${params}`, {
@@ -64,7 +94,7 @@ export default function PanelClientes() {
             setPaginacion(response.data.paginacion);
         } catch (error) {
             console.error('Error al cargar clientes:', error);
-            toast.error('Error al cargar los clientes');
+            toast.error('Error al cargar los clientes', { id: 'error-cargar-clientes' });
         } finally {
             setLoading(false);
         }
@@ -79,14 +109,28 @@ export default function PanelClientes() {
         }));
     };
 
+    const handleSort = (columna) => {
+        setFiltros(prev => ({
+            ...prev,
+            sortBy: columna,
+            order: prev.sortBy === columna && prev.order === 'asc' ? 'desc' : 'asc',
+            page: 1
+        }));
+    };
+
+    const SortIcon = ({ columna }) => {
+        if (filtros.sortBy !== columna) return <ArrowUpDown className="w-4 h-4 text-gray-400 opacity-50" />;
+        return filtros.order === 'asc'
+            ? <ArrowUp className="w-4 h-4 text-orange-600" />
+            : <ArrowDown className="w-4 h-4 text-orange-600" />;
+    };
+
     const handlePageChange = (nuevaPagina) => {
         setFiltros(prev => ({
             ...prev,
             page: nuevaPagina
         }));
     };
-
-
 
     const handleDesactivar = (cliente) => {
         setClienteSeleccionado(cliente);
@@ -102,18 +146,22 @@ export default function PanelClientes() {
                 headers: { Authorization: `Bearer ${token}` }
             });
 
-            toast.success('✅ Cliente desactivado correctamente');
+            toast.success('Cliente desactivado correctamente', { id: 'desactivar-cliente' });
             setShowDesactivarModal(false);
             setClienteSeleccionado(null);
             cargarClientes();
         } catch (error) {
             console.error('Error al desactivar cliente:', error);
             if (error.response?.status === 403) {
-                toast.error('⚠️ No puedes desactivar un cliente que no te pertenece');
+                toast.error('No puedes desactivar un cliente que no te pertenece', { id: 'error-desactivar' });
             } else if (error.response?.status === 400) {
-                toast.error('El cliente ya está inactivo');
+                // Mostrar el mensaje específico del backend (ej: tiene negociaciones activas)
+                toast.error(error.response.data.mensaje || 'El cliente ya está inactivo', {
+                    id: 'error-desactivar',
+                    duration: 5000 // Durar un poco más para que lean
+                });
             } else {
-                toast.error('Error al desactivar el cliente');
+                toast.error('Error al desactivar el cliente', { id: 'error-desactivar' });
             }
         }
     };
@@ -132,24 +180,24 @@ export default function PanelClientes() {
                 headers: { Authorization: `Bearer ${token}` }
             });
 
-            toast.success('🔁 Cliente reactivado exitosamente');
+            toast.success('🔁 Cliente reactivado exitosamente', { id: 'reactivar-cliente' });
             setShowReactivarModal(false);
             setClienteSeleccionado(null);
             cargarClientes();
         } catch (error) {
             console.error('Error al reactivar cliente:', error);
             if (error.response?.status === 403) {
-                toast.error('⚠️ Solo los administradores pueden reactivar clientes');
+                toast.error('Solo los administradores pueden reactivar clientes', { id: 'error-reactivar' });
             } else if (error.response?.status === 400) {
-                toast.error('El cliente ya está activo');
+                toast.error('El cliente ya está activo', { id: 'error-reactivar' });
             } else {
-                toast.error('Error al reactivar el cliente');
+                toast.error('Error al reactivar el cliente', { id: 'error-reactivar' });
             }
         }
     };
 
     const formatearFecha = (fecha) => {
-        return new Date(fecha).toLocaleDateString('es-ES', {
+        return new Date(fecha).toLocaleDateString('es-EC', {
             year: 'numeric',
             month: 'short',
             day: 'numeric'
@@ -161,9 +209,9 @@ export default function PanelClientes() {
             comprador: 'Comprador',
             arrendatario: 'Arrendatario',
             propietario: 'Propietario',
-            vendedor: 'Vendedor',
             inversionista: 'Inversionista',
-            consultor: 'Consultor'
+            consultor: 'Colega Inmobiliario',
+            prospecto: 'Prospecto'
         };
         return tipos[tipo] || tipo;
     };
@@ -180,16 +228,14 @@ export default function PanelClientes() {
                     <div>
                         <h1 className="text-3xl font-bold text-gray-900">Gestión de Clientes</h1>
                         <p className="text-gray-600 mt-2">
-                            Administra los clientes registrados en la inmobiliaria
+                            Administra los clientes registrados ({paginacion.total} en total)
                         </p>
                     </div>
                     <button
                         onClick={() => navigate('/admin/registrar-cliente')}
-                        className="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition duration-200 flex items-center gap-2"
+                        className="bg-orange-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-orange-700 transition duration-200 flex items-center gap-2 shadow-sm"
                     >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                        </svg>
+                        <UserPlus className="w-5 h-5" />
                         Nuevo Cliente
                     </button>
                 </div>
@@ -197,27 +243,34 @@ export default function PanelClientes() {
 
             {/* FILTROS */}
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-                <h2 className="text-lg font-semibold text-gray-900 mb-4">Filtros de búsqueda</h2>
+                <div className="flex items-center gap-2 mb-4 text-gray-900 font-semibold">
+                    <Filter className="w-5 h-5 text-gray-500" />
+                    <h2>Filtros de búsqueda</h2>
+                </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     {/* Búsqueda */}
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <div className="relative">
+                        <label className="block text-xs font-medium text-gray-500 mb-1 uppercase tracking-wider">
                             Buscar
                         </label>
-                        <input
-                            type="text"
-                            name="search"
-                            value={filtros.search}
-                            onChange={handleFiltroChange}
-                            placeholder="Nombre, email o teléfono..."
-                            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        />
+                        <div className="relative">
+                            <input
+                                type="text"
+                                name="search"
+                                value={searchInput}
+                                onChange={(e) => setSearchInput(e.target.value)}
+                                placeholder="Nombre, ci, telf..."
+                                className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                            />
+                            <Search className="w-4 h-4 text-gray-400 absolute left-3 top-2.5" />
+                        </div>
                     </div>
 
                     {/* Tipo de cliente */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Tipo de cliente
+                        <label className="block text-xs font-medium text-gray-500 mb-1 uppercase tracking-wider">
+                            Tipo
                         </label>
                         <SelectTipoCliente
                             value={filtros.tipo_cliente}
@@ -227,14 +280,14 @@ export default function PanelClientes() {
 
                     {/* Estado del cliente */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-xs font-medium text-gray-500 mb-1 uppercase tracking-wider">
                             Estado
                         </label>
                         <select
                             name="estado"
                             value={filtros.estado}
                             onChange={handleFiltroChange}
-                            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                         >
                             <option value="activo">Activos</option>
                             <option value="inactivo">Inactivos</option>
@@ -245,10 +298,14 @@ export default function PanelClientes() {
                     {/* Botón limpiar */}
                     <div className="flex items-end">
                         <button
-                            onClick={() => setFiltros({ search: '', tipo_cliente: '', estado: 'activo', page: 1 })}
-                            className="w-full bg-gray-100 text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-200 transition duration-200"
+                            onClick={() => {
+                                setSearchInput('');
+                                setFiltros({ search: '', tipo_cliente: '', estado: 'activo', sortBy: 'createdAt', order: 'desc', page: 1 });
+                            }}
+                            className="w-full bg-gray-100 text-gray-600 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-200 transition duration-200 flex items-center justify-center gap-2"
                         >
-                            Limpiar filtros
+                            <RotateCw className="w-4 h-4" />
+                            Limpiar
                         </button>
                     </div>
                 </div>
@@ -260,11 +317,23 @@ export default function PanelClientes() {
                     <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">
                             <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Cliente
+                                <th
+                                    onClick={() => handleSort('nombre')}
+                                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors group"
+                                >
+                                    <div className="flex items-center gap-1">
+                                        Cliente
+                                        <SortIcon columna="nombre" />
+                                    </div>
                                 </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Contacto
+                                <th
+                                    onClick={() => handleSort('email')} // Usamos email como proxy de contacto
+                                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors group"
+                                >
+                                    <div className="flex items-center gap-1">
+                                        Contacto
+                                        <SortIcon columna="email" />
+                                    </div>
                                 </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Tipo
@@ -277,8 +346,17 @@ export default function PanelClientes() {
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Estado
                                 </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Fecha registro
+                                <th
+                                    onClick={() => handleSort('ultima_interaccion')}
+                                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors group"
+                                >
+                                    <div className="flex items-center gap-1">
+                                        Última Interacción
+                                        <div title="Fecha de actualización de la última negociación o fecha de registro" className="cursor-help">
+                                            <Info className="w-3.5 h-3.5 text-gray-400" />
+                                        </div>
+                                        <SortIcon columna="ultima_interaccion" />
+                                    </div>
                                 </th>
                                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Acciones
@@ -290,94 +368,110 @@ export default function PanelClientes() {
                                 <tr>
                                     <td colSpan={usuario?.rol === 'admin' ? 7 : 6} className="px-6 py-12 text-center text-gray-500">
                                         <div className="flex flex-col items-center">
-                                            <svg className="w-12 h-12 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                                            </svg>
-                                            <p className="text-lg font-medium">No se encontraron clientes</p>
-                                            <p className="text-sm">Intenta ajustar los filtros de búsqueda</p>
+                                            <div className="bg-gray-100 p-3 rounded-full mb-3">
+                                                <Search className="w-6 h-6 text-gray-400" />
+                                            </div>
+                                            <p className="text-lg font-medium text-gray-900">No se encontraron clientes</p>
+                                            <p className="text-sm text-gray-500 mt-1">Intenta ajustar los filtros de búsqueda</p>
                                         </div>
                                     </td>
                                 </tr>
                             ) : (
                                 clientes.map((cliente) => (
-                                    <tr key={cliente.id} className="hover:bg-gray-50">
+                                    <tr key={cliente.id} className="hover:bg-orange-50/50 transition-colors">
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <div>
-                                                <div className="text-sm font-medium text-gray-900">
-                                                    {cliente.nombre}
+                                            <div className="flex items-center">
+                                                <div className="h-10 w-10 rounded-full bg-orange-100 flex items-center justify-center text-orange-700 font-bold text-lg mr-3">
+                                                    {cliente.nombre.charAt(0).toUpperCase()}
                                                 </div>
-                                                {cliente.observaciones && (
-                                                    <div className="text-sm text-gray-500 truncate max-w-xs">
-                                                        {cliente.observaciones}
+                                                <div>
+                                                    <div className="text-sm font-medium text-gray-900">
+                                                        {cliente.nombre}
                                                     </div>
-                                                )}
+                                                    {cliente.cedula && (
+                                                        <div className="text-xs font-medium text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded inline-block mt-0.5" title="Cédula / RUC">
+                                                            CI: {cliente.cedula}
+                                                        </div>
+                                                    )}
+                                                </div>
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <div className="text-sm text-gray-900">{cliente.email}</div>
-                                            <div className="text-sm text-gray-500">{cliente.telefono}</div>
+                                            <a
+                                                href={`https://wa.me/593${cliente.telefono.replace(/^0/, '')}`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="text-sm text-green-600 hover:text-green-800 flex items-center gap-1 mt-1 font-medium hover:underline"
+                                            >
+                                                <img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" alt="WhatsApp" className="w-4 h-4" />
+                                                {cliente.telefono}
+                                            </a>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                                            <span className="inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-100">
                                                 {obtenerTipoClienteLabel(cliente.tipo_cliente)}
                                             </span>
                                         </td>
                                         {usuario?.rol === 'admin' && (
                                             <td className="px-6 py-4 whitespace-nowrap">
-                                                <div className="text-sm text-gray-900">
-                                                    {cliente.agente ? cliente.agente.name : 'Sin asignar'}
-                                                </div>
-                                                {cliente.agente && (
-                                                    <div className="text-sm text-gray-500">
-                                                        {cliente.agente.email}
+                                                {cliente.agente ? (
+                                                    <div>
+                                                        <div className="text-sm text-gray-900">{cliente.agente.name}</div>
+                                                        <div className="text-xs text-gray-500">{cliente.agente.email}</div>
                                                     </div>
+                                                ) : (
+                                                    <span className="text-xs text-gray-400 italic">Sin asignar</span>
                                                 )}
                                             </td>
                                         )}
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${cliente.activo
-                                                ? 'bg-green-100 text-green-800'
-                                                : 'bg-red-100 text-red-800'
+                                            <span className={`inline-flex px-2 px-2.5 py-0.5 rounded-full text-xs font-medium ${cliente.activo
+                                                ? 'bg-green-50 text-green-700 border border-green-100'
+                                                : 'bg-red-50 text-red-700 border border-red-100'
                                                 }`}>
                                                 {cliente.activo ? 'Activo' : 'Inactivo'}
                                             </span>
                                             {!cliente.activo && cliente.usuario_desactivador && (
-                                                <div className="text-xs text-gray-500 mt-1">
-                                                    Desactivado por: {cliente.usuario_desactivador.name}
+                                                <div className="text-[10px] text-gray-400 mt-1">
+                                                    Por: {cliente.usuario_desactivador.name}
                                                 </div>
                                             )}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                            {formatearFecha(cliente.createdAt)}
+                                            {formatearFecha(cliente.negociaciones?.[0]?.updatedAt || cliente.createdAt)}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                             <div className="flex justify-end gap-2">
                                                 <button
                                                     onClick={() => navigate(`${usuario?.rol === 'admin' ? '/admin' : '/agente'}/panel-negociaciones?clienteId=${cliente.id}`)}
-                                                    className="text-green-600 hover:text-green-900 transition duration-200"
+                                                    className="p-1.5 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-all"
                                                     title="Ver historial de negociaciones"
                                                 >
-                                                    Historial
+                                                    <Briefcase className="w-4 h-4" />
                                                 </button>
                                                 <button
                                                     onClick={() => navigate(`/admin/editar-cliente/${cliente.id}`)}
-                                                    className="text-blue-600 hover:text-blue-900 transition duration-200"
+                                                    className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+                                                    title="Editar cliente"
                                                 >
-                                                    Editar
+                                                    <Edit className="w-4 h-4" />
                                                 </button>
                                                 {cliente.activo ? (
                                                     <button
                                                         onClick={() => handleDesactivar(cliente)}
-                                                        className="text-orange-600 hover:text-orange-900 transition duration-200"
+                                                        className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                                                        title="Desactivar cliente"
                                                     >
-                                                        Desactivar
+                                                        <Trash2 className="w-4 h-4" />
                                                     </button>
                                                 ) : (
                                                     <button
                                                         onClick={() => handleReactivar(cliente)}
-                                                        className="text-green-600 hover:text-green-900 transition duration-200"
+                                                        className="p-1.5 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-all"
+                                                        title="Reactivar cliente"
                                                     >
-                                                        Reactivar
+                                                        <RotateCw className="w-4 h-4" />
                                                     </button>
                                                 )}
                                             </div>
@@ -442,7 +536,7 @@ export default function PanelClientes() {
                                             key={page}
                                             onClick={() => handlePageChange(page)}
                                             className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${page === paginacion.pagina
-                                                ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
+                                                ? 'z-10 bg-orange-50 border-orange-500 text-orange-600'
                                                 : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
                                                 }`}
                                         >

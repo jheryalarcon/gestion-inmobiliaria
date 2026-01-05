@@ -1,7 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
-// ✅ OBTENER NOTAS INTERNAS DEL AGENTE RESPONSABLE
+// ✅ OBTENER NOTAS INTERNAS DEL AGENTE RESPONSABLE (Vendedor o Captador)
 const obtenerNotasInternas = async (req, res) => {
     try {
         const { negociacionId } = req.params;
@@ -9,9 +9,12 @@ const obtenerNotasInternas = async (req, res) => {
 
         // ✅ REGLA: Verificar que la negociación existe y está activa
         const negociacion = await prisma.negociacion.findFirst({
-            where: { 
+            where: {
                 id: parseInt(negociacionId),
-                activo: true 
+                activo: true
+            },
+            include: {
+                propiedad: true
             }
         });
 
@@ -19,18 +22,22 @@ const obtenerNotasInternas = async (req, res) => {
             return res.status(404).json({ mensaje: '❌ Negociación no encontrada' });
         }
 
-        // ✅ REGLA: Solo el agente responsable puede ver sus notas internas
-        if (negociacion.agenteId !== agenteId) {
-            return res.status(403).json({ 
-                mensaje: '❌ Solo el agente responsable puede acceder a las notas internas de esta negociación' 
+        // ✅ REGLA DE PERMISOS AMPLIADA:
+        // Permitir acceso si soy el Vendedor (Dueño Negociación) O el Captador (Dueño Propiedad)
+        const esVendedor = negociacion.agenteId === agenteId;
+        const esCaptador = negociacion.propiedad.agenteId === agenteId;
+
+        if (!esVendedor && !esCaptador) {
+            return res.status(403).json({
+                mensaje: '❌ No tienes permisos para acceder a las notas internas de esta negociación'
             });
         }
 
-        // Obtener notas internas del agente responsable, ordenadas por fecha (más recientes primero)
+        // Obtener notas internas PROPIAS del agente, ordenadas por fecha
         const notasInternas = await prisma.notaInterna.findMany({
-            where: { 
+            where: {
                 negociacionId: parseInt(negociacionId),
-                agenteId: agenteId
+                agenteId: agenteId // 🔒 Clave: Solo mis notas
             },
             orderBy: { fecha: 'desc' }
         });
@@ -56,22 +63,25 @@ const crearNotaInterna = async (req, res) => {
 
         // ✅ REGLA: Validar campos requeridos
         if (!contenido || contenido.trim().length === 0) {
-            return res.status(400).json({ 
-                mensaje: '❌ El contenido de la nota es obligatorio' 
+            return res.status(400).json({
+                mensaje: '❌ El contenido de la nota es obligatorio'
             });
         }
 
         if (contenido.trim().length > 2000) {
-            return res.status(400).json({ 
-                mensaje: '❌ El contenido de la nota no puede exceder 2000 caracteres' 
+            return res.status(400).json({
+                mensaje: '❌ El contenido de la nota no puede exceder 2000 caracteres'
             });
         }
 
         // ✅ REGLA: Verificar que la negociación existe y está activa
         const negociacion = await prisma.negociacion.findFirst({
-            where: { 
+            where: {
                 id: parseInt(negociacionId),
-                activo: true 
+                activo: true
+            },
+            include: {
+                propiedad: true
             }
         });
 
@@ -79,19 +89,18 @@ const crearNotaInterna = async (req, res) => {
             return res.status(404).json({ mensaje: '❌ Negociación no encontrada' });
         }
 
-        // ✅ REGLA: Solo el agente responsable puede crear notas internas
-        if (negociacion.agenteId !== agenteId) {
-            return res.status(403).json({ 
-                mensaje: '❌ Solo el agente responsable puede crear notas internas en esta negociación' 
+        // ✅ REGLA DE PERMISOS AMPLIADA:
+        const esVendedor = negociacion.agenteId === agenteId;
+        const esCaptador = negociacion.propiedad.agenteId === agenteId;
+
+        if (!esVendedor && !esCaptador) {
+            return res.status(403).json({
+                mensaje: '❌ No tienes permisos para crear notas internas en esta negociación'
             });
         }
 
-        // ✅ REGLA: Verificar que el usuario sea agente
-        if (req.usuario.rol !== 'agente') {
-            return res.status(403).json({ 
-                mensaje: '❌ Solo los agentes pueden crear notas internas' 
-            });
-        }
+        // ✅ REGLA: Verificar que el usuario sea agente (o admin actuando como agente)
+        // Nota: Los admins no deberían crear notas personales aquí por diseño, pero si tienen rol, ok.
 
         // Crear la nota interna
         const notaInterna = await prisma.notaInterna.create({
@@ -122,9 +131,12 @@ const obtenerEstadisticasNotas = async (req, res) => {
 
         // ✅ REGLA: Verificar que la negociación existe
         const negociacion = await prisma.negociacion.findFirst({
-            where: { 
+            where: {
                 id: parseInt(negociacionId),
-                activo: true 
+                activo: true
+            },
+            include: {
+                propiedad: true
             }
         });
 
@@ -132,10 +144,13 @@ const obtenerEstadisticasNotas = async (req, res) => {
             return res.status(404).json({ mensaje: '❌ Negociación no encontrada' });
         }
 
-        // ✅ REGLA: Solo el agente responsable puede ver estadísticas
-        if (negociacion.agenteId !== agenteId) {
-            return res.status(403).json({ 
-                mensaje: '❌ Solo el agente responsable puede acceder a las estadísticas de notas internas' 
+        // ✅ REGLA DE PERMISOS AMPLIADA:
+        const esVendedor = negociacion.agenteId === agenteId;
+        const esCaptador = negociacion.propiedad.agenteId === agenteId;
+
+        if (!esVendedor && !esCaptador) {
+            return res.status(403).json({
+                mensaje: '❌ No tienes permisos para acceder a las estadísticas de notas internas'
             });
         }
 
@@ -143,7 +158,7 @@ const obtenerEstadisticasNotas = async (req, res) => {
         const [totalNotas, notasPorMes] = await Promise.all([
             // Total de notas
             prisma.notaInterna.count({
-                where: { 
+                where: {
                     negociacionId: parseInt(negociacionId),
                     agenteId: agenteId
                 }
@@ -151,7 +166,7 @@ const obtenerEstadisticasNotas = async (req, res) => {
             // Notas por mes (últimos 6 meses)
             prisma.notaInterna.groupBy({
                 by: ['fecha'],
-                where: { 
+                where: {
                     negociacionId: parseInt(negociacionId),
                     agenteId: agenteId,
                     fecha: {

@@ -6,7 +6,7 @@ import SelectTipoPropiedad from '../components/SelectTipoPropiedad';
 import DocumentManager from '../components/DocumentManager'; // Import DocumentManager
 import { jwtDecode } from 'jwt-decode';
 import { toast } from 'sonner';
-import { Trash2, FolderCheck } from 'lucide-react';
+import { Trash2, FolderCheck, Building2 } from 'lucide-react';
 import FormIdentificacion from '../components/propiedad/form/FormIdentificacion';
 import FormUbicacion from '../components/propiedad/form/FormUbicacion';
 import FormCaracteristicas from '../components/propiedad/form/FormCaracteristicas';
@@ -401,6 +401,18 @@ export default function EditarPropiedad() {
     };
 
     const handlePropietarioChange = (index, field, value) => {
+        // Validación en tiempo real de porcentaje
+        if (field === 'porcentaje') {
+            const num = parseFloat(value);
+            if (value !== '' && (isNaN(num) || num < 0 || num > 100)) {
+                toast.error('El porcentaje debe estar entre 0 y 100', {
+                    id: 'porcentaje-invalido',
+                    duration: 2000
+                });
+                return; // No actualizar si es inválido
+            }
+        }
+
         setPropietarios(prev => {
             const nuevos = [...prev];
             if (field === 'es_principal') {
@@ -492,16 +504,30 @@ export default function EditarPropiedad() {
         // Validación de Propietarios
         if (propietarios.length === 0) {
             nuevosErrores.propietarios = 'Debe haber al menos un propietario asignado';
-            toast.error('❌ Debes asignar al menos un propietario');
+            toast.error('Debes asignar al menos un propietario', { id: 'error-propietarios' });
         } else {
-            const sumaPorcentajes = propietarios.reduce((acc, curr) => acc + parseFloat(curr.porcentaje || 0), 0);
-            if (Math.abs(sumaPorcentajes - 100) > 0.1) {
-                nuevosErrores.propietarios = `La suma de porcentajes debe ser exactamente 100% (Actual: ${sumaPorcentajes.toFixed(2)}%)`;
-                toast.error(`❌ La suma de porcentajes debe ser 100% (Actual: ${sumaPorcentajes.toFixed(2)}%)`);
+            // Validar porcentajes individuales
+            let hayPorcentajeInvalido = false;
+            propietarios.forEach((prop, idx) => {
+                const porcentaje = parseFloat(prop.porcentaje);
+                if (isNaN(porcentaje) || porcentaje <= 0 || porcentaje > 100) {
+                    nuevosErrores.propietarios = `El porcentaje del propietario ${idx + 1} debe estar entre 0 y 100`;
+                    toast.error(`Porcentaje inválido en propietario ${idx + 1}`, { id: 'error-propietarios' });
+                    hayPorcentajeInvalido = true;
+                }
+            });
+
+            if (!hayPorcentajeInvalido) {
+                const sumaPorcentajes = propietarios.reduce((acc, curr) => acc + parseFloat(curr.porcentaje || 0), 0);
+                if (Math.abs(sumaPorcentajes - 100) > 0.1) {
+                    nuevosErrores.propietarios = `La suma de porcentajes debe ser exactamente 100% (Actual: ${sumaPorcentajes.toFixed(2)}%)`;
+                    toast.error(`La suma de porcentajes debe ser 100% (Actual: ${sumaPorcentajes.toFixed(2)}%)`, { id: 'error-propietarios' });
+                }
             }
+
             if (!propietarios.some(p => p.es_principal)) {
                 nuevosErrores.propietarios = 'Debe marcar al menos un propietario como principal';
-                toast.error('❌ Debe marcar un propietario como principal');
+                toast.error('Debe marcar un propietario como principal', { id: 'error-propietarios' });
             }
         }
 
@@ -509,12 +535,12 @@ export default function EditarPropiedad() {
         if (datos.tipo_contrato === 'exclusividad') {
             if (!documentos.contrato_exclusividad || documentos.contrato_exclusividad.length === 0) {
                 nuevosErrores.documentos = 'El Contrato de Exclusividad es obligatorio para este tipo de contrato';
-                toast.error('❌ Debes subir el Contrato de Exclusividad');
+                toast.error('Debes subir el Contrato de Exclusividad', { id: 'error-documentos' });
             }
         } else {
             if (!documentos.autorizacion_venta || documentos.autorizacion_venta.length === 0) {
                 nuevosErrores.documentos = 'La Autorización de Venta es obligatoria para contratos abiertos';
-                toast.error('❌ Debes subir la Autorización de Venta');
+                toast.error('Debes subir la Autorización de Venta', { id: 'error-documentos' });
             }
         }
 
@@ -528,7 +554,7 @@ export default function EditarPropiedad() {
         const nuevosErrores = validarFormulario();
         if (Object.keys(nuevosErrores).length > 0) {
             setErrores(nuevosErrores);
-            toast.error('Por favor, corrige los errores en el formulario.');
+            toast.error('Por favor, corrige los errores en el formulario.', { id: 'error-validacion' });
 
             // Scroll automático al primer campo con error
             setTimeout(() => {
@@ -627,7 +653,7 @@ export default function EditarPropiedad() {
                 await Promise.all([...deletePromises, ...uploadPromises]);
             }
 
-            toast.success('✅ Propiedad actualizada correctamente');
+            toast.success('Propiedad actualizada correctamente');
 
             // Actualizar estado inicial para evitar alertas de cambios no guardados
             setInitialDatos(datos);
@@ -638,21 +664,31 @@ export default function EditarPropiedad() {
             }, 1000);
         } catch (error) {
             console.error('Error al actualizar propiedad:', error.response?.data);
-            // Mostrar toast por cada error de campo que venga del backend
+            // Mostrar UN SOLO toast con resumen de errores del backend
             if (error.response?.data?.errores?.length) {
+                const erroresBackend = error.response.data.errores;
                 const nuevosErrores = {};
-                error.response.data.errores.forEach(err => {
+
+                erroresBackend.forEach(err => {
                     // Intentar extraer el nombre del campo del mensaje del backend
                     const match = err.match(/"(\w+)"/);
                     if (match && match[1]) {
                         nuevosErrores[match[1]] = err;
                     }
-                    // Mostrar toast para cada error
-                    toast.error(err);
                 });
+
                 setErrores(nuevosErrores);
+
+                // Toast único con resumen
+                toast.error(
+                    `Se ${erroresBackend.length === 1 ? 'encontró 1 error' : `encontraron ${erroresBackend.length} errores`} en el formulario. Revisa los campos marcados.`,
+                    {
+                        duration: 4000,
+                        id: 'error-backend'
+                    }
+                );
             } else {
-                toast.error(error.response?.data?.mensaje || 'Error al actualizar');
+                toast.error(error.response?.data?.mensaje || 'Error al actualizar', { id: 'error-backend' });
             }
         }
     };
@@ -676,15 +712,36 @@ export default function EditarPropiedad() {
     return (
         <div className="max-w-4xl mx-auto mt-10 mb-20">
             {/* Header Card */}
-            <div className="bg-white shadow-xl rounded-2xl border-t-4 border-orange-500 overflow-hidden mb-8">
-                <div className="bg-gradient-to-r from-gray-700 to-gray-800 p-8 text-center relative overflow-hidden">
-                    <div className="absolute top-0 left-0 w-full h-full bg-white/10 pattern-grid-lg"></div>
-                    <h2 className="text-3xl font-extrabold text-white mb-2 tracking-tight relative z-10">
-                        Editar Propiedad
-                    </h2>
-                    <p className="text-orange-50 relative z-10 opacity-90">
-                        Modifica los datos, gestiona imágenes y actualiza documentos
-                    </p>
+            {/* Header Card Premium */}
+            <div className="bg-white shadow-2xl rounded-2xl overflow-hidden mb-8 transform hover:scale-[1.01] transition-transform duration-300">
+                <div className="relative bg-gradient-to-br from-orange-600 to-orange-500 px-8 py-8">
+                    {/* Decorative Background Elements */}
+                    <div className="absolute top-0 right-0 -mr-8 -mt-8 w-64 h-64 bg-white opacity-10 rounded-full blur-3xl"></div>
+                    <div className="absolute bottom-0 left-0 -ml-8 -mb-8 w-40 h-40 bg-black opacity-5 rounded-full blur-2xl"></div>
+
+                    <div className="relative flex items-center justify-between z-10">
+                        <div className="flex items-center gap-5">
+                            <div className="bg-white/20 backdrop-blur-md p-3 rounded-xl shadow-inner border border-white/30">
+                                <Building2 className="w-8 h-8 text-white" />
+                            </div>
+                            <div>
+                                <h2 className="text-3xl font-extrabold text-white tracking-tight drop-shadow-sm">
+                                    Editar Propiedad
+                                </h2>
+                                <p className="text-orange-100 mt-1 font-medium text-sm flex items-center gap-2">
+                                    <FolderCheck className="w-4 h-4" />
+                                    Gestión integral del inmueble
+                                </p>
+                            </div>
+                        </div>
+                        <div className="hidden md:block text-right">
+                            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 border border-white/20 backdrop-blur-sm text-xs text-white font-medium">
+                                <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span>
+                                Edición Activa
+                            </div>
+                            <p className="text-xs text-orange-100 mt-2 opacity-80">* Campos obligatorios marcados</p>
+                        </div>
+                    </div>
                 </div>
             </div>
 

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
-import NotasInternas from './NotasInternas.jsx';
+
 import Spinner, { ButtonSpinner } from './Spinner';
 
 const HistorialSeguimientos = ({ negociacion, usuario, onSeguimientoCreado }) => {
@@ -70,7 +70,7 @@ const HistorialSeguimientos = ({ negociacion, usuario, onSeguimientoCreado }) =>
                 }
             );
 
-            toast.success('✅ Seguimiento registrado correctamente');
+            toast.success('Seguimiento registrado correctamente');
 
             // Limpiar formulario
             setNuevoSeguimiento({ comentario: '', tipo: 'otro' });
@@ -96,9 +96,21 @@ const HistorialSeguimientos = ({ negociacion, usuario, onSeguimientoCreado }) =>
     };
 
     const canCreateSeguimiento = () => {
-        // Solo el agente responsable puede crear seguimientos
-        return usuario?.rol === 'agente' &&
-            negociacion?.agenteId === usuario?.id;
+        // Permitir si es Admin
+        if (usuario?.rol === 'admin') return true;
+
+        // Permitir si es Agente
+        if (usuario?.rol === 'agente') {
+            // Caso 1: Soy el Agente Comprador (Dueño de la negociación)
+            if (negociacion?.agenteId === usuario?.id) return true;
+
+            // Caso 2: Soy el Agente Captador (Dueño de la propiedad)
+            // Necesitamos verificar negociacion.propiedad.agenteId
+            // NOTA: El objeto negociacion debe incluir la propiedad poblada
+            if (negociacion?.propiedad?.agenteId === usuario?.id) return true;
+        }
+
+        return false;
     };
 
     const formatearFecha = (fecha) => {
@@ -199,6 +211,14 @@ const HistorialSeguimientos = ({ negociacion, usuario, onSeguimientoCreado }) =>
                             <div className="text-xs text-gray-500 mt-1 text-right">
                                 {nuevoSeguimiento.comentario.length}/1000 caracteres
                             </div>
+
+                            <div className="mt-2 bg-amber-50 border border-amber-200 rounded-md p-2 flex gap-2 items-start">
+                                <span className="text-amber-600 mt-0.5 text-xs">⚠️</span>
+                                <p className="text-xs text-amber-800">
+                                    <strong>Importante:</strong> Este registro será <u>permanente y visible</u> para todo el equipo involucrado.
+                                    No podrás editarlo ni eliminarlo después de guardar.
+                                </p>
+                            </div>
                         </div>
 
                         <div className="flex justify-end gap-3">
@@ -280,30 +300,7 @@ const HistorialSeguimientos = ({ negociacion, usuario, onSeguimientoCreado }) =>
                 )}
             </div>
 
-            {/* Mensaje de permisos para administradores */}
-            {usuario?.rol === 'admin' && (
-                <div className="px-6 py-4 bg-blue-50 border-t border-blue-200">
-                    <div className="flex items-center gap-2 text-blue-800 text-sm">
-                        <span className="text-lg">ℹ️</span>
-                        <span>
-                            <strong>Modo Administrador:</strong> Solo puedes visualizar los seguimientos.
-                            Los agentes responsables son los únicos que pueden agregar nuevos seguimientos.
-                        </span>
-                    </div>
-                </div>
-            )}
 
-            {/* Sección de Notas Internas Privadas */}
-            <div className="mt-6">
-                <NotasInternas
-                    negociacion={negociacion}
-                    usuario={usuario}
-                    onNotaCreada={(nota) => {
-                        // Opcional: mostrar notificación o actualizar algo
-                        console.log('Nueva nota interna creada:', nota);
-                    }}
-                />
-            </div>
         </div>
     );
 };
