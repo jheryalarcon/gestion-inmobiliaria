@@ -490,4 +490,8 @@ enum TipoArchivo {
   contrato
   cedula
   otros
+  reserva
+  promesa
+  minuta
+  pago
 }

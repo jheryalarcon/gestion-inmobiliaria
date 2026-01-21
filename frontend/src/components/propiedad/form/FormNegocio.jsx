@@ -449,75 +449,87 @@ export default function FormNegocio({
                         </div>
 
                         {/* COLUMNA DERECHA: AGENTE (Solo Admin) */}
-                        <div className="border-l border-gray-100 pl-8">
-                            {usuario?.rol === 'admin' ? (
-                                <div>
-                                    <label className="block text-sm font-semibold text-gray-700 mb-2">Agente Responsable <span className="text-red-500">*</span></label>
-                                    <p className="text-xs text-gray-500 mb-2">Quien gestionará los leads y visitas de esta propiedad.</p>
+                        {/* COLUMNA DERECHA: AGENTE (Solo visible en Creación - oculto en Edición para no confundir) */}
+                        {!datos.id && (
+                            <div className="border-l border-gray-100 pl-8">
+                                {/* Mostrar Selector SOLO si es Admin Y es Creación (No tiene ID) */}
+                                {usuario?.rol === 'admin' && !datos.id ? (
+                                    <div>
+                                        <label className="block text-sm font-semibold text-gray-700 mb-2">Agente Responsable <span className="text-red-500">*</span></label>
+                                        <p className="text-xs text-gray-500 mb-2">Quien gestionará los leads y visitas de esta propiedad.</p>
 
-                                    <div className="relative" ref={agentRef}>
-                                        <input
-                                            type="text"
-                                            placeholder="Buscar agente..."
-                                            value={getAgenteInputValue()}
-                                            onChange={(e) => {
-                                                setBusquedaAgente(e.target.value);
-                                                setMostrarAgentes(true);
-                                            }}
-                                            onClick={() => {
-                                                setMostrarAgentes(true);
-                                                // Si ya hay uno seleccionado, permitir buscar:
-                                                if (datos.agenteId) {
-                                                    const selected = agentes.find(a => a.id === parseInt(datos.agenteId));
-                                                    setBusquedaAgente(selected ? selected.name : '');
-                                                }
-                                            }}
-                                            className={`w-full border rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-orange-500 bg-white shadow-sm transition ${errores.agenteId ? 'border-red-300' : 'border-gray-300'}`}
-                                        />
-                                        {errores.agenteId && <p className="text-red-600 text-xs mt-1">{errores.agenteId}</p>}
+                                        <div className="relative" ref={agentRef}>
+                                            <input
+                                                type="text"
+                                                placeholder="Buscar agente..."
+                                                value={getAgenteInputValue()}
+                                                onChange={(e) => {
+                                                    setBusquedaAgente(e.target.value);
+                                                    setMostrarAgentes(true);
+                                                }}
+                                                onClick={() => {
+                                                    setMostrarAgentes(true);
+                                                    // Si ya hay uno seleccionado, permitir buscar:
+                                                    if (datos.agenteId) {
+                                                        const selected = agentes.find(a => a.id === parseInt(datos.agenteId));
+                                                        setBusquedaAgente(selected ? selected.name : '');
+                                                    }
+                                                }}
+                                                className={`w-full border rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-orange-500 bg-white shadow-sm transition ${errores.agenteId ? 'border-red-300' : 'border-gray-300'}`}
+                                            />
+                                            {errores.agenteId && <p className="text-red-600 text-xs mt-1">{errores.agenteId}</p>}
 
-                                        {mostrarAgentes && (
-                                            <div className="absolute z-50 w-full bg-white border border-gray-200 rounded-lg shadow-xl mt-1 max-h-60 overflow-y-auto">
-                                                {agentesFiltrados.length > 0 ? (
-                                                    agentesFiltrados.map(agente => (
-                                                        <div
-                                                            key={agente.id}
-                                                            onClick={() => {
-                                                                handleChange({ target: { name: 'agenteId', value: agente.id } });
-                                                                setMostrarAgentes(false);
-                                                                setBusquedaAgente('');
-                                                            }}
-                                                            className={`px-4 py-3 hover:bg-orange-50 cursor-pointer border-b last:border-0 group transition-colors ${parseInt(datos.agenteId) === agente.id ? 'bg-orange-50' : ''}`}
-                                                        >
-                                                            <div className="flex justify-between items-start">
-                                                                <p className={`font-semibold text-sm ${usuario?.id === agente.id ? 'text-orange-700' : 'text-gray-800'}`}>
-                                                                    {agente.name}
-                                                                    {usuario?.id === agente.id && <span className="ml-1 text-xs font-normal text-orange-600 bg-orange-100 px-1.5 py-0.5 rounded-full">(Tú)</span>}
-                                                                </p>
+                                            {mostrarAgentes && (
+                                                <div className="absolute z-50 w-full bg-white border border-gray-200 rounded-lg shadow-xl mt-1 max-h-60 overflow-y-auto">
+                                                    {agentesFiltrados.length > 0 ? (
+                                                        agentesFiltrados.map(agente => (
+                                                            <div
+                                                                key={agente.id}
+                                                                onClick={() => {
+                                                                    handleChange({ target: { name: 'agenteId', value: agente.id } });
+                                                                    setMostrarAgentes(false);
+                                                                    setBusquedaAgente('');
+                                                                }}
+                                                                className={`px-4 py-3 hover:bg-orange-50 cursor-pointer border-b last:border-0 group transition-colors ${parseInt(datos.agenteId) === agente.id ? 'bg-orange-50' : ''}`}
+                                                            >
+                                                                <div className="flex justify-between items-start">
+                                                                    <p className={`font-semibold text-sm ${usuario?.id === agente.id ? 'text-orange-700' : 'text-gray-800'}`}>
+                                                                        {agente.name}
+                                                                        {usuario?.id === agente.id && <span className="ml-1 text-xs font-normal text-orange-600 bg-orange-100 px-1.5 py-0.5 rounded-full">(Tú)</span>}
+                                                                    </p>
+                                                                </div>
+                                                                <p className="text-xs text-gray-500 mt-0.5">{agente.email}</p>
+                                                                <div className="flex gap-1 mt-1">
+                                                                    <span className={`text-[10px] px-1.5 py-0.5 rounded uppercase ${usuario?.id === agente.id ? 'bg-orange-100 text-orange-700' : 'bg-gray-100 text-gray-500'}`}>
+                                                                        {agente.rol}
+                                                                    </span>
+                                                                </div>
                                                             </div>
-                                                            <p className="text-xs text-gray-500 mt-0.5">{agente.email}</p>
-                                                            <div className="flex gap-1 mt-1">
-                                                                <span className={`text-[10px] px-1.5 py-0.5 rounded uppercase ${usuario?.id === agente.id ? 'bg-orange-100 text-orange-700' : 'bg-gray-100 text-gray-500'}`}>
-                                                                    {agente.rol}
-                                                                </span>
-                                                            </div>
-                                                        </div>
-                                                    ))
-                                                ) : (
-                                                    <div className="px-4 py-3 text-gray-500 text-sm text-center">No se encontraron agentes</div>
-                                                )}
-                                            </div>
-                                        )}
+                                                        ))
+                                                    ) : (
+                                                        <div className="px-4 py-3 text-gray-500 text-sm text-center">No se encontraron agentes</div>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+
                                     </div>
-
-                                </div>
-                            ) : (
-                                <div className="h-full flex flex-col justify-center items-center text-gray-400 text-sm italic bg-gray-50 rounded-lg p-4">
-                                    <p>Propiedad asignada a:</p>
-                                    <p className="font-semibold text-gray-600">{usuario.nombre || usuario.email}</p>
-                                </div>
-                            )}
-                        </div>
+                                ) : (
+                                    <div className="h-full flex flex-col justify-center items-center text-gray-400 text-sm italic bg-gray-50 rounded-lg p-4">
+                                        <p>Propiedad asignada a:</p>
+                                        <p className="font-semibold text-gray-600">
+                                            {datos.agenteId
+                                                ? (agentes.find(a => a.id == datos.agenteId) || datos.agente || { name: 'Desconocido' }).name
+                                                : (usuario.nombre || usuario.email)
+                                            }
+                                        </p>
+                                        <span className="text-xs text-orange-400 mt-1 not-italic border border-orange-200 px-2 py-0.5 rounded-full bg-orange-50">
+                                            {datos.id ? 'No editable' : 'Asignación Automática'}
+                                        </span>
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>

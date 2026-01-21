@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { jwtDecode } from 'jwt-decode';
 import FiltroPropiedadesAdmin from '../components/FiltroPropiedadesAdmin';
 import CardPropiedad from '../components/CardPropiedad';
 import ModalConfirmarEliminar from '../components/ModalConfirmarEliminar';
+import { SearchX, LayoutGrid, List } from 'lucide-react';
 
 export default function PanelPropiedades() {
+    const navigate = useNavigate();
     const [usuario, setUsuario] = useState(null);
     const [searchParams, setSearchParams] = useSearchParams();
     const [propiedades, setPropiedades] = useState([]);
@@ -18,6 +20,7 @@ export default function PanelPropiedades() {
         estado: searchParams.get('estado') || '',
         transaccion: searchParams.get('transaccion') || '',
         tipo: searchParams.get('tipo') || '',
+        ubicacion: searchParams.get('ubicacion') || '',
         ciudad: searchParams.get('ciudad') || '',
         precioMin: searchParams.get('precioMin') || '',
         precioMax: searchParams.get('precioMax') || '',
@@ -118,7 +121,8 @@ export default function PanelPropiedades() {
                     ...(filtros.estado && { estado: filtros.estado }),
                     ...(filtros.transaccion && { transaccion: filtros.transaccion }),
                     ...(filtros.tipo && { tipo: filtros.tipo }),
-                    ...(filtros.ciudad && { ciudad: filtros.ciudad }),
+                    ...(filtros.ubicacion && { ubicacion: filtros.ubicacion }), // Nuevo filtro de ubicación
+                    ...(filtros.ciudad && { ciudad: filtros.ciudad }), // Mantenemos legacy por si acaso
                     ...(filtros.precioMin && { precioMin: filtros.precioMin }),
                     ...(filtros.precioMax && { precioMax: filtros.precioMax }),
                     ...(filtros.habitaciones && { habitaciones: filtros.habitaciones }),
@@ -311,6 +315,27 @@ export default function PanelPropiedades() {
                                 </select>
                             </div>
                         )}
+
+                        {/* SELECTOR DE ORDENAMIENTO (Movido desde Filtros) */}
+                        <div className="relative">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                                </svg>
+                            </div>
+                            <select
+                                value={filtros.orden || 'recientes'}
+                                onChange={(e) => setFiltros(prev => ({ ...prev, orden: e.target.value }))}
+                                className="pl-9 pr-4 py-2 bg-white border border-gray-300 rounded-lg text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent appearance-none cursor-pointer hover:border-orange-300 transition-colors"
+                            >
+                                <option value="recientes">Más recientes</option>
+                                <option value="antiguas">Más antiguas</option>
+                                <option value="precio_asc">Precio: Bajo a Alto</option>
+                                <option value="precio_desc">Precio: Alto a Bajo</option>
+                                <option value="titulo_asc">A-Z</option>
+                                <option value="titulo_desc">Z-A</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
 
@@ -341,14 +366,49 @@ export default function PanelPropiedades() {
                                 <table className="min-w-full divide-y divide-gray-200">
                                     <thead className="bg-gray-50">
                                         <tr>
-                                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Propiedad</th>
+                                            <th
+                                                scope="col"
+                                                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 hover:text-orange-600 transition-colors group select-none"
+                                                onClick={() => setFiltros(prev => ({ ...prev, orden: prev.orden === 'titulo_asc' ? 'titulo_desc' : 'titulo_asc' }))}
+                                                title="Ordenar por Título A-Z / Z-A"
+                                            >
+                                                <div className="flex items-center gap-1">
+                                                    Propiedad
+                                                    {filtros.orden === 'titulo_asc' && <span className="text-orange-500">▲</span>}
+                                                    {filtros.orden === 'titulo_desc' && <span className="text-orange-500">▼</span>}
+                                                    {!filtros.orden.includes('titulo') && <span className="text-gray-300 opacity-0 group-hover:opacity-100">↕</span>}
+                                                </div>
+                                            </th>
                                             <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Propietario</th>
                                             <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Características</th>
                                             <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ubicación</th>
-                                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Precio</th>
+                                            <th
+                                                scope="col"
+                                                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 hover:text-orange-600 transition-colors group select-none"
+                                                onClick={() => setFiltros(prev => ({ ...prev, orden: prev.orden === 'precio_asc' ? 'precio_desc' : 'precio_asc' }))}
+                                                title="Ordenar por Precio"
+                                            >
+                                                <div className="flex items-center gap-1">
+                                                    Precio
+                                                    {filtros.orden === 'precio_asc' && <span className="text-orange-500">▲</span>}
+                                                    {filtros.orden === 'precio_desc' && <span className="text-orange-500">▼</span>}
+                                                    {!filtros.orden.includes('precio') && <span className="text-gray-300 opacity-0 group-hover:opacity-100">↕</span>}
+                                                </div>
+                                            </th>
                                             <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
                                             <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Negociaciones</th>
-                                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha</th>
+                                            <th
+                                                scope="col"
+                                                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 hover:text-orange-600 transition-colors group select-none"
+                                                onClick={() => setFiltros(prev => ({ ...prev, orden: prev.orden === 'antiguas' ? 'recientes' : 'antiguas' }))}
+                                                title="Ordenar por Fecha de Creación"
+                                            >
+                                                <div className="flex items-center gap-1">
+                                                    Fecha
+                                                    {filtros.orden === 'antiguas' && <span className="text-orange-500">▲</span>}
+                                                    {(filtros.orden === 'recientes' || !filtros.orden) && <span className="text-orange-500">▼</span>}
+                                                </div>
+                                            </th>
                                             <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
                                         </tr>
                                     </thead>
@@ -475,7 +535,7 @@ export default function PanelPropiedades() {
                                                         onClick={(e) => {
                                                             e.stopPropagation();
                                                             if (prop.negociaciones && prop.negociaciones.length > 0) {
-                                                                window.location.href = `${usuario?.rol === 'admin' ? '/admin' : '/agente'}/panel-negociaciones?propiedadId=${prop.id}`;
+                                                                navigate(`${usuario?.rol === 'admin' ? '/admin' : '/agente'}/panel-negociaciones?propiedadId=${prop.id}`);
                                                             }
                                                         }}
                                                         title={prop.negociaciones && prop.negociaciones.length > 0 ? 'Click para ver negociaciones' : ''}
@@ -585,10 +645,10 @@ export default function PanelPropiedades() {
                     )}
                 </>
             ) : (
-                <div className="text-center py-12 bg-white rounded-lg shadow border border-gray-200 mt-6">
-                    <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                        <path vectorEffect="non-scaling-stroke" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
-                    </svg>
+                <div className="text-center py-16 bg-white rounded-lg shadow-sm border border-gray-100 mt-6 flex flex-col items-center justify-center">
+                    <div className="bg-gray-50 p-4 rounded-full mb-4">
+                        <SearchX className="h-10 w-10 text-gray-400" />
+                    </div>
                     <h3 className="mt-2 text-sm font-medium text-gray-900">No se encontraron propiedades</h3>
                     <p className="mt-1 text-sm text-gray-500">{mensaje || 'Intenta ajustar los filtros de búsqueda.'}</p>
                 </div>

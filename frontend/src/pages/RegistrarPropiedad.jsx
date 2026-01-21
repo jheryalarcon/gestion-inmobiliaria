@@ -581,7 +581,7 @@ export default function RegistrarPropiedad() {
                     await Promise.all(uploadPromises);
                 }
 
-                toast.success('🏠 Propiedad y documentos registrados correctamente', { duration: 2000 });
+                toast.success('Propiedad y documentos registrados correctamente', { duration: 2000 });
                 isSaved.current = true; // Marcar como guardado para permitir navegación
                 setTimeout(() => {
                     navigate(usuario.rol === 'admin' ? '/admin/panel-propiedades' : '/agente/panel-propiedades');

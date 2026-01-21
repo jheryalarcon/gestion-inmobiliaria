@@ -12,11 +12,11 @@ export default async function verificarToken(req, res, next) {
 
     try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        
+
         // Verificar que el usuario existe y está activo
         const usuario = await prisma.usuario.findUnique({
             where: { id: decoded.id },
-            select: { id: true, rol: true, activo: true }
+            select: { id: true, rol: true, activo: true, name: true, email: true }
         });
 
         if (!usuario) {
@@ -24,14 +24,16 @@ export default async function verificarToken(req, res, next) {
         }
 
         if (!usuario.activo) {
-            return res.status(403).json({ 
-                mensaje: 'Tu cuenta está inactiva, contacta al administrador' 
+            return res.status(403).json({
+                mensaje: 'Tu cuenta está inactiva, contacta al administrador'
             });
         }
 
         req.usuario = {
             id: usuario.id,
-            rol: usuario.rol
+            rol: usuario.rol,
+            name: usuario.name,
+            email: usuario.email
         };
         next();
     } catch (err) {

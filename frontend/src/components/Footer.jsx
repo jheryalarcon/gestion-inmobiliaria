@@ -9,7 +9,7 @@ export default function Footer() {
                     <div className="col-span-1 md:col-span-2">
                         <h3 className="text-2xl font-bold text-blue-400 mb-4">MiInmobiliaria</h3>
                         <p className="text-gray-300 mb-4">
-                            Tu socio de confianza para encontrar la propiedad perfecta. 
+                            Tu socio de confianza para encontrar la propiedad perfecta.
                             Ofrecemos una amplia selección de propiedades en las mejores ubicaciones.
                         </p>
                         <div className="flex space-x-4">
@@ -59,7 +59,8 @@ export default function Footer() {
                     <div>
                         <h4 className="text-lg font-semibold mb-4">Contacto</h4>
                         <ul className="space-y-2 text-gray-300">
-                            <li>📍 Quito, Ecuador</li>
+                            <li>📍 Av. Abraham Calazacón y calle Pallatanga, frente a Secap</li>
+                            <li>📍 Santo Domingo, Ecuador</li>
                             <li>📞 +593 2 123 4567</li>
                             <li>✉️ info@miinmobiliaria.com</li>
                             <li>🕒 Lun - Vie: 9:00 - 18:00</li>

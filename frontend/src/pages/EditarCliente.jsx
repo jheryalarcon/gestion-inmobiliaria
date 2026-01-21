@@ -114,7 +114,20 @@ export default function EditarCliente() {
             docs.forEach(doc => {
                 const key = mapDocTypeToKey(doc.tipo);
                 if (organized[key]) {
-                    organized[key].push(doc);
+                    // Asegurar que el nombre tenga extensión
+                    let finalName = doc.nombre;
+                    if (doc.url) {
+                        const extension = doc.url.split('.').pop();
+                        const nameHasExtension = doc.nombre.toLowerCase().endsWith('.' + extension.toLowerCase());
+                        if (!nameHasExtension && extension) {
+                            finalName = `${doc.nombre}.${extension}`;
+                        }
+                    }
+
+                    organized[key].push({
+                        ...doc,
+                        name: finalName // Normalizar propiedad name para DocumentManager
+                    });
                 }
             });
         }
@@ -718,62 +731,93 @@ export default function EditarCliente() {
                         {/* INFORMACIÓN ADICIONAL */}
                         <section>
                             <div className="space-y-6">
-                                {usuario?.rol === 'admin' ? (
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1.5">Agente asignado <span className="text-[10px] uppercase bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded font-bold ml-1">Admin</span></label>
-                                        <div className="relative" ref={agentRef}>
+                                {/* AGENTE ASIGNADO - VISIBLE PARA ADMIN O SI ES PROSPECTO */}
+                                {(usuario?.rol === 'admin' || cliente?.tipo_cliente === 'prospecto') && (
+                                    <div ref={agentRef}>
+                                        <label className="block text-sm font-bold text-gray-800 mb-2">
+                                            Agente Responsable
+                                            {cliente?.tipo_cliente === 'prospecto' && usuario?.rol !== 'admin' && (
+                                                <span className="ml-2 text-xs font-normal text-green-600 bg-green-50 px-2 py-0.5 rounded-full border border-green-100">
+                                                    Editable (Prospecto)
+                                                </span>
+                                            )}
+                                        </label>
+                                        <div className="relative">
+                                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                                <User className="w-5 h-5 text-gray-400" />
+                                            </div>
                                             <input
                                                 type="text"
+                                                className="w-full pl-10 pr-10 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-shadow"
                                                 placeholder="Buscar agente..."
                                                 value={getAgenteInputValue()}
                                                 onChange={(e) => {
                                                     setBusquedaAgente(e.target.value);
                                                     setMostrarAgentes(true);
-                                                }}
-                                                onClick={() => {
-                                                    setMostrarAgentes(true);
-                                                    if (datos.agenteId) {
-                                                        const selected = agentes.find(a => a.id === parseInt(datos.agenteId));
-                                                        setBusquedaAgente(selected ? selected.name : '');
+                                                    // Si borra todo, limpiar selección
+                                                    if (e.target.value === '') {
+                                                        handleChange({ target: { name: 'agenteId', value: '' } });
                                                     }
                                                 }}
-                                                className={`w-full border rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-orange-500/20 bg-white transition-colors border-gray-300 focus:border-orange-500`}
+                                                onFocus={() => setMostrarAgentes(true)}
                                             />
+                                            {datos.agenteId && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        handleChange({ target: { name: 'agenteId', value: '' } });
+                                                        setBusquedaAgente('');
+                                                    }}
+                                                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-red-500"
+                                                >
+                                                    <X className="w-4 h-4" />
+                                                </button>
+                                            )}
+
                                             {mostrarAgentes && (
-                                                <div className="absolute z-50 w-full bg-white border border-gray-200 rounded-lg shadow-xl mt-1 max-h-60 overflow-y-auto">
+                                                <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
                                                     {agentesFiltrados.length > 0 ? (
-                                                        agentesFiltrados.map(agente => (
+                                                        agentesFiltrados.map((agente) => (
                                                             <div
                                                                 key={agente.id}
+                                                                className="px-4 py-3 hover:bg-orange-50 cursor-pointer transition-colors border-b border-gray-50 last:border-0"
                                                                 onClick={() => {
-                                                                    setDatos(prev => ({ ...prev, agenteId: agente.id.toString() }));
+                                                                    handleChange({ target: { name: 'agenteId', value: agente.id } });
                                                                     setMostrarAgentes(false);
                                                                     setBusquedaAgente('');
                                                                 }}
-                                                                className={`px-4 py-3 hover:bg-orange-50 cursor-pointer border-b last:border-0 group transition-colors ${datos.agenteId === agente.id.toString() ? 'bg-orange-50' : ''}`}
                                                             >
-                                                                <div className="flex justify-between items-start">
-                                                                    <p className={`font-semibold text-sm ${usuario?.id === agente.id ? 'text-orange-700' : 'text-gray-800'}`}>
-                                                                        {agente.name}
-                                                                    </p>
-                                                                </div>
-                                                                <p className="text-xs text-gray-500 mt-0.5">{agente.email}</p>
+                                                                <div className="font-medium text-gray-800">{agente.name}</div>
+                                                                <div className="text-xs text-gray-500">{agente.email}</div>
                                                             </div>
                                                         ))
                                                     ) : (
-                                                        <div className="px-4 py-3 text-gray-500 text-sm text-center">No se encontraron agentes</div>
+                                                        <div className="px-4 py-3 text-sm text-gray-500 text-center">
+                                                            No se encontraron agentes
+                                                        </div>
                                                     )}
                                                 </div>
                                             )}
                                         </div>
+                                        <p className="text-xs text-gray-500 mt-1.5 ml-1">
+                                            {usuario?.rol === 'admin'
+                                                ? 'Como administrador, puedes reasignar este cliente.'
+                                                : 'Puedes reasignar este cliente mientras sea un Prospecto.'}
+                                        </p>
                                     </div>
-                                ) : (
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1.5">Agente asignado</label>
-                                        <div className="w-full border border-gray-200 rounded-lg px-4 py-2.5 bg-gray-50 text-gray-600 flex items-center justify-between">
-                                            <span>{cliente && cliente.agente ? `${cliente.agente.name} (${cliente.agente.email})` : 'Sin asignar'}</span>
-                                            <span className="text-xs text-gray-400 italic">No editable</span>
+                                )}
+
+                                {/* VISUALIZACIÓN DE SOLO LECTURA SI NO ES PROSPECTO Y NO ES ADMIN */}
+                                {usuario?.rol !== 'admin' && cliente?.tipo_cliente !== 'prospecto' && (
+                                    <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                                        <label className="block text-sm font-bold text-gray-700 mb-1">Agente Responsable</label>
+                                        <div className="flex items-center gap-2 text-gray-600">
+                                            <User className="w-4 h-4" />
+                                            <span>{getAgenteInputValue() || 'Sin asignar'}</span>
                                         </div>
+                                        <p className="text-xs text-gray-400 mt-2">
+                                            Solo el administrador puede reasignar clientes consolidados.
+                                        </p>
                                     </div>
                                 )}
 

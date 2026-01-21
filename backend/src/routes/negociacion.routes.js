@@ -5,6 +5,7 @@ import {
     obtenerNegociacion,
     actualizarNegociacion,
     desactivarNegociacion,
+    restaurarNegociacion,
     obtenerEstadisticas
 } from '../controllers/negociacion.controller.js';
 import verificarToken from '../middlewares/verificarToken.js';
@@ -45,5 +46,6 @@ router.get('/estadisticas', verificarToken, esAgenteOAdmin, obtenerEstadisticas)
 router.get('/:id', verificarToken, esAgenteOAdmin, obtenerNegociacion);
 router.put('/:id', verificarToken, esAgenteOAdmin, validarActualizarNegociacion, actualizarNegociacion);
 router.patch('/:id/desactivar', verificarToken, esAgenteOAdmin, desactivarNegociacion);
+router.patch('/:id/restaurar', verificarToken, esAgenteOAdmin, restaurarNegociacion);
 
 export default router;

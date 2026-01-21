@@ -4,7 +4,7 @@ import {
     obtenerClientes,
     obtenerCliente,
     actualizarCliente,
-    eliminarCliente,
+
     obtenerEstadisticas,
     desactivarCliente,
     reactivarCliente,
@@ -33,7 +33,7 @@ router.get('/', verificarToken, esAgenteOAdmin, obtenerClientes);
 router.get('/estadisticas', verificarToken, esAgenteOAdmin, obtenerEstadisticas);
 router.get('/:id', verificarToken, esAgenteOAdmin, obtenerCliente);
 router.put('/:id', verificarToken, esAgenteOAdmin, actualizarCliente);
-router.delete('/:id', verificarToken, esAgenteOAdmin, eliminarCliente);
+
 
 // Rutas para desactivar/reactivar clientes
 router.patch('/:id/desactivar', verificarToken, esAgenteOAdmin, desactivarCliente);

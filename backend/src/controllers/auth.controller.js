@@ -112,14 +112,30 @@ export const register = async (req, res) => {
                 // CASO A: El cliente ya existía (creado por un agente)
                 // Lo vinculamos al nuevo usuario para que vea su historia
                 console.log(`🔗 Vinculando Usuario ${nuevoUsuario.id} con Cliente existente ${clienteExistente.id}`);
-                await tx.cliente.update({
-                    where: { id: clienteExistente.id },
-                    data: {
-                        // Solo actualizamos si no tiene usuario asignado, o forzamos la asignación
-                        // Aquí asumimos que el email manda.
-                        // Opcional: Podríamos validar si clienteExistente.usuarioId ya existe (conflicto raro)
-                    }
-                });
+
+                const datosActualizar = {};
+
+                // 1. Reactivación automática si estaba inactivo
+                if (!clienteExistente.activo) {
+                    console.log(` - Reactivando cliente ${clienteExistente.email} por registro web.`);
+                    datosActualizar.activo = true;
+                    datosActualizar.fecha_desactivacion = null;
+                    datosActualizar.desactivado_por = null;
+                }
+
+                // 2. Enriquecimiento de teléfono si falta
+                if (telefono && (!clienteExistente.telefono || clienteExistente.telefono === 'Sin teléfono')) {
+                    console.log(` - Completando teléfono para ${clienteExistente.email}.`);
+                    datosActualizar.telefono = telefono;
+                }
+
+                // Solo si hay algo que actualizar
+                if (Object.keys(datosActualizar).length > 0) {
+                    await tx.cliente.update({
+                        where: { id: clienteExistente.id },
+                        data: datosActualizar
+                    });
+                }
 
                 // NOTA: Prisma no permite actualizar campos que no están en el modelo si "usuarioId" no es FK directa en Cliente.
                 // Revisando schema: Cliente NO tiene campo "usuarioId" explícito en la definición que vi,

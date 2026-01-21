@@ -53,27 +53,26 @@ export default function ImageUploader({
 
         try {
             for (const file of files) {
-                // Solo comprimimos si es imagen
-                if (file.type.startsWith('image/')) {
-                    try {
-                        const compressedFile = await imageCompression(file, compressionOptions);
-                        // Truco para preservar el nombre original pero con extensión .webp si cambió
-                        const newName = file.name.replace(/\.[^/.]+$/, "") + ".webp";
-                        const finalFile = new File([compressedFile], newName, { type: compressedFile.type });
-                        validFiles.push(finalFile);
-                    } catch (error) {
-                        console.error("Error comprimiendo:", error);
-                        // Si falla la compresión, intentamos subir el original si no es gigante
-                        if (file.size <= maxSizeMB * 1024 * 1024) {
-                            validFiles.push(file);
-                        } else {
-                            toast.error(`No se pudo procesar la imagen ${file.name}`);
-                        }
-                    }
-                } else {
-                    // Si no es imagen (ej pdf en otro contexto), validamos tamaño normal
+                // Validar que solo sean imágenes
+                if (!file.type.startsWith('image/')) {
+                    toast.error(`El archivo "${file.name}" no es una imagen válida. Solo se permiten JPG, PNG, WEBP.`, { duration: 4000 });
+                    continue; // Saltar este archivo
+                }
+
+                // Comprimir imagen
+                try {
+                    const compressedFile = await imageCompression(file, compressionOptions);
+                    // Truco para preservar el nombre original pero con extensión .webp si cambió
+                    const newName = file.name.replace(/\.[^/.]+$/, "") + ".webp";
+                    const finalFile = new File([compressedFile], newName, { type: compressedFile.type });
+                    validFiles.push(finalFile);
+                } catch (error) {
+                    console.error("Error comprimiendo:", error);
+                    // Si falla la compresión, intentamos subir el original si no es gigante
                     if (file.size <= maxSizeMB * 1024 * 1024) {
                         validFiles.push(file);
+                    } else {
+                        toast.error(`No se pudo procesar la imagen ${file.name}`);
                     }
                 }
             }

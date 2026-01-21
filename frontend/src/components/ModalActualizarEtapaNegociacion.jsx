@@ -108,16 +108,36 @@ const ModalActualizarEtapaNegociacion = ({
                                 required
                                 disabled={loading}
                             >
-                                {etapasValidas.map(etapaOption => (
-                                    <option
-                                        key={etapaOption.value}
-                                        value={etapaOption.value}
-                                        disabled={etapaOption.value === negociacion?.etapa}
-                                    >
-                                        {etapaOption.label} - {etapaOption.description}
-                                    </option>
-                                ))}
+                                {etapasValidas.map(etapaOption => {
+                                    // 🔒 LOGICA DE PERMISOS VISUALES
+                                    // Si NO es Admin Y NO es el Agente Captador (Dueño de la Propiedad)
+                                    // Entonces NO puede seleccionar 'cierre' ni 'finalizada'
+                                    const esAdmin = usuario?.rol === 'admin';
+                                    const esCaptador = negociacion?.propiedad?.agenteId === usuario?.id;
+                                    const esEtapaRestringida = ['cierre', 'finalizada'].includes(etapaOption.value);
+
+                                    const opcionDeshabilitada = esEtapaRestringida && !esAdmin && !esCaptador;
+
+                                    return (
+                                        <option
+                                            key={etapaOption.value}
+                                            value={etapaOption.value}
+                                            disabled={etapaOption.value === negociacion?.etapa || opcionDeshabilitada}
+                                            className={opcionDeshabilitada ? 'text-gray-400 bg-gray-100' : ''}
+                                        >
+                                            {etapaOption.label}
+                                            {opcionDeshabilitada ? ' (Solo Agente Captador)' : ` - ${etapaOption.description}`}
+                                        </option>
+                                    );
+                                })}
                             </select>
+
+                            {/* Mensaje de Restricción */}
+                            {usuario?.rol !== 'admin' && negociacion?.propiedad?.agenteId !== usuario?.id && (
+                                <div className="mt-2 text-xs bg-orange-50 text-orange-800 p-2 rounded border border-orange-200">
+                                    <p>⛔ <strong>Solo Agente Captador o Admin</strong> pueden Cerrar/Finalizar. Contáctalos para completar este paso.</p>
+                                </div>
+                            )}
                         </div>
 
                         {/* Etapa seleccionada */}

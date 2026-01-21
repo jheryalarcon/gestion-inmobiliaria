@@ -378,24 +378,45 @@ export default function RegistrarCliente() {
 
                 // 2. Mapear errores a campos específicos
                 const nuevosErrores = {};
+                const erroresGenerales = [];
 
                 erroresBackend.forEach(err => {
                     const errorLower = err.toLowerCase();
+                    let field = null;
 
                     if (errorLower.includes('email') || errorLower.includes('correo')) {
-                        nuevosErrores.email = err;
+                        field = 'email';
                     } else if (errorLower.includes('cédula') || errorLower.includes('ruc')) {
-                        nuevosErrores.cedula = err;
+                        field = 'cedula';
                     } else if (errorLower.includes('teléfono') || errorLower.includes('telefono')) {
-                        nuevosErrores.telefono = err;
+                        field = 'telefono';
                     } else if (errorLower.includes('nombre')) {
-                        nuevosErrores.nombre = err;
+                        field = 'nombre';
                     } else if (errorLower.includes('agente')) {
-                        nuevosErrores.agenteId = err;
+                        field = 'agenteId';
                     } else if (errorLower.includes('tipo')) {
-                        nuevosErrores.tipo_cliente = err;
+                        field = 'tipo_cliente';
+                    } else if (errorLower.includes('observacion')) {
+                        field = 'observaciones';
+                    } else {
+                        erroresGenerales.push(err);
+                    }
+
+                    if (field) {
+                        if (nuevosErrores[field]) {
+                            nuevosErrores[field] += `. ${err}`;
+                        } else {
+                            nuevosErrores[field] = err;
+                        }
                     }
                 });
+
+                // Agregar errores generales al toast o a un campo visible si es crítico
+                if (erroresGenerales.length > 0) {
+                    // Si hay errores no mapeados, mostrarlos en el toast principal de forma persistente o agregarlos como 'general'
+                    const msgGeneral = erroresGenerales.join('. ');
+                    toast.error(`Error: ${msgGeneral}`, { duration: 6000 });
+                }
 
                 setErrores(nuevosErrores);
 
@@ -403,12 +424,19 @@ export default function RegistrarCliente() {
                 setTimeout(() => {
                     const primerCampoConError = Object.keys(nuevosErrores)[0];
                     if (primerCampoConError) {
-                        const elemento = document.querySelector(`[name="${primerCampoConError}"]`);
-                        elemento?.scrollIntoView({
-                            behavior: 'smooth',
-                            block: 'center'
-                        });
-                        elemento?.focus();
+                        const selector = `[name="${primerCampoConError}"]`;
+                        // Intentar encontrar el input o el select o el div contenedor si es necesario
+                        const elemento = document.querySelector(selector) ||
+                            document.querySelector(`${selector} select`) ||
+                            document.querySelector(`${selector} input`);
+
+                        if (elemento) {
+                            elemento.scrollIntoView({
+                                behavior: 'smooth',
+                                block: 'center'
+                            });
+                            elemento.focus();
+                        }
                     }
                 }, 100);
             } else {

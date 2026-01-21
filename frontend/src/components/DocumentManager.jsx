@@ -1,6 +1,6 @@
 import React from 'react';
 import * as Accordion from '@radix-ui/react-accordion';
-import { ChevronDown, FileText, Upload, Trash2, CheckCircle, AlertCircle, IdCard, Scale, Handshake, ScrollText, Building2, Zap } from 'lucide-react';
+import { ChevronDown, FileText, Upload, Trash2, CheckCircle, AlertCircle, IdCard, Scale, Handshake, ScrollText, Building2, Zap, Download } from 'lucide-react';
 
 const DocumentRow = ({ label, files, onUpload, onDelete, required = false, accept = ".pdf,.jpg,.png", error = false }) => {
     const fileInputRef = React.useRef(null);
@@ -41,6 +41,18 @@ const DocumentRow = ({ label, files, onUpload, onDelete, required = false, accep
                                 {files[0].name} {files.length > 1 && `+${files.length - 1}`}
                             </span>
                         </div>
+
+                        {files[0].url && (
+                            <a
+                                href={`http://localhost:3000${files[0].url}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="p-1.5 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-full transition-colors"
+                                title="Descargar"
+                            >
+                                <Download className="w-4 h-4" />
+                            </a>
+                        )}
 
                         <button
                             type="button"

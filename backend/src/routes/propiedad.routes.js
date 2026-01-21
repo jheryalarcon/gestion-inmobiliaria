@@ -12,7 +12,8 @@ import {
     obtenerPropiedadesParaNegociaciones,
     obtenerPropiedadesRelacionadas,
     obtenerRecomendaciones,
-    obtenerCodigoPreview
+    obtenerCodigoPreview,
+    obtenerMetadataFiltros
 } from '../controllers/propiedad.controller.js';
 import verificarToken from '../middlewares/verificarToken.js';
 import esPropietarioOAdmin from '../middlewares/esPropietarioOAdmin.js';
@@ -39,10 +40,11 @@ router.post(
 );
 
 router.get('/', verificarToken, obtenerPropiedades);
-// 🏠 NUEVA RUTA: Propiedades para negociaciones (solo disponibles)
+// NUEVA RUTA: Propiedades para negociaciones (solo disponibles)
 router.get('/negociaciones/disponibles', verificarToken, obtenerPropiedadesParaNegociaciones);
-// 🎯 RUTA: Recomendaciones basadas en favoritos (requiere autenticación)
+// RUTA: Recomendaciones basadas en favoritos (requiere autenticación)
 router.get('/recomendaciones', verificarToken, obtenerRecomendaciones);
+router.get('/filtros-metadata', verificarToken, obtenerMetadataFiltros); // NUEVA RUTA
 router.get('/preview-codigo', verificarToken, obtenerCodigoPreview);
 router.get('/:id', verificarToken, obtenerPropiedadPorId);
 router.put('/:id', verificarToken, esPropietarioOAdmin, upload.array('imagenes', 15), optimizarImagen, actualizarPropiedad);

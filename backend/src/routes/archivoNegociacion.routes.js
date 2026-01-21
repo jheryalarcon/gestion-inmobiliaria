@@ -15,7 +15,17 @@ const router = express.Router();
 router.use(verificarToken);
 
 // Subir archivo adjunto (solo agente responsable o admin)
-router.post('/subir', esAgenteOAdmin, uploadNegociacion.single('archivo'), subirArchivo);
+router.post('/subir', esAgenteOAdmin, (req, res, next) => {
+    uploadNegociacion.single('archivo')(req, res, (err) => {
+        if (err) {
+            // Multer errors (File size, file type, etc)
+            return res.status(400).json({
+                error: err.message || 'Error al subir el archivo'
+            });
+        }
+        next();
+    });
+}, subirArchivo);
 
 // Obtener archivos de una negociación (agente responsable o admin)
 router.get('/negociacion/:negociacionId', esAgenteOAdmin, obtenerArchivos);

@@ -1,7 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
-// ✅ OBTENER SEGUIMIENTOS DE UNA NEGOCIACIÓN
+// OBTENER SEGUIMIENTOS DE UNA NEGOCIACIÓN
 const obtenerSeguimientos = async (req, res) => {
     try {
         const { negociacionId } = req.params;

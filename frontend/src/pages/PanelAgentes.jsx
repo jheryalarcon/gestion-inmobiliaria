@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { jwtDecode } from 'jwt-decode';
-import { UserPlus, Search, Filter, RotateCw, Edit, Trash2, CheckCircle } from 'lucide-react';
+import { UserPlus, Search, Filter, RotateCw, Edit, Trash2 } from 'lucide-react';
 import { PageSpinner } from '../components/Spinner';
 
 export default function PanelAgentes() {
@@ -355,7 +355,7 @@ export default function PanelAgentes() {
                                 name="search"
                                 value={searchInput}
                                 onChange={(e) => setSearchInput(e.target.value)}
-                                placeholder="Nombre o email..."
+                                placeholder="Nombre, email o teléfono..."
                                 className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                             />
                             <Search className="w-4 h-4 text-gray-400 absolute left-3 top-2.5" />
@@ -497,34 +497,31 @@ export default function PanelAgentes() {
                                             {formatearFecha(agente.createdAt)}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-right">
-                                            <div className="flex justify-end space-x-2">
+                                            <div className="flex justify-end gap-2">
                                                 <button
                                                     onClick={() => navigate(`/admin/editar-agente/${agente.id}`)}
-                                                    className="text-blue-600 hover:text-blue-900 transition duration-200 flex items-center gap-1"
+                                                    className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
                                                     title="Editar agente"
                                                 >
                                                     <Edit className="w-4 h-4" />
-                                                    Editar
                                                 </button>
                                                 {agente.activo ? (
                                                     <button
                                                         onClick={() => handleDesactivar(agente)}
                                                         disabled={submitting}
-                                                        className="text-red-600 hover:text-red-900 transition duration-200 disabled:opacity-50 flex items-center gap-1"
+                                                        className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all disabled:opacity-50"
                                                         title="Desactivar agente"
                                                     >
                                                         <Trash2 className="w-4 h-4" />
-                                                        Desactivar
                                                     </button>
                                                 ) : (
                                                     <button
                                                         onClick={() => handleReactivar(agente)}
                                                         disabled={submitting}
-                                                        className="text-green-600 hover:text-green-900 transition duration-200 disabled:opacity-50 flex items-center gap-1"
-                                                        title="Activar agente"
+                                                        className="p-1.5 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-all disabled:opacity-50"
+                                                        title="Reactivar agente"
                                                     >
-                                                        <CheckCircle className="w-4 h-4" />
-                                                        Activar
+                                                        <RotateCw className="w-4 h-4" />
                                                     </button>
                                                 )}
                                             </div>

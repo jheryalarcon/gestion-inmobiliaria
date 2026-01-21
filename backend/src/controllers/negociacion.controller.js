@@ -159,6 +159,8 @@ export const obtenerNegociaciones = async (req, res) => {
         etapa = '',
         clienteId = '',
         propiedadId = '',
+        incluirInactivas = 'false',
+        agenteId = '', // 🆕 Nuevo filtro
         page = 1,
         limit = 10
     } = req.query;
@@ -167,9 +169,21 @@ export const obtenerNegociaciones = async (req, res) => {
         const skip = (parseInt(page) - 1) * parseInt(limit);
 
         // Construir filtros
-        const where = {
-            activo: true
-        };
+        const where = {};
+
+        // 🆕 LÓGICA DE VISUALIZACIÓN:
+        // Si incluirInactivas es FALSE (por defecto), solo mostramos:
+        // 1. Negociaciones ACTIVAS
+        // 2. Propiedades NO inactivas
+        if (incluirInactivas !== 'true') {
+            where.activo = true;
+            where.propiedad = {
+                estado_publicacion: { not: 'inactiva' }
+            };
+        } else {
+            // Si es TRUE, mostramos TODO (incluido soft-deleted y propiedades inactivas)
+            // No agregamos restricciones.
+        }
 
         // Filtro por etapa
         if (etapa && etapa !== 'todas') {
@@ -184,42 +198,63 @@ export const obtenerNegociaciones = async (req, res) => {
         // Filtro por propiedad
         if (propiedadId && !isNaN(parseInt(propiedadId))) {
             where.propiedadId = parseInt(propiedadId);
+            // 💡 Si filtramos por una propiedad específica, IGNORAMOS el filtro de inactivas
+            if (incluirInactivas !== 'true') {
+                delete where.propiedad;
+            }
+        }
+
+        // 🆕 Filtro por Agente (Solo Admin puede usarlo libremente, Agentes tienen restricción abajo)
+        if (agenteId && !isNaN(parseInt(agenteId))) {
+            where.agenteId = parseInt(agenteId);
         }
 
         // --- LÓGICA DE PRIVACIDAD AVANZADA ---
         if (usuario.rol === 'agente') {
-            if (propiedadId && !isNaN(parseInt(propiedadId))) {
-                // Si el agente está viendo una propiedad específica:
-                // PUEDE ver todas las negociaciones de esa propiedad (para colaboración/competencia)
-                // PERO... los datos sensibles se censurarán más adelante si no es el dueño de la negociación.
-                // NO aplicamos restricción where.agenteId aquí.
-            } else {
-                // Si está viendo el panel general (sin filtrar por propiedad):
-                // SOLO ve sus propias negociaciones.
-                where.agenteId = usuario.id;
-            }
+            // 🛡️ REGLA ESTRICTA: Solo ves lo que es tuyo o de tus propiedades
+            where.OR = [
+                { agenteId: usuario.id }, // Soy el comprador
+                { propiedad: { agenteId: usuario.id } } // Soy el captador
+            ];
+
+            // ⚠️ Si un agente intenta filtrar por OTRO agente, esta lógica de arriba 
+            // más 'where.agenteId' podría generar conflicto (AND).
+            // Si el agente filtra por "Agente B", el where final sería:
+            // (agenteId = B) AND (agenteId = Yo OR propiedad.agenteId = Yo).
+            // Esto es correcto: Solo verá negociaciones de B donde B le está vendiendo SU propiedad (si aplica).
         }
 
-        // Búsqueda por nombre de cliente o título de propiedad
+        // Búsqueda por nombre de cliente, título de propiedad o CÓDIGO
         if (search) {
-            where.OR = [
+            const searchFilters = [
                 {
                     cliente: {
-                        nombre: {
-                            contains: search,
-                            mode: 'insensitive'
-                        }
+                        nombre: { contains: search, mode: 'insensitive' }
                     }
                 },
                 {
                     propiedad: {
-                        titulo: {
-                            contains: search,
-                            mode: 'insensitive'
-                        }
+                        titulo: { contains: search, mode: 'insensitive' }
+                    }
+                },
+                {
+                    propiedad: {
+                        codigo_interno: { contains: search, mode: 'insensitive' } // 🆕 Búsqueda por código
                     }
                 }
             ];
+
+            // Si ya existe un where.OR (por la restricción de agente), debemos combinarlo cuidadosamente
+            if (where.OR) {
+                // Prisma: AND [ (Restricción Agente), (Search OR) ]
+                where.AND = [
+                    { OR: where.OR },
+                    { OR: searchFilters }
+                ];
+                delete where.OR; // Movemos la restricción original dentro del AND
+            } else {
+                where.OR = searchFilters;
+            }
         }
 
         // console.log('Consultando negociaciones con filtros:', JSON.stringify(where, null, 2));
@@ -245,7 +280,15 @@ export const obtenerNegociaciones = async (req, res) => {
                             precio: true,
                             direccion: true,
                             ciudad: true,
-                            estado_publicacion: true
+                            estado_publicacion: true,
+                            agenteId: true,
+                            agente: { // 🆕 INCLUIR DATOS DEL CAPTADOR
+                                select: {
+                                    id: true,
+                                    name: true,
+                                    email: true
+                                }
+                            }
                         }
                     },
                     agente: {
@@ -331,7 +374,8 @@ export const obtenerNegociacion = async (req, res) => {
                         precio: true,
                         direccion: true,
                         ciudad: true,
-                        estado_publicacion: true
+                        estado_publicacion: true,
+                        agenteId: true
                     }
                 },
                 agente: {
@@ -373,7 +417,7 @@ export const actualizarNegociacion = async (req, res) => {
     }
 
     try {
-        // ✅ REGLA: Verificar que la etapa sea válida
+        // REGLA: Verificar que la etapa sea válida
         const etapasValidas = ['interes', 'negociacion', 'cierre', 'finalizada', 'cancelada'];
         if (!etapasValidas.includes(etapa)) {
             return res.status(400).json({
@@ -381,7 +425,7 @@ export const actualizarNegociacion = async (req, res) => {
             });
         }
 
-        // 🛡️ INICIO DE TRANSACCIÓN PARA PREVENIR RACE CONDITIONS
+        //  INICIO DE TRANSACCIÓN PARA PREVENIR RACE CONDITIONS
         // (Evita Doble Booking al verificar disponibilidad y reservar en el mismo bloque atómico)
         const resultadoFinal = await prisma.$transaction(async (tx) => {
 
@@ -408,7 +452,12 @@ export const actualizarNegociacion = async (req, res) => {
                     // OK
                 } else if (esAgenteResponsable) {
                     const etapasPermitidasParaCaptador = ['cierre', 'finalizada', 'cancelada'];
-                    if (!etapasPermitidasParaCaptador.includes(etapa)) {
+                    // ✅ EXCEPCIÓN: Si la negociación está en 'cierre' (propiedad reservada), el Captador PUEDE retrocederla.
+                    const esRetrocesoPermitido = negociacion.etapa === 'cierre' && ['interes', 'negociacion'].includes(etapa);
+                    // ✅ EXCEPCIÓN: Deshacer Finalización (Finaliada -> Cierre)
+                    const esDeshacerFinalizacion = negociacion.etapa === 'finalizada' && etapa === 'cierre';
+
+                    if (!etapasPermitidasParaCaptador.includes(etapa) && !esRetrocesoPermitido && !esDeshacerFinalizacion) {
                         throw new Error('FORBIDDEN_CAPTADOR');
                     }
                 } else {
@@ -420,12 +469,25 @@ export const actualizarNegociacion = async (req, res) => {
             const estadoPropiedad = negociacion.propiedad.estado_publicacion;
             const esTransicionCierreFinal = estadoPropiedad === 'reservada' && negociacion.etapa === 'cierre' && etapa === 'finalizada';
 
-            if (estadoPropiedad !== 'disponible' && etapa !== 'cancelada' && !esTransicionCierreFinal) {
+            // ✅ RETROCESO LÓGICO
+            // 1. Cierre -> Negociación/Interés (Libera propiedad)
+            const esRetrocesoDesdeCierre = estadoPropiedad === 'reservada' && negociacion.etapa === 'cierre' && ['interes', 'negociacion'].includes(etapa);
+            // 2. Finalizada -> Cierre (Mantiene propiedad reservada)
+            const esDeshacerFinalizacionGlobal = (estadoPropiedad === 'vendida' || estadoPropiedad === 'arrendada') && negociacion.etapa === 'finalizada' && etapa === 'cierre';
+
+            if (estadoPropiedad !== 'disponible' && etapa !== 'cancelada' && !esTransicionCierreFinal && !esRetrocesoDesdeCierre && !esDeshacerFinalizacionGlobal) {
                 throw new Error(`PROPERTY_${estadoPropiedad}`);
             }
 
-            // 🔐 AUTORIDAD PARA CIERRE
+            // 🔐 AUTORIDAD PARA CIERRE Y FINALIZACION
+            // Solo el Agente Responsable (Captador) o Admin pueden mover a Cierre/Finalizada
             if ((etapa === 'cierre' || etapa === 'finalizada') && !esAdmin && !esAgenteResponsable) {
+                throw new Error('AUTHORIZATION_REQUIRED_STRICT'); // Mensaje específico para esta nueva regla
+            }
+
+            // Permitimos también al Dueño de la Negociación hacer estos cambios SI NO SON CIERRE/FINALIZADA
+            // (La regla de arriba ya filtró closure/finalized para no captadores)
+            if (!esAdmin && !esAgenteResponsable && !esDueñoNegociacion) {
                 throw new Error('AUTHORIZATION_REQUIRED');
             }
 
@@ -480,6 +542,9 @@ export const actualizarNegociacion = async (req, res) => {
                 } else if ((estadoPropiedad === 'vendida' || estadoPropiedad === 'arrendada') && etapaAnterior === 'finalizada') {
                     nuevoEstadoPropiedad = 'disponible';
                 }
+            } else if (esRetrocesoDesdeCierre) {
+                // ✅ RETROCESO AUTOMÁTICO: Si volvemos de cierre a negociacion/interes, liberamos la propiedad.
+                nuevoEstadoPropiedad = 'disponible';
             }
 
             if (nuevoEstadoPropiedad) {
@@ -512,8 +577,8 @@ export const actualizarNegociacion = async (req, res) => {
         // Respuesta Exitosa fuera de la transacción
         res.json({
             mensaje: `✅ Etapa de negociación actualizada correctamente a "${etapa}"`,
-            negociacion: result.negociacionActualizada,
-            fecha_cambio: result.fecha_cambio
+            negociacion: resultadoFinal.negociacionActualizada,
+            fecha_cambio: resultadoFinal.fecha_cambio
         });
 
     } catch (error) {
@@ -524,7 +589,8 @@ export const actualizarNegociacion = async (req, res) => {
         if (error.message === 'INACTIVE') return res.status(400).json({ mensaje: 'No se puede actualizar una negociación inactiva' });
         if (error.message === 'FORBIDDEN_CAPTADOR') return res.status(403).json({ mensaje: '⛔ Como Agente Captador, solo puedes intervenir para Cerrar, Finalizar o Cancelar.' });
         if (error.message === 'FORBIDDEN_ACCESS') return res.status(403).json({ mensaje: '❌ Acceso denegado. No tienes permisos sobre esta negociación.' });
-        if (error.message === 'AUTHORIZATION_REQUIRED') return res.status(403).json({ mensaje: '⛔ Solo el Agente Responsable (Captador) puede autorizar el Cierre o Finalización.' });
+        if (error.message === 'AUTHORIZATION_REQUIRED') return res.status(403).json({ mensaje: '⛔ No tienes permisos para modificar esta negociación.' });
+        if (error.message === 'AUTHORIZATION_REQUIRED_STRICT') return res.status(403).json({ mensaje: '⛔ Solo el Agente Captador (o Admin) puede marcar como Cerrada o Finalizada.' });
         if (error.message.startsWith('PROPERTY_')) {
             const estado = error.message.split('_')[1];
             return res.status(400).json({ mensaje: `⛔ La propiedad se encuentra en estado "${estado}" y las negociaciones están pausadas.` });
@@ -556,9 +622,28 @@ export const desactivarNegociacion = async (req, res) => {
                 throw new Error('ALREADY_INACTIVE');
             }
 
-            // Verificar permisos: solo el agente responsable puede desactivar
-            if (usuario.rol === 'agente' && negociacion.agenteId !== usuario.id) {
+            // Verificar permisos: Permiso al Dueño de Negociación O al Captador (Dueño de Propiedad)
+            const esDueñoNegociacion = negociacion.agenteId === usuario.id;
+            const esAgenteResponsable = negociacion.propiedad.agenteId === usuario.id;
+
+            if (usuario.rol === 'agente' && !esDueñoNegociacion && !esAgenteResponsable) {
                 throw new Error('FORBIDDEN');
+            }
+
+            // 🛡️ REGLA UNIVERSAL: Nadie (ni Admin) elimina Cierre/Finalizada.
+            // Para mantener la integridad financiera y de reservas.
+            if (['cierre', 'finalizada'].includes(negociacion.etapa)) {
+                throw new Error('CANNOT_DELETE_LOCKED_STAGE');
+            }
+
+            // 🛡️ REGLA "ERROR DE DEDO": Agentes solo pueden eliminar en etapa INICIAL (Interés)
+            // Si la negociación ya avanzó (Negociación, Cierre, Finalizada, Cancelada), 
+            // ya existe historial relevante y NO debe borrarse. Debe usarse "Cancelar".
+            // NOTA: Cierre y Finalizada ya están bloqueadas arriba para todos.
+            // Aquí bloqueamos "Negociación" y "Cancelada" solo para Agentes.
+            // El Admin SÍ puede borrar Negociación/Cancelada si desea limpiar.
+            if (negociacion.etapa !== 'interes' && usuario.rol !== 'admin') {
+                throw new Error('CANNOT_DELETE_ADVANCED_STAGE');
             }
 
             // 🛡️ LÓGICA DE REVERSIÓN (ROLLBACK) AUTOMÁTICA
@@ -613,8 +698,102 @@ export const desactivarNegociacion = async (req, res) => {
         if (error.message === 'NOT_FOUND') return res.status(404).json({ mensaje: 'Negociación no encontrada' });
         if (error.message === 'ALREADY_INACTIVE') return res.status(400).json({ mensaje: 'La negociación ya está inactiva' });
         if (error.message === 'FORBIDDEN') return res.status(403).json({ mensaje: 'No tienes permisos para desactivar esta negociación' });
+        if (error.message === 'CANNOT_DELETE_LOCKED_STAGE') return res.status(403).json({ mensaje: '⛔ No puedes eliminar una negociación en Cierre o Finalizada. Esta acción está prohibida para mantener la integridad de los datos. Debes Cancelarla.' });
+        if (error.message === 'CANNOT_DELETE_ADVANCED_STAGE') return res.status(403).json({ mensaje: '⛔ Solo puedes eliminar negociaciones en etapa inicial (Interés). Si la negociación avanzó, debes usar la opción de Cancelar.' });
 
         res.status(500).json({ mensaje: 'Error interno del servidor al desactivar la negociación' });
+    }
+};
+
+// Restaurar negociación eliminada (Solo Admin)
+export const restaurarNegociacion = async (req, res) => {
+    const { id } = req.params;
+    const usuario = req.usuario;
+
+    try {
+        if (usuario.rol !== 'admin') {
+            return res.status(403).json({ mensaje: 'Solo los administradores pueden restaurar negociaciones.' });
+        }
+
+        const resultadoRestauracion = await prisma.$transaction(async (tx) => {
+            const negociacion = await tx.negociacion.findUnique({
+                where: { id: parseInt(id) },
+                include: { propiedad: true }
+            });
+
+            if (!negociacion) {
+                throw new Error('NOT_FOUND');
+            }
+
+            if (negociacion.activo) {
+                throw new Error('ALREADY_ACTIVE');
+            }
+
+            // 🛡️ VERIFICACIÓN DE ESTADO DE PROPIEDAD
+            // Si vamos a revivir una negociación que bloquea la propiedad (Cierre/Finalizada),
+            // debemos asegurarnos que la propiedad esté DISPONIBLE actualmente.
+            const estadosQueBloquean = ['cierre', 'finalizada'];
+            if (estadosQueBloquean.includes(negociacion.etapa)) {
+                if (negociacion.propiedad.estado_publicacion !== 'disponible') {
+                    throw new Error(`PROPERTY_BUSY:${negociacion.propiedad.estado_publicacion}`);
+                }
+            }
+
+            // REACTIVAR
+            const negociacionRestaurada = await tx.negociacion.update({
+                where: { id: parseInt(id) },
+                data: { activo: true },
+                include: {
+                    cliente: { select: { id: true, nombre: true } },
+                    propiedad: { select: { id: true, titulo: true, estado_publicacion: true } }
+                }
+            });
+
+            // 🔄 RESTAURAR ESTADO DE PROPIEDAD SI ES NECESARIO
+            let nuevoEstadoPropiedad = null;
+            if (negociacion.etapa === 'cierre') {
+                nuevoEstadoPropiedad = 'reservada';
+            } else if (negociacion.etapa === 'finalizada') {
+                nuevoEstadoPropiedad = negociacion.propiedad.transaccion === 'venta' ? 'vendida' : 'arrendada';
+            }
+
+            if (nuevoEstadoPropiedad) {
+                await tx.propiedad.update({
+                    where: { id: negociacion.propiedadId },
+                    data: { estado_publicacion: nuevoEstadoPropiedad }
+                });
+                negociacionRestaurada.propiedad.estado_publicacion = nuevoEstadoPropiedad;
+            }
+
+            // 📋 AUDITORÍA
+            const nombreUsuario = usuario.name || usuario.email;
+            await tx.seguimiento.create({
+                data: {
+                    negociacionId: parseInt(id),
+                    agenteId: usuario.id,
+                    fecha: new Date(),
+                    tipo: 'otro',
+                    comentario: `♻️ Negociación Restaurada.\n👮 Acción realizada por: ${nombreUsuario} (Admin).`
+                }
+            });
+
+            return negociacionRestaurada;
+        });
+
+        res.json({
+            mensaje: '✅ Negociación restaurada correctamente',
+            negociacion: resultadoRestauracion
+        });
+
+    } catch (error) {
+        console.error('Error al restaurar negociación:', error);
+        if (error.message === 'NOT_FOUND') return res.status(404).json({ mensaje: 'Negociación no encontrada' });
+        if (error.message === 'ALREADY_ACTIVE') return res.status(400).json({ mensaje: 'La negociación ya está activa' });
+        if (error.message.startsWith('PROPERTY_BUSY')) {
+            const estado = error.message.split(':')[1];
+            return res.status(409).json({ mensaje: `⚠️ No se puede restaurar. La propiedad ahora está "${estado}" por otra gestión.` });
+        }
+        res.status(500).json({ mensaje: 'Error interno al restaurar' });
     }
 };
 

@@ -159,7 +159,14 @@ export const crearCliente = async (req, res) => {
 // Obtener todos los clientes (con filtros según rol)
 export const obtenerClientes = async (req, res) => {
     const usuario = req.usuario;
-    const { page = 1, limit = 10, search = '', tipo_cliente = '', estado = 'activo' } = req.query;
+    const {
+        page = 1,
+        limit = 10,
+        search = '',
+        tipo_cliente = '',
+        estado = 'activo',
+        agenteId = '' // 🆕 Nuevo filtro
+    } = req.query;
 
     try {
         const skip = (parseInt(page) - 1) * parseInt(limit);
@@ -170,6 +177,9 @@ export const obtenerClientes = async (req, res) => {
         // Filtro por rol
         if (usuario.rol === 'agente') {
             where.agenteId = usuario.id;
+        } else if (agenteId && !isNaN(parseInt(agenteId))) {
+            // 🆕 Si es Admin y filtró por un agente específico
+            where.agenteId = parseInt(agenteId);
         }
 
         // Filtro por estado (activo/inactivo)
@@ -407,30 +417,6 @@ export const actualizarCliente = async (req, res) => {
             errores.push('Formato de correo electrónico inválido');
         }
 
-        // LÓGICA DE REASIGNACIÓN (SOLO ADMIN)
-        let nuevoAgenteIdInt = null;
-        if (usuario.rol === 'admin' && agenteId) {
-            nuevoAgenteIdInt = parseInt(agenteId);
-
-            // Si el agente ha cambiado
-            if (nuevoAgenteIdInt !== clienteExistente.agenteId) {
-                // Verificar que el nuevo agente exista y sea agente válido
-                const nuevoAgente = await prisma.usuario.findFirst({
-                    where: {
-                        id: nuevoAgenteIdInt,
-                        rol: { in: ['agente', 'admin'] }, // Un admin también puede tener clientes
-                        activo: true
-                    }
-                });
-
-                if (!nuevoAgente) {
-                    errores.push('El agente seleccionado no existe o no está activo');
-                }
-            } else {
-                nuevoAgenteIdInt = null; // No hay cambio real de agente
-            }
-        }
-
         if (errores.length > 0) {
             return res.status(400).json({
                 mensaje: 'Validación fallida',
@@ -448,85 +434,42 @@ export const actualizarCliente = async (req, res) => {
             observaciones: observaciones?.trim() || null,
         };
 
-        // Si hay reasignación, usamos TRANSACTION
-        if (nuevoAgenteIdInt) {
-            datosActualizados.agenteId = nuevoAgenteIdInt;
-
-            const resultado = await prisma.$transaction(async (tx) => {
-                // 1. Actualizar el Cliente
-                const clienteActualizado = await tx.cliente.update({
-                    where: { id: parseInt(id) },
-                    data: datosActualizados,
-                    include: {
-                        agente: {
-                            select: { id: true, name: true, email: true }
-                        }
-                    }
-                });
-
-                // 2. Transferir Negociaciones Activas (Donde el cliente es comprador/interesado)
-                // Se transfieren las que NO están terminadas
-                const negociacionesTransferidas = await tx.negociacion.updateMany({
-                    where: {
-                        clienteId: parseInt(id),
-                        activo: true,
-                        etapa: {
-                            notIn: ['finalizada', 'cancelada']
-                        }
-                    },
-                    data: {
-                        agenteId: nuevoAgenteIdInt
-                    }
-                });
-
-                // 3. Transferir Propiedades Activas (Donde el cliente es propietario)
-                // Se busca si el cliente es dueño de propiedades gestionadas
-                // Y transferimos la gestión (agenteId de la Propiedad) al nuevo agente
-                const propiedadesTransferidas = await tx.propiedad.updateMany({
-                    where: {
-                        propietarioId: parseInt(id),
-                        estado_publicacion: {
-                            in: ['disponible', 'reservada']
-                        }
-                    },
-                    data: {
-                        agenteId: nuevoAgenteIdInt
-                    }
-                });
-
-                return {
-                    cliente: clienteActualizado,
-                    negociacionesCount: negociacionesTransferidas.count,
-                    propiedadesCount: propiedadesTransferidas.count
-                };
-            });
-
-            res.json({
-                mensaje: `Cliente reasignado exitosamente. Se transfirieron ${resultado.negociacionesCount} negociaciones y ${resultado.propiedadesCount} propiedades.`,
-                cliente: resultado.cliente
-            });
-
-        } else {
-            // ACTUALIZACIÓN SIMPLE (Sin cambio de agente)
-            const cliente = await prisma.cliente.update({
-                where: { id: parseInt(id) },
-                data: datosActualizados,
-                include: {
-                    agente: {
-                        select: {
-                            id: true,
-                            name: true,
-                            email: true
-                        }
-                    }
+        // LÓGICA DE REASIGNACIÓN DE AGENTE
+        // Permitir cambio de agente si es Admin O si el cliente actual es PROSPECTO
+        if (agenteId && (usuario.rol === 'admin' || clienteExistente.tipo_cliente === 'prospecto')) {
+            // Verificar que el nuevo agente exista y esté activo
+            const agenteNuevo = await prisma.usuario.findFirst({
+                where: {
+                    id: parseInt(agenteId),
+                    rol: { in: ['agente', 'admin'] },
+                    activo: true
                 }
             });
 
-            res.json({
-                mensaje: 'Cliente actualizado correctamente',
-                cliente
-            });
+            if (agenteNuevo) {
+                datosActualizados.agenteId = parseInt(agenteId);
+            }
         }
+
+        // ACTUALIZACIÓN SIMPLE
+        const clienteActualizado = await prisma.cliente.update({
+            where: { id: parseInt(id) },
+            data: datosActualizados,
+            include: {
+                agente: {
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true
+                    }
+                }
+            }
+        });
+
+        res.json({
+            mensaje: 'Cliente actualizado correctamente',
+            cliente: clienteActualizado
+        });
 
     } catch (error) {
         console.error('Error al actualizar cliente:', error);
@@ -536,95 +479,7 @@ export const actualizarCliente = async (req, res) => {
     }
 };
 
-// Eliminar un cliente (soft delete)
-export const eliminarCliente = async (req, res) => {
-    const { id } = req.params;
-    const usuario = req.usuario;
 
-    try {
-        const cliente = await prisma.cliente.findUnique({
-            where: { id: parseInt(id) }
-        });
-
-        if (!cliente) {
-            return res.status(404).json({
-                mensaje: 'Cliente no encontrado'
-            });
-        }
-
-        // Verificar permisos
-        // Regla: Solo el agente responsable o un admin pueden eliminar un cliente
-        if (usuario.rol === 'agente' && cliente.agenteId !== usuario.id) {
-            return res.status(403).json({
-                mensaje: 'No tienes permisos para eliminar este cliente'
-            });
-        }
-
-        // 🛡️ REGLA DE INTEGRIDAD DE DATOS (Cascade Logic)
-        // No se puede eliminar/desactivar un cliente si:
-        // 1. Tiene negociaciones activas (en curso)
-        // 2. Tiene propiedades publicadas (si es propietario)
-
-        const negociacionesActivas = await prisma.negociacion.count({
-            where: {
-                clienteId: parseInt(id),
-                activo: true,
-                etapa: {
-                    notIn: ['finalizada', 'cancelada'] // Solo bloquea si está en interes, negociacion o cierre
-                }
-            }
-        });
-
-        if (negociacionesActivas > 0) {
-            return res.status(400).json({
-                mensaje: `⛔ No se puede desactivar al cliente. Tiene ${negociacionesActivas} negociación(es) en curso. Finalícelas o cancélelas primero.`
-            });
-        }
-
-        // Verificar propiedades activas (como propietario)
-        // Asumiendo que existe una relación o lógica de propiedad -> propietarioId. 
-        // Si no existe la columna en el schema actual, este bloque se omitiría o ajustaría.
-        // Dado que vi 'propietarioId' en el controlador de propiedades antes, lo incluyo.
-        try {
-            const propiedadesActivas = await prisma.propiedad.count({
-                where: {
-                    propietarioId: parseInt(id),
-                    estado_publicacion: {
-                        in: ['disponible', 'reservada']
-                    }
-                }
-            });
-
-            if (propiedadesActivas > 0) {
-                return res.status(400).json({
-                    mensaje: `⛔ No se puede desactivar al cliente. Es propietario de ${propiedadesActivas} propiedad(es) activa(s).`
-                });
-            }
-        } catch (e) {
-            // Si la columna propietarioId no existe en el schema, ignoramos este check silenciosamente
-            // o lo manejamos según corresponda. Basado en analisis previo, sí existe lógica de captación.
-        }
-
-        // SOFT DELETE: Actualizar estado y campos de auditoría
-        await prisma.cliente.update({
-            where: { id: parseInt(id) },
-            data: {
-                activo: false,
-                fecha_desactivacion: new Date(),
-                desactivado_por: usuario.id
-            }
-        });
-
-        res.json({
-            mensaje: 'Cliente eliminado correctamente (Archivado)'
-        });
-    } catch (error) {
-        console.error('Error al eliminar cliente:', error);
-        res.status(500).json({
-            mensaje: 'Error interno del servidor al eliminar el cliente'
-        });
-    }
-};
 
 // Obtener estadísticas de clientes
 export const obtenerEstadisticas = async (req, res) => {
@@ -708,6 +563,63 @@ export const desactivarCliente = async (req, res) => {
             return res.status(400).json({
                 mensaje: 'El cliente ya está inactivo'
             });
+        }
+
+        // 🛡️ REGLA DE INTEGRIDAD DE DATOS (Copiada de eliminarCliente)
+        // No se puede desactivar un cliente si tiene procesos activos
+
+        // 1. Verificar negociaciones activas (en curso)
+        const negociacionesActivas = await prisma.negociacion.findMany({
+            where: {
+                clienteId: parseInt(id),
+                activo: true,
+                etapa: {
+                    notIn: ['finalizada', 'cancelada']
+                }
+            },
+            include: {
+                propiedad: {
+                    select: { titulo: true }
+                }
+            }
+        });
+
+        if (negociacionesActivas.length > 0) {
+            const detalles = negociacionesActivas
+                .map(n => `• ${n.propiedad.titulo} (${n.etapa})`)
+                .join('\n');
+
+            return res.status(400).json({
+                mensaje: `⛔ No se puede desactivar al cliente.\nTiene ${negociacionesActivas.length} negociación(es) en curso:\n${detalles}\n\nFinalícelas o cancélelas primero.`
+            });
+        }
+
+        // 2. Verificar propiedades activas (si es propietario)
+        try {
+            const propiedadesActivas = await prisma.propiedad.findMany({
+                where: {
+                    propietarioId: parseInt(id),
+                    estado_publicacion: {
+                        in: ['disponible', 'reservada']
+                    }
+                },
+                select: {
+                    titulo: true,
+                    estado_publicacion: true
+                }
+            });
+
+            if (propiedadesActivas.length > 0) {
+                const detalles = propiedadesActivas
+                    .map(p => `• ${p.titulo} (${p.estado_publicacion})`)
+                    .join('\n');
+
+                return res.status(400).json({
+                    mensaje: `⛔ No se puede desactivar al cliente.\nEs propietario de ${propiedadesActivas.length} propiedad(es) activa(s):\n${detalles}\n\nDebe cambiarlas a estado inactivo, vendida o retirada.`
+                });
+            }
+        } catch (e) {
+            // Ignorar si no existe la relación
         }
 
         // Desactivar el cliente
@@ -844,7 +756,7 @@ export const registrarContactoPublico = async (req, res) => {
         }
 
         // 2. Buscar si el Cliente ya existe
-        let cliente = await prisma.cliente.findUnique({
+        let cliente = await prisma.cliente.findFirst({
             where: { email: email.trim() }
         });
 
@@ -852,7 +764,40 @@ export const registrarContactoPublico = async (req, res) => {
         let agenteResponsableId = propiedad.agenteId;
 
         if (cliente) {
-            // El cliente YA EXISTE -> Se respeta su agente asignado (Exclusividad)
+            // El cliente YA EXISTE
+
+            // 2.1 Enriquecimiento de Datos: Actualizar teléfono si falta
+            if (telefono && telefono.trim() && (!cliente.telefono || cliente.telefono === 'Sin teléfono')) {
+                try {
+                    console.log(`Enriqueciendo datos del cliente ${cliente.email}: Actualizando teléfono.`);
+                    cliente = await prisma.cliente.update({
+                        where: { id: cliente.id },
+                        data: { telefono: telefono.trim() }
+                    });
+                } catch (err) {
+                    console.error('Error al actualizar teléfono del cliente:', err);
+                    // No bloqueamos el flujo principal si falla la actualización
+                }
+            }
+
+            // 2.2 Reactivación Automática: Si el cliente estaba inactivo, se reactiva
+            if (!cliente.activo) {
+                try {
+                    console.log(`Reactivando cliente ${cliente.email} por nueva interacción.`);
+                    cliente = await prisma.cliente.update({
+                        where: { id: cliente.id },
+                        data: {
+                            activo: true,
+                            fecha_desactivacion: null,
+                            desactivado_por: null
+                        }
+                    });
+                } catch (err) {
+                    console.error('Error al reactivar cliente:', err);
+                }
+            }
+
+            // Se respeta su agente asignado (Exclusividad)
             if (cliente.agenteId) {
                 agenteResponsableId = cliente.agenteId;
             }

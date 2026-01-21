@@ -13,14 +13,20 @@ export const subirArchivo = async (req, res) => {
         const { negociacionId, tipo } = req.body;
         const agenteId = req.usuario.id;
 
+        // Validar ID
+        const negId = parseInt(negociacionId);
+        if (isNaN(negId)) {
+            return res.status(400).json({ error: 'ID de negociación inválido' });
+        }
+
         // Verificar que la negociación existe
         const negociacion = await prisma.negociacion.findFirst({
             where: {
-                id: parseInt(negociacionId),
+                id: negId,
                 activo: true
             },
             include: {
-                propiedad: true // Necesario para validar Captador
+                propiedad: true
             }
         });
 
@@ -31,9 +37,10 @@ export const subirArchivo = async (req, res) => {
         }
 
         // Verificar permisos: Admin, Vendedor o Captador
+        // NOTA: Verificar que los tipos de datos coincidan (IDs pueden ser string o int)
         const esAdmin = req.usuario.rol === 'admin';
-        const esVendedor = negociacion.agenteId === agenteId;
-        const esCaptador = negociacion.propiedad.agenteId === agenteId;
+        const esVendedor = String(negociacion.agenteId) === String(agenteId);
+        const esCaptador = String(negociacion.propiedad.agenteId) === String(agenteId);
 
         if (!esAdmin && !esVendedor && !esCaptador) {
             return res.status(403).json({
@@ -74,7 +81,9 @@ export const subirArchivo = async (req, res) => {
     } catch (error) {
         console.error('Error al subir archivo:', error);
         res.status(500).json({
-            error: 'Error interno del servidor al subir el archivo'
+            error: 'Error interno del servidor al subir el archivo',
+            detalle: error.message, // Para depuración
+            stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
         });
     }
 };

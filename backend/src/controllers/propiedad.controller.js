@@ -310,6 +310,7 @@ export const obtenerPropiedades = async (req, res) => {
         limit = 9,
         agenteId,
         search,
+        ubicacion, // Nueva variable para búsqueda de ubicación
         transaccion,
         estado,
         tipo,
@@ -366,12 +367,13 @@ export const obtenerPropiedades = async (req, res) => {
         };
 
         // Filtros adicionales globales
+        // Filtros adicionales globales
         if (search) {
-            where.OR = [
+            const searchOr = [
                 { titulo: { contains: search, mode: 'insensitive' } },
                 { descripcion: { contains: search, mode: 'insensitive' } },
                 { codigo_interno: { contains: search, mode: 'insensitive' } },
-                // Buscar por nombre de propietario (Join: Propiedad -> PropiedadPropietario -> Cliente)
+                // Buscar por nombre de propietario
                 {
                     propietarios: {
                         some: {
@@ -380,10 +382,33 @@ export const obtenerPropiedades = async (req, res) => {
                             }
                         }
                     }
-                },
-                // ID search removed as per request
-                // ...(!isNaN(search) ? [{ id: parseInt(search) }] : [])
+                }
             ];
+
+            // Si ya existe un AND (raro aquÃ), lo preservamos, sino inicializamos
+            if (where.AND) {
+                if (Array.isArray(where.AND)) where.AND.push({ OR: searchOr });
+                else where.AND = [where.AND, { OR: searchOr }];
+            } else {
+                where.AND = [{ OR: searchOr }];
+            }
+        }
+
+        if (ubicacion) {
+            const ubicacionOr = [
+                { direccion: { contains: ubicacion, mode: 'insensitive' } },
+                { sector: { contains: ubicacion, mode: 'insensitive' } },
+                { ciudad: { contains: ubicacion, mode: 'insensitive' } },
+                { provincia: { contains: ubicacion, mode: 'insensitive' } },
+                { referencia: { contains: ubicacion, mode: 'insensitive' } }
+            ];
+
+            if (where.AND) {
+                if (Array.isArray(where.AND)) where.AND.push({ OR: ubicacionOr });
+                else where.AND = [where.AND, { OR: ubicacionOr }];
+            } else {
+                where.AND = [{ OR: ubicacionOr }];
+            }
         }
 
         if (transaccion) where.transaccion = transaccion;
@@ -484,18 +509,20 @@ export const obtenerPropiedades = async (req, res) => {
         }
 
         // --- ORDENAMIENTO ---
-        let orderBy = { createdAt: 'desc' }; // Por defecto: Más recientes primero
+        // Usamos un array de ordenamiento para garantizar estabilidad (stable sort)
+        // El criterio secundario siempre será fecha de creación descendente (o ID)
+        let orderBy = [{ createdAt: 'desc' }];
 
         if (orden === 'precio_asc') {
-            orderBy = { precio: 'asc' };
+            orderBy = [{ precio: 'asc' }, { createdAt: 'desc' }];
         } else if (orden === 'precio_desc') {
-            orderBy = { precio: 'desc' };
+            orderBy = [{ precio: 'desc' }, { createdAt: 'desc' }];
         } else if (orden === 'antiguas') {
-            orderBy = { createdAt: 'asc' };
+            orderBy = [{ createdAt: 'asc' }, { id: 'asc' }];
         } else if (orden === 'titulo_asc') {
-            orderBy = { titulo: 'asc' };
+            orderBy = [{ titulo: 'asc' }, { createdAt: 'desc' }];
         } else if (orden === 'titulo_desc') {
-            orderBy = { titulo: 'desc' };
+            orderBy = [{ titulo: 'desc' }, { createdAt: 'desc' }];
         }
 
         // 1. Contar total de propiedades que coinciden
@@ -831,7 +858,11 @@ export const actualizarPropiedad = async (req, res) => {
                 anio_construccion: anio_construccion ? parseInt(anio_construccion) : null,
                 estado_publicacion: estado_publicacion || propiedadExistente.estado_publicacion, // 🛡️ Mantiene el estado actual si no se envía uno nuevo
 
-                agente: { connect: { id: parseInt(agenteId) } },
+                estado_publicacion: estado_publicacion || propiedadExistente.estado_publicacion, // 🛡️ Mantiene el estado actual si no se envía uno nuevo
+
+                // agente: { connect: { id: parseInt(agenteId) } }, // ⛔ REMOVED: Tesis decision (No reasignación)
+
+                usuarioActualizador: { connect: { id: usuario.id } },
                 usuarioActualizador: { connect: { id: usuario.id } },
                 // Nuevos campos de captación
                 ...(propietarioId ? { propietario: { connect: { id: parseInt(propietarioId) } } } : { propietario: { disconnect: true } }),
@@ -931,7 +962,11 @@ export const actualizarPropiedad = async (req, res) => {
 export const actualizarEstadoPropiedad = async (req, res) => {
     const { id } = req.params;
     const { nuevoEstado } = req.body;
-    const estadosPermitidos = ['disponible', 'vendida', 'arrendada', 'reservada', 'inactiva'];
+    const usuario = req.usuario;
+
+    // 🔒 BLINDAJE: Solo permitir estados administrativos.
+    // 'vendida', 'reservada', 'arrendada' se gestionan EXCLUSIVAMENTE vía Negociación.
+    const estadosPermitidos = ['disponible', 'inactiva'];
 
     console.log('Actualizando estado de propiedad:', { id, nuevoEstado, usuario: req.usuario });
 
@@ -947,7 +982,9 @@ export const actualizarEstadoPropiedad = async (req, res) => {
 
     if (!estadosPermitidos.includes(nuevoEstado)) {
         console.log('Estado no válido:', nuevoEstado);
-        return res.status(400).json({ mensaje: 'Estado no válido' });
+        return res.status(400).json({
+            mensaje: `Estado no válido para asignación manual. Los estados "${nuevoEstado}" deben gestionarse desde Negociaciones.`
+        });
     }
 
     try {
@@ -960,19 +997,43 @@ export const actualizarEstadoPropiedad = async (req, res) => {
             return res.status(404).json({ mensaje: 'Propiedad no encontrada' });
         }
 
-        // 🛡️ REGLA: No desactivar si tiene negociaciones activas
+        // ⛔ SEGURIDAD: Solo el Agente Captador (Dueño) o Admin pueden cambiar el estado
+        if (usuario.rol === 'agente' && propiedadExistente.agenteId !== usuario.id) {
+            return res.status(403).json({ mensaje: '⛔ No tienes permisos para modificar el estado de esta propiedad.' });
+        }
+
+        // 🛡️ REGLA: No desactivar si tiene negociaciones EN CIERRE (Contrato activo)
         if (nuevoEstado === 'inactiva') {
-            const negociacionesActivas = await prisma.negociacion.count({
+            const negociacionesEnCierre = await prisma.negociacion.count({
                 where: {
                     propiedadId: parseInt(id),
                     activo: true,
-                    etapa: { notIn: ['finalizada', 'cancelada'] }
+                    etapa: 'cierre' // ⛔ SOLO bloqueamos si está en proceso de firma/reserva
                 }
             });
 
-            if (negociacionesActivas > 0) {
+            if (negociacionesEnCierre > 0) {
                 return res.status(400).json({
-                    mensaje: `⛔ No se puede desactivar la propiedad. Tiene ${negociacionesActivas} negociación(es) en curso.`
+                    mensaje: `⛔ No se puede desactivar la propiedad. Hay una negociación en etapa de CIERRE (Reserva activa).`
+                });
+            }
+        }
+
+
+        // 🛡️ REGLA: No forzar a 'disponible' si está 'reservada'/'vendida' por una negociación vigente
+        // Evita desincronización (Negociación en Cierre vs Propiedad Disponible)
+        if (nuevoEstado === 'disponible' && ['reservada', 'vendida', 'arrendada'].includes(propiedadExistente.estado_publicacion)) {
+            const negociacionesBloqueantes = await prisma.negociacion.count({
+                where: {
+                    propiedadId: parseInt(id),
+                    activo: true,
+                    etapa: { in: ['cierre', 'finalizada'] } // Etapas que justifican el bloqueo
+                }
+            });
+
+            if (negociacionesBloqueantes > 0) {
+                return res.status(400).json({
+                    mensaje: `⛔ No se puede marcar como disponible. Hay una negociación en Cierre/Finalizada que bloquea la propiedad.`
                 });
             }
         }
@@ -999,18 +1060,18 @@ export const eliminarPropiedad = async (req, res) => {
     const { id } = req.params;
 
     try {
-        // 🛡️ REGLA: No eliminar si tiene negociaciones activas
-        const negociacionesActivas = await prisma.negociacion.count({
+        // 🛡️ REGLA: No eliminar si tiene negociaciones EN CIERRE (Contrato activo)
+        const negociacionesEnCierre = await prisma.negociacion.count({
             where: {
                 propiedadId: parseInt(id),
                 activo: true,
-                etapa: { notIn: ['finalizada', 'cancelada'] }
+                etapa: 'cierre' // ⛔ SOLO bloqueamos si está en proceso de firma/reserva
             }
         });
 
-        if (negociacionesActivas > 0) {
+        if (negociacionesEnCierre > 0) {
             return res.status(400).json({
-                mensaje: `⛔ No se puede eliminar la propiedad. Tiene ${negociacionesActivas} negociación(es) en curso.`
+                mensaje: `⛔ No se puede eliminar la propiedad. Hay una negociación en etapa de CIERRE (Reserva activa).`
             });
         }
 
@@ -1534,5 +1595,45 @@ export const obtenerCodigoPreview = async (req, res) => {
     } catch (error) {
         console.error(error);
         res.status(500).json({ mensaje: 'Error al generar código preview' });
+    }
+};
+
+// Función para obtener metadata para filtros administrativos (Active properties only)
+export const obtenerMetadataFiltros = async (req, res) => {
+    try {
+        const usuario = req.usuario;
+
+        // Solo admin y agentes pueden ver esto
+        if (usuario.rol !== 'admin' && usuario.rol !== 'agente') {
+            return res.status(403).json({ mensaje: 'No tiene permisos' });
+        }
+
+        // Obtener valores únicos de TODAS las propiedades activas (no solo disponibles)
+        // Esto permite filtrar por propiedades vendidas/reservadas antiguas
+        const propiedades = await prisma.propiedad.findMany({
+            where: {
+                estado_publicacion: { not: 'inactiva' }
+            },
+            select: {
+                tipo_propiedad: true,
+                transaccion: true,
+                ciudad: true
+            }
+        });
+
+        // Extraer valores únicos usando Set
+        const tipos = [...new Set(propiedades.map(p => p.tipo_propiedad))].sort();
+        const transacciones = [...new Set(propiedades.map(p => p.transaccion))].sort();
+        const ciudades = [...new Set(propiedades.map(p => p.ciudad))].sort();
+
+        res.json({
+            tipos,
+            transacciones,
+            ciudades
+        });
+
+    } catch (error) {
+        console.error('Error al obtener metadata de filtros:', error);
+        res.status(500).json({ mensaje: 'Error al obtener filtros' });
     }
 };

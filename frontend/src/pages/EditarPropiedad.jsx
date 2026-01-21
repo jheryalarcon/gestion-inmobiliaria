@@ -713,34 +713,29 @@ export default function EditarPropiedad() {
         <div className="max-w-4xl mx-auto mt-10 mb-20">
             {/* Header Card */}
             {/* Header Card Premium */}
-            <div className="bg-white shadow-2xl rounded-2xl overflow-hidden mb-8 transform hover:scale-[1.01] transition-transform duration-300">
-                <div className="relative bg-gradient-to-br from-orange-600 to-orange-500 px-8 py-8">
-                    {/* Decorative Background Elements */}
-                    <div className="absolute top-0 right-0 -mr-8 -mt-8 w-64 h-64 bg-white opacity-10 rounded-full blur-3xl"></div>
-                    <div className="absolute bottom-0 left-0 -ml-8 -mb-8 w-40 h-40 bg-black opacity-5 rounded-full blur-2xl"></div>
+            <div className="bg-white shadow-sm rounded-2xl overflow-hidden mb-8 border border-gray-100">
+                <div className="px-8 py-6 flex items-center justify-between">
+                    <div className="flex items-center gap-5">
+                        <div className="bg-orange-50 p-3 rounded-xl border border-orange-100">
+                            <Building2 className="w-8 h-8 text-orange-600" />
+                        </div>
+                        <div>
+                            <h2 className="text-2xl font-bold text-gray-900 tracking-tight">
+                                Editar Propiedad
+                            </h2>
+                            <p className="text-gray-500 mt-1 text-sm flex items-center gap-2">
+                                <FolderCheck className="w-4 h-4" />
+                                Gestión integral del inmueble
+                            </p>
+                        </div>
+                    </div>
 
-                    <div className="relative flex items-center justify-between z-10">
-                        <div className="flex items-center gap-5">
-                            <div className="bg-white/20 backdrop-blur-md p-3 rounded-xl shadow-inner border border-white/30">
-                                <Building2 className="w-8 h-8 text-white" />
-                            </div>
-                            <div>
-                                <h2 className="text-3xl font-extrabold text-white tracking-tight drop-shadow-sm">
-                                    Editar Propiedad
-                                </h2>
-                                <p className="text-orange-100 mt-1 font-medium text-sm flex items-center gap-2">
-                                    <FolderCheck className="w-4 h-4" />
-                                    Gestión integral del inmueble
-                                </p>
-                            </div>
+                    <div className="hidden md:block text-right">
+                        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-green-50 border border-green-100 text-xs text-green-700 font-medium">
+                            <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
+                            Edición Activa
                         </div>
-                        <div className="hidden md:block text-right">
-                            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 border border-white/20 backdrop-blur-sm text-xs text-white font-medium">
-                                <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span>
-                                Edición Activa
-                            </div>
-                            <p className="text-xs text-orange-100 mt-2 opacity-80">* Campos obligatorios marcados</p>
-                        </div>
+                        <p className="text-xs text-gray-400 mt-2">* Campos obligatorios marcados</p>
                     </div>
                 </div>
             </div>

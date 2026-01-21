@@ -4,27 +4,65 @@ import {
     Filter,
     X,
     ChevronDown,
-    MapPin,
-    Home,
     DollarSign,
+    MapPin,
     Briefcase,
     Building2,
     CheckCircle2,
     ArrowUpDown,
-    SlidersHorizontal
+    SlidersHorizontal,
+    Maximize,
+    BedDouble,
+    Bath,
+    Car,
+    Ruler
 } from 'lucide-react';
 
+
+const FilterChip = ({ label, activeInfo, dropdownKey, activeDropdown, setActiveDropdown, icon: Icon, children }) => {
+    const isOpen = activeDropdown === dropdownKey;
+    const isActive = activeInfo;
+
+    return (
+        <div className="relative inline-block">
+            <button
+                onClick={(e) => {
+                    e.stopPropagation();
+                    setActiveDropdown(isOpen ? null : dropdownKey);
+                }}
+                className={`
+                    flex items-center gap-2 px-3 py-2 rounded-full border text-sm font-medium transition-all whitespace-nowrap
+                    ${isActive
+                        ? 'bg-blue-50 border-blue-200 text-blue-700'
+                        : isOpen
+                            ? 'bg-gray-100 border-gray-300 text-gray-900'
+                            : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'}
+                `}
+            >
+                {Icon && <Icon className={`w-4 h-4 ${isActive ? 'text-blue-500' : 'text-gray-400'}`} />}
+                <span>{label}</span>
+                <ChevronDown className={`w-3.5 h-3.5 transition-transform ${isOpen ? 'rotate-180' : ''} ${isActive ? 'text-blue-500' : 'text-gray-400'}`} />
+            </button>
+
+            {isOpen && (
+                <div
+                    className="absolute top-full mt-2 left-0 min-w-[220px] w-max max-w-sm bg-white rounded-xl shadow-xl border border-gray-100 p-2 z-[60] animate-in fade-in zoom-in-95 duration-200"
+                    onClick={(e) => e.stopPropagation()}
+                >
+                    {children}
+                </div>
+            )}
+        </div>
+    );
+};
+
 export default function FiltroPropiedadesAdmin({ filtros, setFiltros, busqueda, setBusqueda }) {
-    const [ciudades, setCiudades] = useState([]);
     const [tipos, setTipos] = useState([]);
     const [transacciones, setTransacciones] = useState([]);
-    const [agentes, setAgentes] = useState([]);
+    const [ciudades, setCiudades] = useState([]);
 
-    // Estado para controlar qué "Chip" está abierto
     const [activeDropdown, setActiveDropdown] = useState(null);
-    const [showAdvanced, setShowAdvanced] = useState(false);
-
-    // Refs para click outside
+    const [showModal, setShowModal] = useState(false);
     const filterRef = useRef(null);
 
     // Lista de amenidades
@@ -37,8 +75,8 @@ export default function FiltroPropiedadesAdmin({ filtros, setFiltros, busqueda, 
         { key: 'tiene_balcon', label: 'Balcón' },
         { key: 'tiene_patio', label: 'Patio' },
         { key: 'tiene_bodega', label: 'Bodega' },
-        { key: 'tiene_areas_comunales', label: 'Áreas Comunales' },
-        { key: 'tiene_gas_centralizado', label: 'Gas Centralizado' },
+        { key: 'tiene_areas_comunales', label: 'Áreas Com.' },
+        { key: 'tiene_gas_centralizado', label: 'Gas Cent.' },
         { key: 'tiene_cisterna', label: 'Cisterna' },
         { key: 'tiene_lavanderia', label: 'Lavandería' },
         { key: 'amoblado', label: 'Amoblado' }
@@ -47,25 +85,27 @@ export default function FiltroPropiedadesAdmin({ filtros, setFiltros, busqueda, 
     useEffect(() => {
         const cargarDatos = async () => {
             try {
-                const resProps = await fetch('http://localhost:3000/api/propiedades/publicas');
-                const propsData = await resProps.json();
+                // CAMBIO: Usar endpoint específico de metadatos administrativos
+                const token = localStorage.getItem('token');
+                const resProps = await fetch('http://localhost:3000/api/propiedades/filtros-metadata', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
 
-                setCiudades([...new Set(propsData.map(p => p.ciudad))].sort());
-                setTipos([...new Set(propsData.map(p => p.tipo_propiedad))].sort());
-                setTransacciones([...new Set(propsData.map(p => p.transaccion))].sort());
+                if (!resProps.ok) throw new Error('Error cargando filtros');
 
-                const resAgentes = await fetch('http://localhost:3000/api/usuarios');
-                if (resAgentes.ok) {
-                    const usuariosData = await resAgentes.json();
-                    setAgentes(usuariosData.filter(u => u.rol === 'agente'));
-                }
+                const { tipos, transacciones, ciudades } = await resProps.json();
+
+                setTipos(tipos);
+                setTransacciones(transacciones);
+                setCiudades(ciudades);
             } catch (error) {
                 console.error("Error cargando filtros:", error);
             }
         };
         cargarDatos();
 
-        // Click outside handler
         const handleClickOutside = (event) => {
             if (filterRef.current && !filterRef.current.contains(event.target)) {
                 setActiveDropdown(null);
@@ -92,7 +132,7 @@ export default function FiltroPropiedadesAdmin({ filtros, setFiltros, busqueda, 
             ciudad: '',
             precioMin: '',
             precioMax: '',
-            agenteId: '',
+            agenteId: '', // Aunque lo ocultemos, lo mantenemos en estado por si acaso
             orden: 'recientes',
             nro_habitaciones: '',
             nro_banos: '',
@@ -103,86 +143,48 @@ export default function FiltroPropiedadesAdmin({ filtros, setFiltros, busqueda, 
             areaTerrenoMin: '',
             areaTerrenoMax: ''
         });
-        setShowAdvanced(false);
+        setShowModal(false);
     };
 
     const contarFiltrosActivos = () => {
         let count = 0;
         Object.keys(filtros).forEach(key => {
-            if (key === 'orden') return;
+            if (key === 'orden' || key === 'agenteId') return; // Ignoramos orden y agente aqui
             if (filtros[key]) count++;
         });
         return count;
     };
 
-    // Componente Dropdown Button (Chip)
-    const FilterChip = ({ label, activeInfo, dropdownKey, icon: Icon, children }) => {
-        const isOpen = activeDropdown === dropdownKey;
-        const isActive = activeInfo; // Si hay filtro aplicado en este chip
-
-        return (
-            <div className="relative inline-block"> {/* Changed to inline-block/relative for positioning */}
-                <button
-                    onClick={(e) => {
-                        e.stopPropagation(); // Stop propagation to prevent immediate close if bubbling
-                        setActiveDropdown(isOpen ? null : dropdownKey);
-                    }}
-                    className={`
-                        flex items-center gap-2 px-4 py-2 rounded-full border text-sm font-medium transition-all
-                        ${isActive
-                            ? 'bg-blue-50 border-blue-200 text-blue-700'
-                            : isOpen
-                                ? 'bg-gray-100 border-gray-300 text-gray-900'
-                                : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'}
-                    `}
-                >
-                    {Icon && <Icon className={`w-4 h-4 ${isActive ? 'text-blue-500' : 'text-gray-400'}`} />}
-                    <span>{label}</span>
-                    <ChevronDown className={`w-3.5 h-3.5 transition-transform ${isOpen ? 'rotate-180' : ''} ${isActive ? 'text-blue-500' : 'text-gray-400'}`} />
-                </button>
-
-                {isOpen && (
-                    <div
-                        className="absolute top-full mt-2 left-0 min-w-[200px] w-max max-w-xs bg-white rounded-xl shadow-xl border border-gray-100 p-2 z-50 animate-in fade-in zoom-in-95 duration-200"
-                        onClick={(e) => e.stopPropagation()} // Prevent clicks inside dropdown from closing it if bubbling reaches a listener
-                    >
-                        {children}
-                    </div>
-                )}
-            </div>
-        );
-    };
-
     return (
-        <div className="mb-8" ref={filterRef}>
-            {/* --- BARRA PRINCIPAL ESTILO "GOOGLE SEARCH" --- */}
-            <div className="bg-white p-2 rounded-2xl shadow-sm border border-gray-200 flex flex-col md:flex-row gap-2">
+        <div className="mb-4" ref={filterRef}>
+            {/* --- BARRA PRINCIPAL --- */}
+            <div className="bg-white p-2 rounded-2xl shadow-sm border border-gray-200 flex flex-col xl:flex-row gap-2 items-center">
 
-                {/* 1. Buscador */}
-                <div className="flex-1 relative">
+                {/* 1. Buscador Robusto */}
+                <div className="flex-1 w-full xl:w-auto relative group">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <Search className="h-5 w-5 text-gray-400" />
+                        <Search className="h-5 w-5 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
                     </div>
                     <input
                         type="text"
-                        className="block w-full pl-10 pr-3 py-2.5 border-none rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-100/50 bg-transparent"
-                        placeholder="Buscar propiedades, códigos, clientes..."
+                        className="block w-full pl-10 pr-3 py-2.5 border-none rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-100/50 bg-transparent transition-all"
+                        placeholder="Buscar por titular, código interno, descripción o propietario..."
                         value={busqueda}
                         onChange={(e) => setBusqueda(e.target.value)}
                     />
                 </div>
 
-                {/* Separador Vertical */}
-                <div className="hidden md:block w-px bg-gray-200 my-2"></div>
+                <div className="hidden xl:block w-px h-8 bg-gray-200 mx-2"></div>
 
-                {/* 2. Chips de Filtros Rápidos */}
-                <div className="flex flex-wrap items-center gap-2 px-2">
+                {/* 2. Chips Rápidos + Botón Modal */}
+                <div className="flex items-center gap-2 w-full xl:w-auto overflow-x-auto xl:overflow-visible pb-2 xl:pb-0 scrollbar-hide px-1">
 
-                    {/* Chip: Operación */}
                     <FilterChip
-                        label={filtros.transaccion ? filtros.transaccion : "Operación"}
+                        label={filtros.transaccion || "Operación"}
                         activeInfo={filtros.transaccion}
                         dropdownKey="transaccion"
+                        activeDropdown={activeDropdown}
+                        setActiveDropdown={setActiveDropdown}
                         icon={Briefcase}
                     >
                         <div className="flex flex-col gap-1">
@@ -195,11 +197,12 @@ export default function FiltroPropiedadesAdmin({ filtros, setFiltros, busqueda, 
                         </div>
                     </FilterChip>
 
-                    {/* Chip: Tipo */}
                     <FilterChip
-                        label={filtros.tipo ? filtros.tipo : "Tipo"}
+                        label={filtros.tipo || "Tipo"}
                         activeInfo={filtros.tipo}
                         dropdownKey="tipo"
+                        activeDropdown={activeDropdown}
+                        setActiveDropdown={setActiveDropdown}
                         icon={Building2}
                     >
                         <div className="max-h-60 overflow-y-auto flex flex-col gap-1">
@@ -212,43 +215,12 @@ export default function FiltroPropiedadesAdmin({ filtros, setFiltros, busqueda, 
                         </div>
                     </FilterChip>
 
-                    {/* Chip: Precio */}
                     <FilterChip
-                        label={filtros.precioMin || filtros.precioMax ? "Precio" : "Precio"}
-                        activeInfo={filtros.precioMin || filtros.precioMax}
-                        dropdownKey="precio"
-                        icon={DollarSign}
-                    >
-                        <div className="p-3">
-                            <label className="text-xs font-semibold text-gray-500 mb-2 block">Rango de Precio</label>
-                            <div className="flex items-center gap-2 mb-3">
-                                <input
-                                    type="number"
-                                    placeholder="Min"
-                                    value={filtros.precioMin}
-                                    onChange={(e) => handleChange('precioMin', e.target.value)}
-                                    className="w-full p-2 border rounded-lg text-sm"
-                                />
-                                <span className="text-gray-400">-</span>
-                                <input
-                                    type="number"
-                                    placeholder="Max"
-                                    value={filtros.precioMax}
-                                    onChange={(e) => handleChange('precioMax', e.target.value)}
-                                    className="w-full p-2 border rounded-lg text-sm"
-                                />
-                            </div>
-                            <div className="flex justify-end">
-                                <button onClick={() => setActiveDropdown(null)} className="text-xs text-blue-600 font-medium hover:underline">Aplicar</button>
-                            </div>
-                        </div>
-                    </FilterChip>
-
-                    {/* Chip: Estado */}
-                    <FilterChip
-                        label={filtros.estado ? filtros.estado : "Estado"}
+                        label={filtros.estado || "Estado"}
                         activeInfo={filtros.estado}
                         dropdownKey="estado"
+                        activeDropdown={activeDropdown}
+                        setActiveDropdown={setActiveDropdown}
                         icon={CheckCircle2}
                     >
                         <div className="flex flex-col gap-1">
@@ -267,18 +239,16 @@ export default function FiltroPropiedadesAdmin({ filtros, setFiltros, busqueda, 
                         </div>
                     </FilterChip>
 
-                    {/* Botón Más Filtros */}
+                    {/* Boton Modal "Filtros de Búsqueda" */}
                     <button
-                        onClick={() => setShowAdvanced(!showAdvanced)}
+                        onClick={() => setShowModal(true)}
                         className={`
                              whitespace-nowrap flex items-center gap-2 px-4 py-2 rounded-full border text-sm font-medium transition-all ml-auto hover:bg-gray-50
-                             ${showAdvanced || contarFiltrosActivos() > (filtros.transaccion ? 1 : 0) + (filtros.tipo ? 1 : 0) + (filtros.precioMin || filtros.precioMax ? 1 : 0) + (filtros.estado ? 1 : 0) // Lógica aproximada para highlight
-                                ? 'border-gray-400 bg-gray-50 text-gray-900'
-                                : 'border-gray-200 bg-white text-gray-600'}
+                             ${contarFiltrosActivos() > 0 ? 'border-gray-800 bg-gray-50 text-gray-900 ring-1 ring-gray-200' : 'border-gray-200 bg-white text-gray-600'}
                         `}
                     >
                         <SlidersHorizontal className="w-4 h-4" />
-                        <span>Filtros Globales</span>
+                        <span>Filtros Globales {contarFiltrosActivos() > 0 && `(${contarFiltrosActivos()})`}</span>
                     </button>
 
                     {contarFiltrosActivos() > 0 && (
@@ -289,126 +259,149 @@ export default function FiltroPropiedadesAdmin({ filtros, setFiltros, busqueda, 
                 </div>
             </div>
 
-            {/* --- PANEL LATERAL AVANZADO (Drawer Like) --- */}
-            {showAdvanced && (
-                <div className="mt-4 bg-white rounded-2xl shadow-sm border border-gray-200 p-6 animate-in slide-in-from-top-4 duration-300">
-                    <div className="flex justify-between items-center mb-6 border-b border-gray-100 pb-4">
-                        <h3 className="font-bold text-gray-800 text-lg flex items-center gap-2">
-                            <Filter className="w-5 h-5 text-blue-600" />
-                            Filtros Avanzados
-                        </h3>
-                        <button onClick={() => setShowAdvanced(false)} className="text-gray-400 hover:text-gray-600">
-                            <X className="w-5 h-5" />
-                        </button>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-
-                        {/* Columna 1: Ubicación y Agente */}
-                        <div className="space-y-4">
-                            <label className="block text-sm font-semibold text-gray-700">Ubicación y Responsable</label>
-
-                            <div className="space-y-2">
-                                <span className="text-xs text-gray-500 uppercase">Ciudad</span>
-                                <select value={filtros.ciudad} onChange={(e) => handleChange('ciudad', e.target.value)} className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:bg-white focus:border-blue-500 outline-none">
-                                    <option value="">Todas</option>
-                                    {ciudades.map(c => <option key={c} value={c}>{c}</option>)}
-                                </select>
-                            </div>
-
-                            <div className="space-y-2">
-                                <span className="text-xs text-gray-500 uppercase">Agente Asignado</span>
-                                <select value={filtros.agenteId || ''} onChange={(e) => handleChange('agenteId', e.target.value)} className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:bg-white focus:border-blue-500 outline-none">
-                                    <option value="">Todos</option>
-                                    {agentes.map(a => <option key={a.id} value={a.id}>{a.nombre} {a.apellido}</option>)}
-                                </select>
-                            </div>
+            {/* --- MODAL "YOUTUBE STYLE" --- */}
+            {showModal && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200" onClick={() => setShowModal(false)}>
+                    <div
+                        className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto shadow-2xl animate-in zoom-in-95 duration-200 flex flex-col"
+                        onClick={(e) => e.stopPropagation()} // Evitar cerrar al clickear dentro
+                    >
+                        {/* Header Modal */}
+                        <div className="flex justify-between items-center p-5 border-b border-gray-100 sticky top-0 bg-white z-10">
+                            <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                                <SlidersHorizontal className="w-6 h-6" />
+                                Filtros de Búsqueda
+                            </h2>
+                            <button onClick={() => setShowModal(false)} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+                                <X className="w-6 h-6 text-gray-500" />
+                            </button>
                         </div>
 
-                        {/* Columna 2: Distribución */}
-                        <div className="space-y-4">
-                            <label className="block text-sm font-semibold text-gray-700">Distribución</label>
-                            <div className="grid grid-cols-2 gap-3">
-                                <div>
-                                    <span className="text-xs text-gray-500 uppercase block mb-1">Habitaciones</span>
-                                    <input type="number" placeholder="Min" value={filtros.nro_habitaciones} onChange={(e) => handleChange('nro_habitaciones', e.target.value)} className="w-full p-2 bg-gray-50 border border-gray-200 rounded-lg text-sm" />
-                                </div>
-                                <div>
-                                    <span className="text-xs text-gray-500 uppercase block mb-1">Baños</span>
-                                    <input type="number" placeholder="Min" value={filtros.nro_banos} onChange={(e) => handleChange('nro_banos', e.target.value)} className="w-full p-2 bg-gray-50 border border-gray-200 rounded-lg text-sm" />
-                                </div>
-                                <div>
-                                    <span className="text-xs text-gray-500 uppercase block mb-1">Garajes</span>
-                                    <input type="number" placeholder="Min" value={filtros.nro_parqueaderos} onChange={(e) => handleChange('nro_parqueaderos', e.target.value)} className="w-full p-2 bg-gray-50 border border-gray-200 rounded-lg text-sm" />
-                                </div>
-                            </div>
-                        </div>
+                        {/* Body Modal */}
+                        <div className="p-6 space-y-8">
 
-                        {/* Columna 3: Detalles Físicos */}
-                        <div className="space-y-4">
-                            <label className="block text-sm font-semibold text-gray-700">Dimensiones y Año</label>
-                            <div className="space-y-2">
-                                <span className="text-xs text-gray-500 uppercase">Año Construcción</span>
-                                <input type="number" placeholder="Ej: 2015" value={filtros.anioMin} onChange={(e) => handleChange('anioMin', e.target.value)} className="w-full p-2 bg-gray-50 border border-gray-200 rounded-lg text-sm" />
-                            </div>
-                            <div className="space-y-2">
-                                <span className="text-xs text-gray-500 uppercase">Área Construcción (m²)</span>
-                                <div className="flex gap-2">
-                                    <input type="number" placeholder="Min" value={filtros.areaMin} onChange={(e) => handleChange('areaMin', e.target.value)} className="w-full p-2 bg-gray-50 border border-gray-200 rounded-lg text-sm" />
-                                    <input type="number" placeholder="Max" value={filtros.areaMax} onChange={(e) => handleChange('areaMax', e.target.value)} className="w-full p-2 bg-gray-50 border border-gray-200 rounded-lg text-sm" />
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Columna 4: Ordenar */}
-                        <div className="space-y-4">
-                            <label className="block text-sm font-semibold text-gray-700">Visualización</label>
-                            <div className="space-y-2">
-                                <span className="text-xs text-gray-500 uppercase">Ordenar por</span>
-                                <select value={filtros.orden || 'recientes'} onChange={(e) => handleChange('orden', e.target.value)} className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:bg-white focus:border-blue-500 outline-none">
-                                    <option value="recientes">Más recientes primero</option>
-                                    <option value="antiguas">Más antiguas primero</option>
-                                    <option value="precio_asc">Precio: Bajo a Alto</option>
-                                    <option value="precio_desc">Precio: Alto a Bajo</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Amenidades */}
-                    <div className="mt-8 pt-6 border-t border-gray-100">
-                        <label className="block text-sm font-semibold text-gray-700 mb-4">Amenidades y Características</label>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
-                            {AMENIDADES.map((amenidad) => (
-                                <label
-                                    key={amenidad.key}
-                                    className={`
-                                        flex items-center gap-2 p-2.5 rounded-lg border cursor-pointer transition-all select-none
-                                        ${filtros[amenidad.key]
-                                            ? 'bg-blue-600 border-blue-600 text-white shadow-md'
-                                            : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'}
-                                    `}
-                                >
-                                    <div className={`
-                                        w-4 h-4 rounded border flex items-center justify-center transition-colors flex-shrink-0
-                                        ${filtros[amenidad.key] ? 'border-white bg-transparent' : 'border-gray-300 bg-white'}
-                                    `}>
-                                        {filtros[amenidad.key] && <CheckCircle2 className="w-3 h-3 text-white" />}
+                            {/* Seccion 1: Ubicación y Precio */}
+                            <section>
+                                <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wide mb-4 pb-2 border-b border-gray-100">Ubicación y Precio</h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    {/* Location Search Input */}
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-semibold text-gray-500 flex items-center gap-1"><MapPin className="w-3.5 h-3.5" /> Ubicación</label>
+                                        <div className="relative">
+                                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                            <input
+                                                type="text"
+                                                placeholder="Provincia, Ciudad, Sector, Dirección..."
+                                                value={filtros.ubicacion || ''}
+                                                onChange={(e) => handleChange('ubicacion', e.target.value)}
+                                                className="w-full pl-9 p-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:border-blue-500 outline-none transition-colors"
+                                            />
+                                        </div>
                                     </div>
-                                    <input
-                                        type="checkbox"
-                                        checked={!!filtros[amenidad.key]}
-                                        onChange={() => toggleAmenidad(amenidad.key)}
-                                        className="hidden"
-                                    />
-                                    <span className="text-xs font-medium truncate">{amenidad.label}</span>
-                                </label>
-                            ))}
+
+                                    {/* Rango de Precio */}
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-semibold text-gray-500 flex items-center gap-1"><DollarSign className="w-3.5 h-3.5" /> Rango de Precio</label>
+                                        <div className="flex gap-2">
+                                            <FilterChip label="Min" activeInfo={filtros.precioMin ? `$${filtros.precioMin}` : null} dropdownKey="precioMin" activeDropdown={activeDropdown} setActiveDropdown={setActiveDropdown} icon={DollarSign}>
+                                                <input type="number" placeholder="Min" value={filtros.precioMin} onChange={(e) => handleChange('precioMin', e.target.value)} className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" autoFocus />
+                                            </FilterChip>
+                                            <span className="text-gray-400 flex items-center">-</span>
+                                            <FilterChip label="Max" activeInfo={filtros.precioMax ? `$${filtros.precioMax}` : null} dropdownKey="precioMax" activeDropdown={activeDropdown} setActiveDropdown={setActiveDropdown} icon={DollarSign}>
+                                                <input type="number" placeholder="Max" value={filtros.precioMax} onChange={(e) => handleChange('precioMax', e.target.value)} className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" autoFocus />
+                                            </FilterChip>
+                                        </div>
+                                    </div>
+                                </div>
+                            </section>
+
+                            {/* Seccion 2: Distribución y Áreas */}
+                            <section>
+                                <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wide mb-4 pb-2 border-b border-gray-100">Características del Inmueble</h3>
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                    {/* Habitaciones */}
+                                    <div className="space-y-1">
+                                        <label className="text-xs font-semibold text-gray-500 flex items-center gap-1"><BedDouble className="w-3.5 h-3.5" /> Habitaciones</label>
+                                        <input type="number" placeholder="Min" value={filtros.habitaciones} onChange={(e) => handleChange('habitaciones', e.target.value)} className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:border-blue-500 outline-none" />
+                                    </div>
+                                    {/* Baños */}
+                                    <div className="space-y-1">
+                                        <label className="text-xs font-semibold text-gray-500 flex items-center gap-1"><Bath className="w-3.5 h-3.5" /> Baños</label>
+                                        <input type="number" placeholder="Min" value={filtros.banos} onChange={(e) => handleChange('banos', e.target.value)} className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:border-blue-500 outline-none" />
+                                    </div>
+                                    {/* Garajes */}
+                                    <div className="space-y-1">
+                                        <label className="text-xs font-semibold text-gray-500 flex items-center gap-1"><Car className="w-3.5 h-3.5" /> Garajes</label>
+                                        <input type="number" placeholder="Min" value={filtros.parqueaderos} onChange={(e) => handleChange('parqueaderos', e.target.value)} className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:border-blue-500 outline-none" />
+                                    </div>
+                                    {/* Año */}
+                                    <div className="space-y-1">
+                                        <label className="text-xs font-semibold text-gray-500 flex items-center gap-1">Año Const.</label>
+                                        <input type="number" placeholder="Ej. 2020" value={filtros.anioMin} onChange={(e) => handleChange('anioMin', e.target.value)} className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:border-blue-500 outline-none" />
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+                                    {/* Area Construccion */}
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-semibold text-gray-500 flex items-center gap-1"><Maximize className="w-3.5 h-3.5" /> Área Construcción (m²)</label>
+                                        <div className="flex gap-2">
+                                            <input type="number" placeholder="Min" value={filtros.areaConstruccionMin} onChange={(e) => handleChange('areaConstruccionMin', e.target.value)} className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:border-blue-500 outline-none" />
+                                            <input type="number" placeholder="Max" value={filtros.areaConstruccionMax} onChange={(e) => handleChange('areaConstruccionMax', e.target.value)} className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:border-blue-500 outline-none" />
+                                        </div>
+                                    </div>
+                                    {/* Area Terreno */}
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-semibold text-gray-500 flex items-center gap-1"><Ruler className="w-3.5 h-3.5" /> Área Terreno (m²)</label>
+                                        <div className="flex gap-2">
+                                            <input type="number" placeholder="Min" value={filtros.areaTerrenoMin} onChange={(e) => handleChange('areaTerrenoMin', e.target.value)} className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:border-blue-500 outline-none" />
+                                            <input type="number" placeholder="Max" value={filtros.areaTerrenoMax} onChange={(e) => handleChange('areaTerrenoMax', e.target.value)} className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:border-blue-500 outline-none" />
+                                        </div>
+                                    </div>
+                                </div>
+                            </section>
+
+                            {/* Seccion 3: Amenidades */}
+                            <section>
+                                <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wide mb-4 pb-2 border-b border-gray-100">Amenidades</h3>
+                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                    {AMENIDADES.map((amenidad) => (
+                                        <div
+                                            key={amenidad.key}
+                                            className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all duration-200 group select-none ${filtros[amenidad.key] ? 'bg-blue-50 border-blue-200 shadow-sm' : 'bg-white border-gray-100 hover:border-blue-200 hover:bg-gray-50'}`}
+                                            onClick={() => toggleAmenidad(amenidad.key)}
+                                        >
+                                            <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-colors ${filtros[amenidad.key] ? 'bg-blue-500 border-blue-500' : 'border-gray-300 group-hover:border-blue-400'}`}>
+                                                {filtros[amenidad.key] && <CheckCircle2 className="w-3.5 h-3.5 text-white" />}
+                                            </div>
+                                            <span className={`text-sm font-medium ${filtros[amenidad.key] ? 'text-blue-700' : 'text-gray-600'}`}>
+                                                {amenidad.label}
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </section>
+                        </div>
+
+                        {/* Footer Modal */}
+                        <div className="p-5 border-t border-gray-100 flex justify-end gap-3 sticky bottom-0 bg-white z-10 rounded-b-2xl">
+                            <button
+                                onClick={limpiarFiltros}
+                                className="px-5 py-2.5 text-gray-600 hover:bg-gray-100 rounded-lg font-medium transition-colors"
+                            >
+                                Limpiar todo
+                            </button>
+                            <button
+                                onClick={() => setShowModal(false)}
+                                className="px-6 py-2.5 bg-black text-white rounded-lg font-medium hover:bg-gray-800 transition-transform active:scale-95 shadow-lg shadow-gray-200"
+                            >
+                                Ver Resultados
+                            </button>
                         </div>
                     </div>
-
-                </div>
-            )}
-        </div>
+                </div >
+            )
+            }
+        </div >
     );
 }

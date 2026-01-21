@@ -10,6 +10,7 @@ import { PageSpinner } from '../components/Spinner';
 export default function PanelClientes() {
     const navigate = useNavigate();
     const [clientes, setClientes] = useState([]);
+    const [agentes, setAgentes] = useState([]); // 🆕 Lista de agentes para admin
     const [loading, setLoading] = useState(true);
     const [usuario, setUsuario] = useState(null);
     const [searchInput, setSearchInput] = useState(''); // Input local para debounce
@@ -17,7 +18,7 @@ export default function PanelClientes() {
         search: '',
         tipo_cliente: '',
         estado: 'activo',
-        search: '', // Aseguramos que search esté presente si no lo estaba
+        agenteId: '', // 🆕 Filtro por agente
         sortBy: 'createdAt',
         order: 'desc',
         page: 1
@@ -69,6 +70,15 @@ export default function PanelClientes() {
             return;
         }
 
+        // 🆕 Cargar lista de agentes si es admin
+        if (decoded.rol === 'admin') {
+            axios.get('http://localhost:3000/api/usuarios/agentes', {
+                headers: { Authorization: `Bearer ${token}` }
+            })
+                .then(res => setAgentes(res.data))
+                .catch(err => console.error('Error al cargar agentes:', err));
+        }
+
         cargarClientes();
     }, [filtros]);
 
@@ -79,9 +89,9 @@ export default function PanelClientes() {
                 page: filtros.page,
                 limit: 10,
                 search: filtros.search,
-                search: filtros.search,
                 tipo_cliente: filtros.tipo_cliente,
                 estado: filtros.estado,
+                agenteId: filtros.agenteId, // 🆕 Enviar filtro
                 sortBy: filtros.sortBy,
                 order: filtros.order
             });
@@ -232,7 +242,7 @@ export default function PanelClientes() {
                         </p>
                     </div>
                     <button
-                        onClick={() => navigate('/admin/registrar-cliente')}
+                        onClick={() => navigate(usuario?.rol === 'admin' ? '/admin/registrar-cliente' : '/agente/registrar-cliente')}
                         className="bg-orange-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-orange-700 transition duration-200 flex items-center gap-2 shadow-sm"
                     >
                         <UserPlus className="w-5 h-5" />
@@ -295,17 +305,47 @@ export default function PanelClientes() {
                         </select>
                     </div>
 
+                    {/* Filtro Agente (Solo Admin) */}
+                    {usuario?.rol === 'admin' && (
+                        <div>
+                            <label className="block text-xs font-medium text-gray-500 mb-1 uppercase tracking-wider">
+                                Agente
+                            </label>
+                            <select
+                                name="agenteId"
+                                value={filtros.agenteId}
+                                onChange={handleFiltroChange}
+                                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                            >
+                                <option value="">Todos los agentes</option>
+                                {agentes.map(agente => (
+                                    <option key={agente.id} value={agente.id}>
+                                        {agente.name}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                    )}
+
                     {/* Botón limpiar */}
                     <div className="flex items-end">
                         <button
                             onClick={() => {
                                 setSearchInput('');
-                                setFiltros({ search: '', tipo_cliente: '', estado: 'activo', sortBy: 'createdAt', order: 'desc', page: 1 });
+                                setFiltros({
+                                    search: '',
+                                    tipo_cliente: '',
+                                    estado: 'activo',
+                                    agenteId: '', // 🆕 Resetear
+                                    sortBy: 'createdAt',
+                                    order: 'desc',
+                                    page: 1
+                                });
                             }}
-                            className="w-full bg-gray-100 text-gray-600 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-200 transition duration-200 flex items-center justify-center gap-2"
+                            className="w-full bg-gray-100 text-gray-600 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-200 transition duration-200 flex items-center justify-center gap-2 h-[42px]"
                         >
                             <RotateCw className="w-4 h-4" />
-                            Limpiar
+                            Limpiar Filtros
                         </button>
                     </div>
                 </div>
@@ -451,7 +491,7 @@ export default function PanelClientes() {
                                                     <Briefcase className="w-4 h-4" />
                                                 </button>
                                                 <button
-                                                    onClick={() => navigate(`/admin/editar-cliente/${cliente.id}`)}
+                                                    onClick={() => navigate(`${usuario?.rol === 'admin' ? '/admin' : '/agente'}/editar-cliente/${cliente.id}`)}
                                                     className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
                                                     title="Editar cliente"
                                                 >

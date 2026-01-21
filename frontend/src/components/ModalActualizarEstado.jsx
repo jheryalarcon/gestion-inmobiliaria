@@ -8,7 +8,16 @@ export default function ModalActualizarEstado({
     onClose,
     onSuccess
 }) {
-    const [nuevoEstado, setNuevoEstado] = useState(estadoActual);
+    // 🔒 BLINDAJE: Solo permitir estados administrativos.
+    // Los estados transaccionales (vendida, reservada, arrendada) se gestionan vía Negociación.
+    const estadosPermitidos = ['disponible', 'inactiva'];
+
+    // Si el estado actual es restringido (ej. 'vendida'), inicializamos el selector en 'disponible'
+    // para que coincida con lo que muestra el navegador y sea un estado válido al guardar.
+    const [nuevoEstado, setNuevoEstado] = useState(
+        estadosPermitidos.includes(estadoActual) ? estadoActual : 'disponible'
+    );
+
     const [mensaje, setMensaje] = useState('');
     const [cargando, setCargando] = useState(false);
     const tokenInfo = verificarToken();
@@ -19,10 +28,6 @@ export default function ModalActualizarEstado({
     }
 
     const token = localStorage.getItem('token');
-
-    // 🔒 BLINDAJE: Solo permitir estados administrativos.
-    // Los estados transaccionales (vendida, reservada, arrendada) se gestionan vía Negociación.
-    const estadosPermitidos = ['disponible', 'inactiva'];
 
     const handleActualizar = async () => {
         console.log('Intentando actualizar estado:', { propiedadId, nuevoEstado, token: token ? 'Presente' : 'Ausente' });

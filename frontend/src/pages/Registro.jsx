@@ -81,7 +81,7 @@ export default function Registro() {
 
             if (requireVerification) {
                 setRegistroExitoso(true);
-                toast.success('¡Registro exitoso! 📧', {
+                toast.success('¡Registro exitoso!', {
                     duration: 5000,
                     description: 'Hemos enviado un enlace de verificación a tu correo. Por favor revísalo para activar tu cuenta.'
                 });
