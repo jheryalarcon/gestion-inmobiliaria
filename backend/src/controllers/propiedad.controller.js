@@ -1,6 +1,7 @@
 import prisma from '../prisma/client.js'
 import imageConfig from '../config/images.js'
 import axios from 'axios'
+import { uploadToCloudinary, deleteFromCloudinary, extractPublicId } from '../config/cloudinary.js'
 
 export const crearPropiedad = async (req, res) => {
     const {
@@ -285,8 +286,11 @@ export const crearPropiedad = async (req, res) => {
         }
 
 
-        const imagenes = archivos.map((file) => ({
-            url: `/uploads/${file.filename}`,
+        const uploadPromises = archivos.map(file => uploadToCloudinary(file.buffer, 'propiedades'));
+        const uploadResults = await Promise.all(uploadPromises);
+
+        const imagenes = uploadResults.map(result => ({
+            url: result.secure_url,
             propiedadId: propiedad.id,
         }));
 
@@ -933,6 +937,20 @@ export const actualizarPropiedad = async (req, res) => {
         }
 
         if (imagenesAEliminar.length > 0) {
+            const imagenesABorrar = await prisma.imagen.findMany({
+                where: {
+                    id: { in: imagenesAEliminar.map(Number) },
+                    propiedadId: propiedad.id
+                }
+            });
+
+            const deletePromises = imagenesABorrar.map(img => {
+                const publicId = extractPublicId(img.url);
+                if (publicId) return deleteFromCloudinary(publicId);
+                return Promise.resolve();
+            });
+            await Promise.all(deletePromises);
+
             await prisma.imagen.deleteMany({
                 where: {
                     id: {
@@ -945,8 +963,11 @@ export const actualizarPropiedad = async (req, res) => {
 
         // Manejo de nuevas imágenes
         if (archivos && archivos.length > 0) {
-            const nuevas = archivos.map((file) => ({
-                url: `/uploads/${file.filename}`,
+            const uploadPromises = archivos.map(file => uploadToCloudinary(file.buffer, 'propiedades'));
+            const uploadResults = await Promise.all(uploadPromises);
+
+            const nuevas = uploadResults.map(result => ({
+                url: result.secure_url,
                 propiedadId: propiedad.id,
             }));
             await prisma.imagen.createMany({ data: nuevas });

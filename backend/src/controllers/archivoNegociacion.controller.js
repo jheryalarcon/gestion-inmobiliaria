@@ -2,6 +2,7 @@ import { PrismaClient } from '@prisma/client';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { uploadToCloudinary } from '../config/cloudinary.js';
 
 const prisma = new PrismaClient();
 const __filename = fileURLToPath(import.meta.url);
@@ -54,15 +55,18 @@ export const subirArchivo = async (req, res) => {
             });
         }
 
+        // Subir a Cloudinary
+        const uploadResult = await uploadToCloudinary(req.file.buffer, 'negociaciones');
+
         // Crear registro en la base de datos
         const archivo = await prisma.archivoNegociacion.create({
             data: {
                 negociacionId: parseInt(negociacionId),
                 agenteId: agenteId,
                 nombre_archivo: req.file.originalname,
-                nombre_guardado: req.file.filename,
+                nombre_guardado: uploadResult.public_id,
                 tipo: tipo || 'otros',
-                url: req.file.path,
+                url: uploadResult.secure_url,
                 tamano: req.file.size
             }
         });
@@ -197,15 +201,14 @@ export const descargarArchivo = async (req, res) => {
             });
         }
 
-        // Verificar que el archivo existe en el sistema de archivos
-        if (!fs.existsSync(archivo.url)) {
-            return res.status(404).json({
-                error: 'El archivo no se encuentra en el servidor'
-            });
+        // Asegurar que la URL sea un attachment
+        let downloadUrl = archivo.url;
+        if (downloadUrl.includes('/upload/')) {
+            downloadUrl = downloadUrl.replace('/upload/', '/upload/fl_attachment/');
         }
 
-        // Enviar archivo para descarga
-        res.download(archivo.url, archivo.nombre_archivo);
+        // Redirigir a la URL de Cloudinary
+        res.redirect(downloadUrl);
 
     } catch (error) {
         console.error('Error al descargar archivo:', error);

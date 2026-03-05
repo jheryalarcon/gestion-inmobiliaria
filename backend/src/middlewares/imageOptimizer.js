@@ -1,6 +1,4 @@
 import sharp from 'sharp';
-import fs from 'fs/promises';
-import path from 'path';
 
 const optimizarImagen = async (req, res, next) => {
     if (!req.files || req.files.length === 0) {
@@ -14,46 +12,31 @@ const optimizarImagen = async (req, res, next) => {
                     // Solo procesar imágenes
                     if (!file.mimetype.startsWith('image/')) return;
 
-                    const nombreArchivoOriginal = file.filename;
-                    const nombreSinExt = path.parse(nombreArchivoOriginal).name;
-                    const nuevoNombre = `${nombreSinExt}.webp`;
-                    const rutaOriginal = file.path;
-                    const rutaNueva = path.join(path.dirname(rutaOriginal), nuevoNombre);
+                    console.log(`🖼️ Optimizando imagen en memoria: ${file.originalname}`);
 
-                    console.log(`🖼️ Optimizando imagen: ${nombreArchivoOriginal} -> ${nuevoNombre}`);
-
-                    // Procesar con Sharp
-                    await sharp(rutaOriginal)
+                    // Procesar con Sharp desde buffer a buffer
+                    const bufferOptimizado = await sharp(file.buffer)
                         .resize({ width: 1024, withoutEnlargement: true }) // Redimensionar si es muy grande
-                        .toFormat('webp', { quality: 80 }) // Convertir a WebP con calidad 80
-                        .toFile(rutaNueva);
-
-                    // Eliminar archivo original si es diferente (ej. jpg -> webp)
-                    if (rutaOriginal !== rutaNueva) {
-                        try {
-                            await fs.unlink(rutaOriginal);
-                        } catch (err) {
-                            console.error('Error al eliminar imagen original:', err);
-                        }
-                    }
+                        .toFormat('webp', { quality: 80 }) // Convertir a WebP
+                        .toBuffer();
 
                     // Actualizar información del archivo en req.files
-                    // Esto es CRUCIAL para que el controlador guarde la ruta correcta en la BD
-                    req.files[index].filename = nuevoNombre;
-                    req.files[index].path = rutaNueva;
+                    req.files[index].buffer = bufferOptimizado;
                     req.files[index].mimetype = 'image/webp';
+                    req.files[index].originalname = file.originalname.replace(/\\.[^/.]+$/, "") + ".webp";
 
                 } catch (error) {
-                    console.error(`❌ Error optimizando imagen ${file.filename}:`, error);
-                    // Si falla la optimización, dejamos el archivo original (fail-safe)
+                    console.error(`❌ Error optimizando imagen ${file.originalname}:`, error);
+                    // Si falla la optimización, dejamos el archivo original (buffer intacto)
                 }
             })
         );
         next();
     } catch (error) {
         console.error('Error en middleware de optimización:', error);
-        next(); // Continuar aunque falle, para no romper el flujo
+        next(); // Continuar aunque falle
     }
 };
 
 export default optimizarImagen;
+
