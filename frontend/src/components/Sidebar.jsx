@@ -302,7 +302,7 @@ export default function Sidebar() {
                         <div className="flex flex-col items-start">
                             <img
                                 src="/logo-rectangular.jpg"
-                                alt="Inmobiliaria Escudero"
+                                alt="PropTech Hub"
                                 className="h-10 w-auto object-contain mb-1"
                             />
                             <p className="text-xs text-slate-500 font-medium uppercase tracking-wider ml-1">

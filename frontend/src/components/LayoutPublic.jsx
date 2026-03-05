@@ -118,7 +118,7 @@ export default function LayoutPublic({ children }) {
                             <Link to="/" className="flex items-center space-x-3 group">
                                 <img
                                     src="/logo-rectangular.jpg"
-                                    alt="Constructora Inmobiliaria Escudero"
+                                    alt="Constructora PropTech Hub"
                                     className="h-20 w-auto object-contain"
                                 />
                             </Link>
@@ -354,11 +354,11 @@ export default function LayoutPublic({ children }) {
                                 */}
                                 <img
                                     src="/logo-circular.png"
-                                    alt="Logo Escudero"
+                                    alt="Logo PropTech Hub"
                                     className="w-12 h-12 rounded-full shadow-sm"
                                 />
                                 <div>
-                                    <h3 className="text-xl font-bold text-slate-900 tracking-tight">Escudero</h3>
+                                    <h3 className="text-xl font-bold text-slate-900 tracking-tight">PropTech Hub</h3>
                                     <p className="text-xs text-orange-600 uppercase tracking-widest font-semibold">Constructora Inmobiliaria</p>
                                 </div>
                             </div>
@@ -427,7 +427,7 @@ export default function LayoutPublic({ children }) {
                     </div>
 
                     <div className="border-t border-slate-200 pt-8 mt-8 flex flex-col md:flex-row justify-between items-center text-xs text-slate-400">
-                        <p>© 2025 Constructora Inmobiliaria Escudero. Todos los derechos reservados.</p>
+                        <p>© 2025 Constructora PropTech Hub. Todos los derechos reservados.</p>
                         <div className="flex space-x-6 mt-4 md:mt-0">
                             <a href="#" className="hover:text-orange-600 transition-colors">Política de Privacidad</a>
                             <a href="#" className="hover:text-orange-600 transition-colors">Términos de Servicio</a>

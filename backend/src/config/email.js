@@ -27,21 +27,21 @@ export const sendVerificationEmail = async (email, token) => {
         // Gmail no carga imágenes de localhost. Usamos un placeholder público si estamos en desarrollo.
         const isLocal = frontendUrl.includes('localhost') || frontendUrl.includes('127.0.0.1');
         const logoUrl = isLocal
-            ? 'https://placehold.co/400x120/ffffff/0f172a?text=Inmobiliaria+Escudero&font=lora' // Logo temporal visible en Gmail
+            ? 'https://placehold.co/400x120/ffffff/0f172a?text=PropTech+Hub&font=lora' // Logo temporal visible en Gmail
             : `${frontendUrl}/logo-rectangular.jpg`;
 
         const info = await transporter.sendMail({
-            from: '"Inmobiliaria Escudero" <' + process.env.EMAIL_USER + '>',
+            from: '"PropTech Hub" <' + process.env.EMAIL_USER + '>',
             to: email,
-            subject: 'Verificación de cuenta - Inmobiliaria Escudero',
+            subject: 'Verificación de cuenta - PropTech Hub',
             html: `
                 <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
                     <div style="background-color: #ffffff; padding: 32px 24px; text-align: center; border-bottom: 1px solid #f1f5f9;">
-                         <img src="${logoUrl}" alt="Inmobiliaria Escudero" style="height: 60px; width: auto; display: block; margin: 0 auto;">
+                         <img src="${logoUrl}" alt="PropTech Hub" style="height: 60px; width: auto; display: block; margin: 0 auto;">
                     </div>
                     
                     <div style="padding: 40px 32px;">
-                        <h2 style="color: #0f172a; margin-top: 0; margin-bottom: 24px; font-size: 20px; font-weight: 600; text-align: center;">Bienvenido a Inmobiliaria Escudero</h2>
+                        <h2 style="color: #0f172a; margin-top: 0; margin-bottom: 24px; font-size: 20px; font-weight: 600; text-align: center;">Bienvenido a PropTech Hub</h2>
                         <p style="color: #475569; font-size: 16px; line-height: 1.6; margin-bottom: 24px;">Estimado cliente,</p>
                         <p style="color: #475569; font-size: 16px; line-height: 1.6; margin-bottom: 32px;">Gracias por crear su cuenta. Para completar el registro y acceder a nuestros servicios, por favor verifique su dirección de correo electrónico pulsando el siguiente botón:</p>
                         
@@ -56,7 +56,7 @@ export const sendVerificationEmail = async (email, token) => {
                     </div>
                     
                     <div style="background-color: #f8fafc; padding: 24px; text-align: center; border-top: 1px solid #e2e8f0;">
-                         <p style="color: #94a3b8; font-size: 12px; margin: 0;">&copy; ${new Date().getFullYear()} Inmobiliaria Escudero. Todos los derechos reservados.</p>
+                         <p style="color: #94a3b8; font-size: 12px; margin: 0;">&copy; ${new Date().getFullYear()} PropTech Hub. Todos los derechos reservados.</p>
                          <p style="color: #94a3b8; font-size: 12px; margin-top: 8px;">Este es un mensaje automático, por favor no responda a este correo.</p>
                     </div>
                 </div>
@@ -79,17 +79,17 @@ export const sendPasswordResetEmail = async (email, token) => {
         // Gmail no carga imágenes de localhost. Usamos un placeholder público si estamos en desarrollo.
         const isLocal = frontendUrl.includes('localhost') || frontendUrl.includes('127.0.0.1');
         const logoUrl = isLocal
-            ? 'https://placehold.co/400x120/ffffff/0f172a?text=Inmobiliaria+Escudero&font=lora' // Logo temporal visible en Gmail
+            ? 'https://placehold.co/400x120/ffffff/0f172a?text=PropTech+Hub&font=lora' // Logo temporal visible en Gmail
             : `${frontendUrl}/logo-rectangular.jpg`;
 
         const info = await transporter.sendMail({
-            from: '"Inmobiliaria Escudero" <' + process.env.EMAIL_USER + '>',
+            from: '"PropTech Hub" <' + process.env.EMAIL_USER + '>',
             to: email,
-            subject: 'Restablecimiento de contraseña - Inmobiliaria Escudero',
+            subject: 'Restablecimiento de contraseña - PropTech Hub',
             html: `
                 <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
                     <div style="background-color: #ffffff; padding: 32px 24px; text-align: center; border-bottom: 1px solid #f1f5f9;">
-                         <img src="${logoUrl}" alt="Inmobiliaria Escudero" style="height: 60px; width: auto; display: block; margin: 0 auto;">
+                         <img src="${logoUrl}" alt="PropTech Hub" style="height: 60px; width: auto; display: block; margin: 0 auto;">
                     </div>
                     
                     <div style="padding: 40px 32px;">
@@ -111,7 +111,7 @@ export const sendPasswordResetEmail = async (email, token) => {
                     
                     <div style="background-color: #f8fafc; padding: 24px; text-align: center; border-top: 1px solid #e2e8f0;">
                          <p style="color: #94a3b8; font-size: 12px; margin: 0;">Si no solicitó este cambio, puede ignorar este mensaje. Su cuenta permanece segura.</p>
-                         <p style="color: #94a3b8; font-size: 12px; margin-top: 8px;">&copy; ${new Date().getFullYear()} Inmobiliaria Escudero. Todos los derechos reservados.</p>
+                         <p style="color: #94a3b8; font-size: 12px; margin-top: 8px;">&copy; ${new Date().getFullYear()} PropTech Hub. Todos los derechos reservados.</p>
                     </div>
                 </div>
             `,

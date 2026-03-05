@@ -128,7 +128,7 @@ export default function Registro() {
                     <div className="flex flex-col items-center mb-4">
                         <img
                             src="/logo-rectangular.jpg"
-                            alt="Inmobiliaria Escudero"
+                            alt="PropTech Hub"
                             className="h-14 w-auto object-contain mb-3"
                         />
                         <h2 className="text-2xl font-bold text-slate-900 tracking-tight text-center">

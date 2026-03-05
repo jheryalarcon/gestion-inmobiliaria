@@ -88,7 +88,7 @@ export default function Login() {
                     <div className="flex flex-col items-center mb-6">
                         <img
                             src="/logo-rectangular.jpg"
-                            alt="Inmobiliaria Escudero"
+                            alt="PropTech Hub"
                             className="h-16 w-auto object-contain mb-4"
                         />
                         <h2 className="text-2xl font-bold text-slate-900 tracking-tight text-center">

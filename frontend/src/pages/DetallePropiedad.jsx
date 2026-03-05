@@ -236,7 +236,7 @@ export default function DetallePropiedad() {
     return (
         <LayoutPublic>
             <Helmet>
-                <title>{propiedad.titulo} | Inmobiliaria Escudero</title>
+                <title>{propiedad.titulo} | PropTech Hub</title>
                 <meta name="description" content={propiedad.descripcion ? propiedad.descripcion.substring(0, 150) + '...' : `Propiedad en ${propiedad.ciudad} - ${propiedad.tipo_propiedad}`} />
 
                 {/* Facebook / Open Graph */}
