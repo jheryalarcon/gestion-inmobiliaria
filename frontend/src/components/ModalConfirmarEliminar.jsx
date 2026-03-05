@@ -10,7 +10,7 @@ export default function ModalConfirmarEliminar({ propiedadId, onClose, onSuccess
         setCargando(true);
         setMensaje('');
         try {
-            await axios.delete(`http://localhost:3000/api/propiedades/${propiedadId}`, {
+            await axios.delete(`${import.meta.env.VITE_BACKEND_URL}/api/propiedades/${propiedadId}`, {
                 headers: { Authorization: `Bearer ${token}` },
             });
             setMensaje('Propiedad eliminada correctamente.');

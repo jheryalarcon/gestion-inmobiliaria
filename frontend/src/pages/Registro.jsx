@@ -70,7 +70,7 @@ export default function Registro() {
 
         try {
             setCargando(true);
-            const res = await axios.post('http://localhost:3000/api/auth/register', {
+            const res = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/auth/register`, {
                 name: name.trim(),
                 email: email.trim().toLowerCase(),
                 password,

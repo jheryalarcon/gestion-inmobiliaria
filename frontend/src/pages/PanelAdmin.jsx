@@ -42,7 +42,7 @@ function PanelAdmin() {
 
     const cargarEstadisticas = async (token) => {
         try {
-            const response = await axios.get('http://localhost:3000/api/dashboard/stats', {
+            const response = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/dashboard/stats`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
 

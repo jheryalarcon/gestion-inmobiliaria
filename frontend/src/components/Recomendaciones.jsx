@@ -85,7 +85,7 @@ export default function Recomendaciones({ favoritos, onFavoritoToggle }) {
 
         try {
             setCargando(true);
-            const response = await axios.get('http://localhost:3000/api/propiedades/recomendaciones?limit=6&k=3', {
+            const response = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/propiedades/recomendaciones?limit=6&k=3`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
 

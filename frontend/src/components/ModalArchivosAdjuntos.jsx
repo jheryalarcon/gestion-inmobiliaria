@@ -39,7 +39,7 @@ const ModalArchivosAdjuntos = ({
         try {
             setCargando(true);
             const token = getToken();
-            const response = await fetch(`http://localhost:3000/api/archivos-negociacion/negociacion/${negociacion.id}`, {
+            const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/archivos-negociacion/negociacion/${negociacion.id}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
 
@@ -114,7 +114,7 @@ const ModalArchivosAdjuntos = ({
             formData.append('negociacionId', negociacion.id);
             formData.append('tipo', tipoArchivo);
 
-            const response = await fetch('http://localhost:3000/api/archivos-negociacion/subir', {
+            const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/archivos-negociacion/subir`, {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${token}` },
                 body: formData
@@ -143,7 +143,7 @@ const ModalArchivosAdjuntos = ({
         toast.promise(
             async () => {
                 const token = getToken();
-                const response = await fetch(`http://localhost:3000/api/archivos-negociacion/descargar/${archivo.id}`, {
+                const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/archivos-negociacion/descargar/${archivo.id}`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 if (!response.ok) throw new Error('Error descarga');

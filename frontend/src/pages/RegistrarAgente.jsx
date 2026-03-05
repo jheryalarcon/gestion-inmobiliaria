@@ -177,7 +177,7 @@ export default function RegistrarAgente() {
             const token = localStorage.getItem('token');
 
             // 1. Crear Agente
-            const response = await fetch('http://localhost:3000/api/agentes/crear', {
+            const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/agentes/crear`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -213,7 +213,7 @@ export default function RegistrarAgente() {
                         files.forEach(file => formData.append('documentos', file));
 
                         uploadPromises.push(
-                            fetch(`http://localhost:3000/api/documentos/agente/${agenteId}`, {
+                            fetch(`${import.meta.env.VITE_BACKEND_URL}/api/documentos/agente/${agenteId}`, {
                                 method: 'POST',
                                 headers: { 'Authorization': `Bearer ${token}` },
                                 body: formData

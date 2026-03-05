@@ -21,7 +21,7 @@ const ArchivosAdjuntos = ({ negociacionId, esAgenteResponsable, esAdmin }) => {
         try {
             setCargando(true);
             const token = getToken();
-            const response = await fetch(`http://localhost:3000/api/archivos-negociacion/negociacion/${negociacionId}`, {
+            const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/archivos-negociacion/negociacion/${negociacionId}`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
@@ -85,7 +85,7 @@ const ArchivosAdjuntos = ({ negociacionId, esAgenteResponsable, esAdmin }) => {
             formData.append('negociacionId', negociacionId);
             formData.append('tipo', tipoArchivo);
 
-            const response = await fetch('http://localhost:3000/api/archivos-negociacion/subir', {
+            const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/archivos-negociacion/subir`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`
@@ -116,7 +116,7 @@ const ArchivosAdjuntos = ({ negociacionId, esAgenteResponsable, esAdmin }) => {
     const descargarArchivo = async (archivoId, nombreArchivo) => {
         try {
             const token = getToken();
-            const response = await fetch(`http://localhost:3000/api/archivos-negociacion/descargar/${archivoId}`, {
+            const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/archivos-negociacion/descargar/${archivoId}`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }

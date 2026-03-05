@@ -35,7 +35,7 @@ const ModalActualizarEtapaNegociacion = ({
         try {
             const token = localStorage.getItem('token');
             const response = await axios.put(
-                `http://localhost:3000/api/negociaciones/${negociacion.id}`,
+                `${import.meta.env.VITE_BACKEND_URL}/api/negociaciones/${negociacion.id}`,
                 { etapa },
                 {
                     headers: { Authorization: `Bearer ${token}` }

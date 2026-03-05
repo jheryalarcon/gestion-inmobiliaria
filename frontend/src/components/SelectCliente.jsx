@@ -11,7 +11,7 @@ export default function SelectCliente({ value, onChange, error }) {
             try {
                 const token = localStorage.getItem('token');
                 // Fetch only active clients
-                const { data } = await axios.get('http://localhost:3000/api/clientes?estado=activo', {
+                const { data } = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/clientes?estado=activo`, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
 

@@ -71,7 +71,7 @@ export default function EditarAgente() {
         try {
             setLoading(true);
             const token = localStorage.getItem('token');
-            const response = await fetch(`http://localhost:3000/api/agentes/${id}`, {
+            const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/agentes/${id}`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
@@ -153,7 +153,7 @@ export default function EditarAgente() {
 
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch(`http://localhost:3000/api/documentos/agente/${id}`, {
+            const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/documentos/agente/${id}`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`
@@ -190,7 +190,7 @@ export default function EditarAgente() {
 
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch(`http://localhost:3000/api/documentos/agente/${docToDelete.id}`, {
+            const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/documentos/agente/${docToDelete.id}`, {
                 method: 'DELETE',
                 headers: {
                     'Authorization': `Bearer ${token}`
@@ -240,7 +240,7 @@ export default function EditarAgente() {
         setSubmittingPassword(true);
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch(`http://localhost:3000/api/agentes/${id}/password`, {
+            const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/agentes/${id}/password`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -324,7 +324,7 @@ export default function EditarAgente() {
         setSubmitting(true);
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch(`http://localhost:3000/api/agentes/${id}`, {
+            const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/agentes/${id}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',

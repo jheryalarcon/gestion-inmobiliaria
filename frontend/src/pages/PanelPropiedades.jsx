@@ -93,7 +93,7 @@ export default function PanelPropiedades() {
         if (token) {
             const decoded = jwtDecode(token);
             if (decoded.rol === 'admin') {
-                axios.get('http://localhost:3000/api/usuarios/agentes', {
+                axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/usuarios/agentes`, {
                     headers: { Authorization: `Bearer ${token}` }
                 })
                     .then(res => setAgentes(res.data))
@@ -163,7 +163,7 @@ export default function PanelPropiedades() {
                     if (viewMode === 'mine') params.agenteId = decoded.id;
                 }
 
-                axios.get('http://localhost:3000/api/propiedades', {
+                axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/propiedades`, {
                     headers: { Authorization: `Bearer ${token}` },
                     params: params // Axios serializa esto como query string
                 })
@@ -417,7 +417,7 @@ export default function PanelPropiedades() {
                                             const img = prop.imagenes?.[0]?.url
                                                 ? prop.imagenes[0].url.startsWith('http')
                                                     ? prop.imagenes[0].url
-                                                    : `http://localhost:3000${prop.imagenes[0].url}`
+                                                    : `${import.meta.env.VITE_BACKEND_URL}${prop.imagenes[0].url}`
                                                 : 'https://via.placeholder.com/50';
 
                                             // Reutilizamos lógica de permisos de CardPropiedad

@@ -125,7 +125,7 @@ export default function Propiedades() {
                 }
             }
 
-            const response = await axios.get('http://localhost:3000/api/propiedades/publicas', { params });
+            const response = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/propiedades/publicas`, { params });
 
             setPropiedades(response.data);
         } catch (error) {
@@ -143,7 +143,7 @@ export default function Propiedades() {
 
         if (token && usuario && usuario.rol === 'cliente') {
             try {
-                const response = await axios.get('http://localhost:3000/api/favoritos', {
+                const response = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/favoritos`, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
                 setFavoritos(response.data);

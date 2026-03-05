@@ -87,7 +87,7 @@ export default function FiltroPropiedadesAdmin({ filtros, setFiltros, busqueda, 
             try {
                 // CAMBIO: Usar endpoint específico de metadatos administrativos
                 const token = localStorage.getItem('token');
-                const resProps = await fetch('http://localhost:3000/api/propiedades/filtros-metadata', {
+                const resProps = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/propiedades/filtros-metadata`, {
                     headers: {
                         'Authorization': `Bearer ${token}`
                     }

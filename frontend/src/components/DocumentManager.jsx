@@ -44,7 +44,7 @@ const DocumentRow = ({ label, files, onUpload, onDelete, required = false, accep
 
                         {files[0].url && (
                             <a
-                                href={`http://localhost:3000${files[0].url}`}
+                                href={`${import.meta.env.VITE_BACKEND_URL}${files[0].url}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="p-1.5 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-full transition-colors"

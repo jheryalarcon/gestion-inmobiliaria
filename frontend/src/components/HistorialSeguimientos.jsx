@@ -50,7 +50,7 @@ const HistorialSeguimientos = ({ negociacion, usuario, onSeguimientoCreado }) =>
             setLoading(true);
             const token = localStorage.getItem('token');
             const response = await axios.get(
-                `http://localhost:3000/api/seguimientos/${negociacion.id}`,
+                `${import.meta.env.VITE_BACKEND_URL}/api/seguimientos/${negociacion.id}`,
                 { headers: { Authorization: `Bearer ${token}` } }
             );
             setSeguimientos(response.data.seguimientos);
@@ -74,7 +74,7 @@ const HistorialSeguimientos = ({ negociacion, usuario, onSeguimientoCreado }) =>
         try {
             const token = localStorage.getItem('token');
             const response = await axios.post(
-                `http://localhost:3000/api/seguimientos/${negociacion.id}`,
+                `${import.meta.env.VITE_BACKEND_URL}/api/seguimientos/${negociacion.id}`,
                 nuevoSeguimiento,
                 { headers: { Authorization: `Bearer ${token}` } }
             );

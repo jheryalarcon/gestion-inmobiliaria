@@ -138,7 +138,7 @@ export default function PanelAgentes() {
                 estado: filtros.estado
             });
 
-            const url = `http://localhost:3000/api/agentes?${queryParams}`;
+            const url = `${import.meta.env.VITE_BACKEND_URL}/api/agentes?${queryParams}`;
             console.log('URL de la petición:', url);
 
             const response = await fetch(url, {
@@ -216,7 +216,7 @@ export default function PanelAgentes() {
         try {
             setSubmitting(true);
             const token = localStorage.getItem('token');
-            const response = await fetch(`http://localhost:3000/api/agentes/${agenteSeleccionado.id}/estado`, {
+            const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/agentes/${agenteSeleccionado.id}/estado`, {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',
@@ -254,7 +254,7 @@ export default function PanelAgentes() {
         try {
             setSubmitting(true);
             const token = localStorage.getItem('token');
-            const response = await fetch(`http://localhost:3000/api/agentes/${agenteSeleccionado.id}/estado`, {
+            const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/agentes/${agenteSeleccionado.id}/estado`, {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',

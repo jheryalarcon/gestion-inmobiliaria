@@ -26,7 +26,7 @@ export default function VerificarCuenta() {
 
             try {
                 // Adjust URL based on your API structure (api/auth/verify)
-                await axios.post('http://localhost:3000/api/auth/verify', { token });
+                await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/auth/verify`, { token });
                 setStatus('success');
                 setMensaje('¡Tu cuenta ha sido verificada exitosamente!');
                 toast.success('Cuenta verificada');

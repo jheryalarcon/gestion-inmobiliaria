@@ -47,13 +47,13 @@ const CrearNegociacion = ({ isOpen, onClose, onSuccess, usuario }) => {
 
             // Cargar clientes del agente
             const clientesResponse = await axios.get(
-                `http://localhost:3000/api/clientes?estado=activo`,
+                `${import.meta.env.VITE_BACKEND_URL}/api/clientes?estado=activo`,
                 { headers }
             );
 
             // 🏠 Cargar SOLO propiedades DISPONIBLES para negociaciones
             const propiedadesResponse = await axios.get(
-                `http://localhost:3000/api/propiedades/negociaciones/disponibles?includeAgente=true`,
+                `${import.meta.env.VITE_BACKEND_URL}/api/propiedades/negociaciones/disponibles?includeAgente=true`,
                 { headers }
             );
 
@@ -83,7 +83,7 @@ const CrearNegociacion = ({ isOpen, onClose, onSuccess, usuario }) => {
             // 👮‍♂️ Cargar Agentes SOLO SI ES ADMIN
             if (usuario?.rol === 'admin') {
                 const agentesResponse = await axios.get(
-                    `http://localhost:3000/api/agentes?limit=100`, // Traer todos (límite alto)
+                    `${import.meta.env.VITE_BACKEND_URL}/api/agentes?limit=100`, // Traer todos (límite alto)
                     { headers }
                 );
                 // Filtrar solo usuarios con rol 'agente' o 'admin' activos
@@ -111,7 +111,7 @@ const CrearNegociacion = ({ isOpen, onClose, onSuccess, usuario }) => {
         try {
             const token = localStorage.getItem('token');
             const response = await axios.post(
-                'http://localhost:3000/api/negociaciones',
+                `${import.meta.env.VITE_BACKEND_URL}/api/negociaciones`,
                 formData,
                 {
                     headers: { Authorization: `Bearer ${token}` }

@@ -160,7 +160,7 @@ export default function EditarCliente() {
 
     const cargarCliente = async (token) => {
         try {
-            const response = await axios.get(`http://localhost:3000/api/clientes/${id}`, {
+            const response = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/clientes/${id}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
 
@@ -207,7 +207,7 @@ export default function EditarCliente() {
 
     const cargarAgentes = async (token) => {
         try {
-            const response = await axios.get('http://localhost:3000/api/usuarios/agentes', {
+            const response = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/usuarios/agentes`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             setAgentes(response.data);
@@ -351,7 +351,7 @@ export default function EditarCliente() {
             formData.append('tipo', mapKeyToDocType(key));
 
             const token = localStorage.getItem('token');
-            const response = await axios.post(`http://localhost:3000/api/documentos/cliente/${id}`, formData, {
+            const response = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/documentos/cliente/${id}`, formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
                     Authorization: `Bearer ${token}`
@@ -379,7 +379,7 @@ export default function EditarCliente() {
 
         const deletePromise = async () => {
             const token = localStorage.getItem('token');
-            await axios.delete(`http://localhost:3000/api/documentos/cliente/${docToDelete.id}`, {
+            await axios.delete(`${import.meta.env.VITE_BACKEND_URL}/api/documentos/cliente/${docToDelete.id}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
         };
@@ -450,7 +450,7 @@ export default function EditarCliente() {
             }
             // Si es admin, SE MANTIENE el agenteId que viene del state
 
-            await axios.put(`http://localhost:3000/api/clientes/${id}`, datosEnviar, {
+            await axios.put(`${import.meta.env.VITE_BACKEND_URL}/api/clientes/${id}`, datosEnviar, {
                 headers: {
                     Authorization: `Bearer ${token}`,
                     'Content-Type': 'application/json',

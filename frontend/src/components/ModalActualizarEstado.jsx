@@ -39,12 +39,12 @@ export default function ModalActualizarEstado({
 
         setCargando(true);
         try {
-            console.log('Enviando petición a:', `http://localhost:3000/api/propiedades/${propiedadId}/estado`);
+            console.log('Enviando petición a:', `${import.meta.env.VITE_BACKEND_URL}/api/propiedades/${propiedadId}/estado`);
             console.log('Datos enviados:', { nuevoEstado });
             console.log('Headers:', { Authorization: `Bearer ${token}` });
 
             const response = await axios.patch(
-                `http://localhost:3000/api/propiedades/${propiedadId}/estado`,
+                `${import.meta.env.VITE_BACKEND_URL}/api/propiedades/${propiedadId}/estado`,
                 { nuevoEstado },
                 {
                     headers: {

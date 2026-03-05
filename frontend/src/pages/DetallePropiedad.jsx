@@ -31,7 +31,7 @@ export default function DetallePropiedad() {
 
     useEffect(() => {
         // Usar endpoint público sin autenticación
-        axios.get(`http://localhost:3000/api/propiedades/publica/${id}`)
+        axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/propiedades/publica/${id}`)
             .then(res => {
                 setPropiedad(res.data);
                 // Pre-rellenar el mensaje del formulario
@@ -81,7 +81,7 @@ export default function DetallePropiedad() {
                 precioMax
             });
 
-            const response = await axios.get('http://localhost:3000/api/propiedades/publicas', {
+            const response = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/propiedades/publicas`, {
                 params: {
                     tipo_propiedad: propiedadActual.tipo_propiedad,
                     ciudad: propiedadActual.ciudad,
@@ -118,7 +118,7 @@ export default function DetallePropiedad() {
 
         if (token && usuario && usuario.rol === 'cliente') {
             try {
-                const response = await axios.get('http://localhost:3000/api/favoritos', {
+                const response = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/favoritos`, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
                 setFavoritos(response.data);
@@ -167,7 +167,7 @@ export default function DetallePropiedad() {
         setFormErrors({});
 
         try {
-            await axios.post('http://localhost:3000/api/clientes/contacto-publico', {
+            await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/clientes/contacto-publico`, {
                 ...formData,
                 propiedadId: propiedad.id
             });
@@ -244,14 +244,14 @@ export default function DetallePropiedad() {
                 <meta property="og:url" content={window.location.href} />
                 <meta property="og:title" content={propiedad.titulo} />
                 <meta property="og:description" content={propiedad.descripcion ? propiedad.descripcion.substring(0, 150) + '...' : `Detalles de la propiedad en ${propiedad.direccion}`} />
-                <meta property="og:image" content={propiedad.imagenes?.[0]?.url.startsWith('http') ? propiedad.imagenes[0].url : `http://localhost:3000${propiedad.imagenes[0]?.url}`} />
+                <meta property="og:image" content={propiedad.imagenes?.[0]?.url.startsWith('http') ? propiedad.imagenes[0].url : `${import.meta.env.VITE_BACKEND_URL}${propiedad.imagenes[0]?.url}`} />
 
                 {/* Twitter */}
                 <meta property="twitter:card" content="summary_large_image" />
                 <meta property="twitter:url" content={window.location.href} />
                 <meta property="twitter:title" content={propiedad.titulo} />
                 <meta property="twitter:description" content={propiedad.descripcion ? propiedad.descripcion.substring(0, 150) + '...' : `Propiedad en venta/alquiler`} />
-                <meta property="twitter:image" content={propiedad.imagenes?.[0]?.url.startsWith('http') ? propiedad.imagenes[0].url : `http://localhost:3000${propiedad.imagenes[0]?.url}`} />
+                <meta property="twitter:image" content={propiedad.imagenes?.[0]?.url.startsWith('http') ? propiedad.imagenes[0].url : `${import.meta.env.VITE_BACKEND_URL}${propiedad.imagenes[0]?.url}`} />
             </Helmet>
 
             <div className="min-h-screen bg-gray-50">
@@ -361,7 +361,7 @@ export default function DetallePropiedad() {
                             <img
                                 src={propiedad.imagenes[imagenSeleccionada]?.url.startsWith('http')
                                     ? propiedad.imagenes[imagenSeleccionada].url
-                                    : `http://localhost:3000${propiedad.imagenes[imagenSeleccionada]?.url}`}
+                                    : `${import.meta.env.VITE_BACKEND_URL}${propiedad.imagenes[imagenSeleccionada]?.url}`}
                                 alt="principal"
                                 className="w-full h-80 md:h-96 object-cover cursor-pointer select-none"
                                 onClick={handleMainImageClick}
@@ -377,12 +377,12 @@ export default function DetallePropiedad() {
                                                 key={idx}
                                                 src={img.url.startsWith('http')
                                                     ? img.url
-                                                    : `http://localhost:3000${img.url}`}
+                                                    : `${import.meta.env.VITE_BACKEND_URL}${img.url}`}
                                             >
                                                 <img
                                                     src={img.url.startsWith('http')
                                                         ? img.url
-                                                        : `http://localhost:3000${img.url}`}
+                                                        : `${import.meta.env.VITE_BACKEND_URL}${img.url}`}
                                                     alt={`thumbnail-${idx}`}
                                                     className={`w-full h-16 object-cover rounded-lg cursor-pointer transition-all ${imagenSeleccionada === idx
                                                         ? 'ring-2 ring-orange-500 scale-105'

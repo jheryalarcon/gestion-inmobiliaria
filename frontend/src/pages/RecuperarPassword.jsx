@@ -21,7 +21,7 @@ export default function RecuperarPassword() {
         setCargando(true);
 
         try {
-            const { data } = await axios.post('http://localhost:3000/api/auth/forgot-password', { email });
+            const { data } = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/auth/forgot-password`, { email });
             toast.success('Envío exitoso', {
                 description: data.mensaje
             });

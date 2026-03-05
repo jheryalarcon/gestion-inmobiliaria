@@ -91,7 +91,7 @@ export default function RegistrarCliente() {
         }
 
         if (decoded.rol === 'admin') {
-            axios.get('http://localhost:3000/api/usuarios/agentes', {
+            axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/usuarios/agentes`, {
                 headers: { Authorization: `Bearer ${token}` }
             })
                 .then(res => setAgentes(res.data))
@@ -312,7 +312,7 @@ export default function RegistrarCliente() {
                 delete datosEnviar.agenteId;
             }
 
-            await axios.post('http://localhost:3000/api/clientes', datosEnviar, {
+            await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/clientes`, datosEnviar, {
                 headers: {
                     Authorization: `Bearer ${token}`,
                     'Content-Type': 'application/json',
@@ -329,7 +329,7 @@ export default function RegistrarCliente() {
                     fd.append('tipo', tipo);
 
                     uploadPromises.push(
-                        axios.post(`http://localhost:3000/api/documentos/cliente/${clienteId}`, fd, {
+                        axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/documentos/cliente/${clienteId}`, fd, {
                             headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' }
                         })
                     );

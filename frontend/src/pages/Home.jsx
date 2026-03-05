@@ -65,7 +65,7 @@ export default function Home() {
             setCargando(true);
 
             // Cargar solo las últimas 6 propiedades para la página principal
-            const response = await axios.get('http://localhost:3000/api/propiedades/publicas?limit=6');
+            const response = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/propiedades/publicas?limit=6`);
 
             setPropiedades(response.data);
         } catch (error) {
@@ -81,7 +81,7 @@ export default function Home() {
 
         if (token && usuario && usuario.rol === 'cliente') {
             try {
-                const response = await axios.get('http://localhost:3000/api/favoritos', {
+                const response = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/favoritos`, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
                 setFavoritos(response.data);

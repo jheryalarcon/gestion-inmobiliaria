@@ -39,7 +39,7 @@ export default function FavoritoIcon({ propiedadId, isFavorito = false, onToggle
         try {
             if (favorito) {
                 // Quitar de favoritos
-                await axios.delete('http://localhost:3000/api/favoritos', {
+                await axios.delete(`${import.meta.env.VITE_BACKEND_URL}/api/favoritos`, {
                     headers: { Authorization: `Bearer ${token}` },
                     data: { propiedadId }
                 });
@@ -47,7 +47,7 @@ export default function FavoritoIcon({ propiedadId, isFavorito = false, onToggle
                 toast.success('Propiedad removida de favoritos', { duration: 2000 });
             } else {
                 // Agregar a favoritos
-                await axios.post('http://localhost:3000/api/favoritos',
+                await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/favoritos`,
                     { propiedadId },
                     { headers: { Authorization: `Bearer ${token}` } }
                 );

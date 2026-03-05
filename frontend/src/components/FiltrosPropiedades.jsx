@@ -24,7 +24,7 @@ export default function FiltrosPropiedades({ filtros, setFiltros, onFiltrar, bus
 
     const cargarOpcionesFiltros = async () => {
         try {
-            const response = await fetch('http://localhost:3000/api/propiedades/publicas');
+            const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/propiedades/publicas`);
             const propiedades = await response.json();
 
             // Extraer ciudades únicas

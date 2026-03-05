@@ -58,7 +58,7 @@ const PanelNegociaciones = () => {
 
         // 🆕 Cargar agentes si es admin
         if (decodedToken.rol === 'admin') {
-            axios.get('http://localhost:3000/api/usuarios/agentes', {
+            axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/usuarios/agentes`, {
                 headers: { Authorization: `Bearer ${token}` }
             })
                 .then(res => setAgentes(res.data))
@@ -116,7 +116,7 @@ const PanelNegociaciones = () => {
             });
 
             const response = await axios.get(
-                `http://localhost:3000/api/negociaciones?${params}`,
+                `${import.meta.env.VITE_BACKEND_URL}/api/negociaciones?${params}`,
                 {
                     headers: { Authorization: `Bearer ${token}` }
                 }
@@ -159,7 +159,7 @@ const PanelNegociaciones = () => {
         try {
             const token = localStorage.getItem('token');
             const response = await axios.patch(
-                `http://localhost:3000/api/negociaciones/${negociacion.id}/restaurar`,
+                `${import.meta.env.VITE_BACKEND_URL}/api/negociaciones/${negociacion.id}/restaurar`,
                 {},
                 { headers: { Authorization: `Bearer ${token}` } }
             );
@@ -203,7 +203,7 @@ const PanelNegociaciones = () => {
         try {
             const token = localStorage.getItem('token');
             await axios.patch(
-                `http://localhost:3000/api/negociaciones/${negociacionSeleccionada.id}/desactivar`,
+                `${import.meta.env.VITE_BACKEND_URL}/api/negociaciones/${negociacionSeleccionada.id}/desactivar`,
                 {},
                 {
                     headers: { Authorization: `Bearer ${token}` }

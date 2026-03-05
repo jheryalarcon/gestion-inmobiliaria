@@ -5,14 +5,14 @@ export default function CardPropiedadPublica({ propiedad, className = '', favori
     const img = propiedad.imagenes?.[0]?.url
         ? propiedad.imagenes[0].url.startsWith('http')
             ? propiedad.imagenes[0].url
-            : `http://localhost:3000${propiedad.imagenes[0].url}`
+            : `${import.meta.env.VITE_BACKEND_URL}${propiedad.imagenes[0].url}`
         : 'https://via.placeholder.com/300x200?text=Sin+Imagen';
 
     // Segunda imagen para efecto hover
     const img2 = propiedad.imagenes?.[1]?.url
         ? propiedad.imagenes[1].url.startsWith('http')
             ? propiedad.imagenes[1].url
-            : `http://localhost:3000${propiedad.imagenes[1].url}`
+            : `${import.meta.env.VITE_BACKEND_URL}${propiedad.imagenes[1].url}`
         : null;
 
     // Verificar si la propiedad está en favoritos

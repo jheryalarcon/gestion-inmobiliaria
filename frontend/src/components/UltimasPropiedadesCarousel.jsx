@@ -19,7 +19,7 @@ export default function UltimasPropiedadesCarousel() {
         const cargar = async () => {
             try {
                 setCargando(true);
-                const res = await axios.get('http://localhost:3000/api/propiedades/publicas?limit=12');
+                const res = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/propiedades/publicas?limit=12`);
                 setPropiedades(res.data);
             } catch (err) {
                 console.error('Error cargando últimas propiedades:', err);

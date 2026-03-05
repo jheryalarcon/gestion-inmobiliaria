@@ -85,7 +85,7 @@ export default function DetallePropiedadAdmin() {
             }
 
             // Cargar propiedad con endpoint administrativo
-            axios.get(`http://localhost:3000/api/propiedades/${id}`, {
+            axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/propiedades/${id}`, {
                 headers: { Authorization: `Bearer ${token}` }
             }).then(res => {
                 console.log('Datos de la propiedad recibidos:', res.data);
@@ -1182,7 +1182,7 @@ export default function DetallePropiedadAdmin() {
                                                                         </div>
                                                                     </div>
                                                                     <a
-                                                                        href={`http://localhost:3000${doc.url}`}
+                                                                        href={`${import.meta.env.VITE_BACKEND_URL}${doc.url}`}
                                                                         target="_blank"
                                                                         rel="noopener noreferrer"
                                                                         className="ml-3 px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-1.5 flex-shrink-0"
@@ -1230,7 +1230,7 @@ export default function DetallePropiedadAdmin() {
                                                                     </div>
                                                                 </div>
                                                                 <a
-                                                                    href={`http://localhost:3000${doc.url}`}
+                                                                    href={`${import.meta.env.VITE_BACKEND_URL}${doc.url}`}
                                                                     target="_blank"
                                                                     rel="noopener noreferrer"
                                                                     className="ml-3 px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-1.5 flex-shrink-0"

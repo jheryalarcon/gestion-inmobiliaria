@@ -124,13 +124,13 @@ export default function RegistrarPropiedad() {
         const promises = [];
 
         if (decoded.rol === 'admin') {
-            promises.push(axios.get('http://localhost:3000/api/usuarios/agentes', {
+            promises.push(axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/usuarios/agentes`, {
                 headers: { Authorization: `Bearer ${token}` }
             }).then(res => setAgentes(res.data)));
         }
 
         // Cargar clientes para todos (admin y agentes) para poder asignar propietarios
-        promises.push(axios.get('http://localhost:3000/api/clientes?limit=1000', {
+        promises.push(axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/clientes?limit=1000`, {
             headers: { Authorization: `Bearer ${token}` }
         }).then(res => setClientes(res.data.clientes || [])));
 
@@ -314,7 +314,7 @@ export default function RegistrarPropiedad() {
                 try {
                     const token = localStorage.getItem('token');
                     if (!token) return;
-                    const { data } = await axios.get(`http://localhost:3000/api/propiedades/preview-codigo?tipo=${datos.tipo_propiedad}`, {
+                    const { data } = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/propiedades/preview-codigo?tipo=${datos.tipo_propiedad}`, {
                         headers: { Authorization: `Bearer ${token}` }
                     });
                     setCodigoPreview(data.codigo);
@@ -536,7 +536,7 @@ export default function RegistrarPropiedad() {
 
             imagenes.forEach(img => formData.append('imagenes', img));
 
-            await axios.post('http://localhost:3000/api/propiedades', formData, {
+            await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/propiedades`, formData, {
                 headers: { Authorization: `Bearer ${token}` }, // Axios sets Content-Type automatically with boundary
             }).then(async (response) => {
                 const propiedadId = response.data.propiedad.id;
@@ -548,7 +548,7 @@ export default function RegistrarPropiedad() {
                     fd.append('tipo', tipo);
                     fd.append('categoria', categoria);
                     uploadPromises.push(
-                        axios.post(`http://localhost:3000/api/documentos/propiedad/${propiedadId}`, fd, {
+                        axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/documentos/propiedad/${propiedadId}`, fd, {
                             headers: { Authorization: `Bearer ${token}` } // Axios sets Content-Type automatically with boundary
                         })
                     );

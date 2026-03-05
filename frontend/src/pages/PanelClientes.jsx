@@ -72,7 +72,7 @@ export default function PanelClientes() {
 
         // 🆕 Cargar lista de agentes si es admin
         if (decoded.rol === 'admin') {
-            axios.get('http://localhost:3000/api/usuarios/agentes', {
+            axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/usuarios/agentes`, {
                 headers: { Authorization: `Bearer ${token}` }
             })
                 .then(res => setAgentes(res.data))
@@ -96,7 +96,7 @@ export default function PanelClientes() {
                 order: filtros.order
             });
 
-            const response = await axios.get(`http://localhost:3000/api/clientes?${params}`, {
+            const response = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/clientes?${params}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
 
@@ -152,7 +152,7 @@ export default function PanelClientes() {
 
         try {
             const token = localStorage.getItem('token');
-            await axios.patch(`http://localhost:3000/api/clientes/${clienteSeleccionado.id}/desactivar`, {}, {
+            await axios.patch(`${import.meta.env.VITE_BACKEND_URL}/api/clientes/${clienteSeleccionado.id}/desactivar`, {}, {
                 headers: { Authorization: `Bearer ${token}` }
             });
 
@@ -186,7 +186,7 @@ export default function PanelClientes() {
 
         try {
             const token = localStorage.getItem('token');
-            await axios.patch(`http://localhost:3000/api/clientes/${clienteSeleccionado.id}/reactivar`, {}, {
+            await axios.patch(`${import.meta.env.VITE_BACKEND_URL}/api/clientes/${clienteSeleccionado.id}/reactivar`, {}, {
                 headers: { Authorization: `Bearer ${token}` }
             });
 

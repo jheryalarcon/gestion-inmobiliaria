@@ -82,7 +82,7 @@ export default function EditarPropiedad() {
         const user = jwtDecode(token);
         setUsuario(user);
 
-        axios.get(`http://localhost:3000/api/propiedades/${id}`, {
+        axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/propiedades/${id}`, {
             headers: { Authorization: `Bearer ${token}` }
         }).then(res => {
             setDatos(res.data);
@@ -104,7 +104,7 @@ export default function EditarPropiedad() {
                 // Fallback Legacy: Si hay ID pero no relación, buscamos al cliente manualmente
                 if (res.data.propietarioId) {
                     console.log('🔄 Cargando propietario legacy ID:', res.data.propietarioId);
-                    axios.get(`http://localhost:3000/api/clientes/${res.data.propietarioId}`, {
+                    axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/clientes/${res.data.propietarioId}`, {
                         headers: { Authorization: `Bearer ${token}` }
                     }).then(clienteRes => {
                         const cliente = clienteRes.data;
@@ -204,12 +204,12 @@ export default function EditarPropiedad() {
         });
 
         if (user.rol === 'admin' || user.rol === 'agente') {
-            axios.get('http://localhost:3000/api/usuarios/agentes', {
+            axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/usuarios/agentes`, {
                 headers: { Authorization: `Bearer ${token}` }
             }).then(res => setAgentes(res.data));
 
             // Cargar clientes para buscador
-            axios.get('http://localhost:3000/api/clientes?limit=1000', {
+            axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/clientes?limit=1000`, {
                 headers: { Authorization: `Bearer ${token}` }
             }).then(res => setClientes(res.data.clientes || []));
         }
@@ -584,7 +584,7 @@ export default function EditarPropiedad() {
 
         try {
             // 1. Actualizar datos de la propiedad
-            await axios.put(`http://localhost:3000/api/propiedades/${id}`, formData, {
+            await axios.put(`${import.meta.env.VITE_BACKEND_URL}/api/propiedades/${id}`, formData, {
                 headers: {
                     Authorization: `Bearer ${token}`,
                     'Content-Type': 'multipart/form-data',
@@ -593,7 +593,7 @@ export default function EditarPropiedad() {
 
             // 2. Procesar ELIMINACIÓN de documentos en lote
             const deletePromises = docsAEliminar.map(docId =>
-                axios.delete(`http://localhost:3000/api/documentos/propiedad/${docId}`, {
+                axios.delete(`${import.meta.env.VITE_BACKEND_URL}/api/documentos/propiedad/${docId}`, {
                     headers: { Authorization: `Bearer ${token}` }
                 })
             );
@@ -638,7 +638,7 @@ export default function EditarPropiedad() {
                     fd.append('categoria', categoria);
 
                     uploadPromises.push(
-                        axios.post(`http://localhost:3000/api/documentos/propiedad/${id}`, fd, {
+                        axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/documentos/propiedad/${id}`, fd, {
                             headers: {
                                 'Content-Type': 'multipart/form-data',
                                 Authorization: `Bearer ${token}`

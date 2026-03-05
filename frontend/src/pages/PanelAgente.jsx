@@ -43,7 +43,7 @@ function PanelAgente() {
     const cargarEstadisticas = async (token, usuarioData) => {
         try {
             // Cargar solo las propiedades del agente actual (pedir todas para estadísticas)
-            const propiedadesRes = await axios.get('http://localhost:3000/api/propiedades', {
+            const propiedadesRes = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/propiedades`, {
                 headers: { Authorization: `Bearer ${token}` },
                 params: { limit: 10000 }
             });

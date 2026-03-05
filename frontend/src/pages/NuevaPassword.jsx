@@ -45,7 +45,7 @@ export default function NuevaPassword() {
         setCargando(true);
 
         try {
-            const { data } = await axios.post(`http://localhost:3000/api/auth/reset-password/${token}`, { password });
+            const { data } = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/auth/reset-password/${token}`, { password });
 
             setMensajeExito(true);
             toast.success('Contraseña restablecida');

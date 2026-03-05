@@ -37,7 +37,7 @@ const NotasInternas = ({ negociacion, usuario, onNotaCreada }) => {
             setError(null);
             const token = localStorage.getItem('token');
             const response = await axios.get(
-                `http://localhost:3000/api/notas-internas/${negociacion.id}`,
+                `${import.meta.env.VITE_BACKEND_URL}/api/notas-internas/${negociacion.id}`,
                 { headers: { Authorization: `Bearer ${token}` } }
             );
             setNotasInternas(response.data.notasInternas);
@@ -64,7 +64,7 @@ const NotasInternas = ({ negociacion, usuario, onNotaCreada }) => {
         try {
             const token = localStorage.getItem('token');
             const response = await axios.post(
-                `http://localhost:3000/api/notas-internas/${negociacion.id}`,
+                `${import.meta.env.VITE_BACKEND_URL}/api/notas-internas/${negociacion.id}`,
                 nuevaNota,
                 { headers: { Authorization: `Bearer ${token}` } }
             );

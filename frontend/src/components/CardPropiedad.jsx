@@ -8,7 +8,7 @@ export default function CardPropiedad({ propiedad, onActualizarPropiedad }) {
     const img = propiedad.imagenes?.[0]?.url
         ? propiedad.imagenes[0].url.startsWith('http')
             ? propiedad.imagenes[0].url
-            : `http://localhost:3000${propiedad.imagenes[0].url}`
+            : `${import.meta.env.VITE_BACKEND_URL}${propiedad.imagenes[0].url}`
         : 'https://via.placeholder.com/300x200?text=Sin+Imagen';
 
     const usuario = obtenerUsuario();
