@@ -301,7 +301,7 @@ export default function Sidebar() {
                     ) : (
                         <div className="flex flex-col items-start">
                             <img
-                                src="/logo-rectangular.jpg"
+                                src="/logo-rectangular.png"
                                 alt="PropTech Hub"
                                 className="h-10 w-auto object-contain mb-1"
                             />

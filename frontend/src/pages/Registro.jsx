@@ -127,7 +127,7 @@ export default function Registro() {
                 <div className="bg-white shadow-2xl rounded-2xl p-6 sm:p-8 w-full max-w-md border border-slate-100">
                     <div className="flex flex-col items-center mb-4">
                         <img
-                            src="/logo-rectangular.jpg"
+                            src="/logo-rectangular.png"
                             alt="PropTech Hub"
                             className="h-14 w-auto object-contain mb-3"
                         />

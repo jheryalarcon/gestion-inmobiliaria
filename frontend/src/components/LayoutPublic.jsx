@@ -117,7 +117,7 @@ export default function LayoutPublic({ children }) {
                         <div className="flex items-center">
                             <Link to="/" className="flex items-center space-x-3 group">
                                 <img
-                                    src="/logo-rectangular.jpg"
+                                    src="/logo-rectangular.png"
                                     alt="Constructora PropTech Hub"
                                     className="h-20 w-auto object-contain"
                                 />

@@ -94,7 +94,7 @@ export default function NuevaPassword() {
                         <>
                             <div className="flex flex-col items-center mb-6">
                                 <img
-                                    src="/logo-rectangular.jpg"
+                                    src="/logo-rectangular.png"
                                     alt="PropTech Hub"
                                     className="h-14 w-auto object-contain mb-3"
                                 />

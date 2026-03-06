@@ -87,7 +87,7 @@ export default function Login() {
                 <div className="bg-white shadow-2xl rounded-2xl p-8 sm:p-10 w-full max-w-lg border border-slate-100">
                     <div className="flex flex-col items-center mb-6">
                         <img
-                            src="/logo-rectangular.jpg"
+                            src="/logo-rectangular.png"
                             alt="PropTech Hub"
                             className="h-16 w-auto object-contain mb-4"
                         />
