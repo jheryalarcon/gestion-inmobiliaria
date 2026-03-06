@@ -303,7 +303,7 @@ export default function Sidebar() {
                             <img
                                 src="/logo-rectangular.png"
                                 alt="PropTech Hub"
-                                className="h-10 w-auto object-contain mb-1"
+                                className="h-16 w-auto object-contain mb-1"
                             />
                             <p className="text-xs text-slate-500 font-medium uppercase tracking-wider ml-1">
                                 {usuario?.rol || 'Panel'}

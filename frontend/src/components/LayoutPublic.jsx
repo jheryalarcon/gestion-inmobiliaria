@@ -112,14 +112,14 @@ export default function LayoutPublic({ children }) {
             {/* Header */}
             <header className="sticky top-0 z-50 bg-white/90 backdrop-blur-md shadow-sm border-b border-gray-200/60 transition-all duration-300">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex justify-between items-center h-24">
+                    <div className="flex justify-between items-center py-2 h-20 md:h-24">
                         {/* Logo y nombre */}
                         <div className="flex items-center">
                             <Link to="/" className="flex items-center space-x-3 group">
                                 <img
                                     src="/logo-rectangular.png"
                                     alt="Constructora PropTech Hub"
-                                    className="h-20 w-auto object-contain"
+                                    className="h-16 md:h-20 w-auto object-contain"
                                 />
                             </Link>
                         </div>
@@ -338,20 +338,12 @@ export default function LayoutPublic({ children }) {
             </main>
 
             {/* Footer Premium - Light Theme */}
-            <footer className="bg-slate-50 text-slate-600 py-16 border-t border-slate-200">
+            <footer className="bg-slate-50 text-slate-600 py-16 border-t border-slate-200 mt-auto">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="grid grid-cols-1 md:grid-cols-12 gap-12 mb-12">
                         {/* Brand Column */}
                         <div className="md:col-span-5 space-y-6">
                             <div className="flex items-center space-x-3">
-                                {/* Using rectangular logo here too as per request, or staying circular? 
-                                    User said "use rectangular where corresponds". Footer usually looks better with the branding name + logo or just the logo.
-                                    Let's keep the circular symbol for the footer as it fits the "icon + text" layout better, 
-                                    OR switch to rectangular if that was the specific request. 
-                                    "me parece muy bueno el dseño... puedes usar el nuevo logo rectangular en donde corresponda"
-                                    Usually rectangular full logos go in headers/forms. Circular marks in footers/favicons.
-                                    I will keep circular here for layout balance unless explicitly told otherwise, but I will update the text colors.
-                                */}
                                 <img
                                     src="/logo-circular.png"
                                     alt="Logo PropTech Hub"
@@ -359,13 +351,11 @@ export default function LayoutPublic({ children }) {
                                 />
                                 <div>
                                     <h3 className="text-xl font-bold text-slate-900 tracking-tight">PropTech Hub</h3>
-                                    <p className="text-xs text-orange-600 uppercase tracking-widest font-semibold">Constructora Inmobiliaria</p>
+                                    <p className="text-xs text-orange-600 uppercase tracking-widest font-semibold">Soluciones Inmobiliarias Inteligentes</p>
                                 </div>
                             </div>
                             <p className="text-slate-500 leading-relaxed text-sm max-w-sm">
-                                Redefiniendo la experiencia de encontrar tu hogar ideal.
-                                Combinamos tecnología avanzada con un servicio personalizado para ofrecerte
-                                las mejores propiedades del mercado.
+                                Conectamos a las personas con su hogar ideal y potenciamos a los agentes con herramientas tecnológicas. Descubre propiedades exclusivas o gestiona tu portafolio inmobiliario en un solo lugar.
                             </p>
                         </div>
 
@@ -373,7 +363,7 @@ export default function LayoutPublic({ children }) {
                         <div className="md:col-span-3">
                             <h4 className="text-slate-900 font-bold mb-6">Explorar</h4>
                             <ul className="space-y-4">
-                                {['Inicio', 'Propiedades', 'Nuevos Desarrollos', 'Agentes'].map((item) => (
+                                {['Inicio', 'Buscar Propiedades', 'Para Agentes', 'Sobre Nosotros'].map((item) => (
                                     <li key={item}>
                                         <Link to="/" className="text-sm text-slate-500 hover:text-orange-600 transition-colors flex items-center group">
                                             <span className="w-1.5 h-1.5 rounded-full bg-orange-500 mr-2 opacity-0 group-hover:opacity-100 transition-opacity"></span>
@@ -386,18 +376,17 @@ export default function LayoutPublic({ children }) {
 
                         {/* Contact Column */}
                         <div className="md:col-span-4">
-                            <h4 className="text-slate-900 font-bold mb-6">Contáctanos</h4>
+                            <h4 className="text-slate-900 font-bold mb-6">Estamos aquí para ayudarte</h4>
                             <ul className="space-y-4 text-sm">
                                 <li className="flex items-start space-x-3 group">
                                     <div className="p-2 bg-white border border-slate-100 rounded-lg shadow-sm group-hover:border-orange-200 group-hover:shadow-md transition-all">
                                         <svg className="w-5 h-5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
                                         </svg>
                                     </div>
                                     <div className="pt-1.5">
-                                        <p className="font-bold text-slate-700">Av. Abraham Calazacón y calle Pallatanga, frente al Secap</p>
-                                        <p className="text-slate-400 text-xs">Santo Domingo, Ecuador</p>
+                                        <p className="font-bold text-slate-700">Plataforma 100% Digital</p>
+                                        <p className="text-slate-400 text-xs">Acceso desde cualquier dispositivo</p>
                                     </div>
                                 </li>
                                 <li className="flex items-start space-x-3 group">
@@ -418,8 +407,8 @@ export default function LayoutPublic({ children }) {
                                         </svg>
                                     </div>
                                     <div className="pt-1.5">
-                                        <p className="font-bold text-slate-700">info@inmobiliaria.com</p>
-                                        <p className="text-slate-400 text-xs">Soporte 24/7</p>
+                                        <p className="font-bold text-slate-700">contacto@proptechhub.com</p>
+                                        <p className="text-slate-400 text-xs">Soporte y Atención al Cliente</p>
                                     </div>
                                 </li>
                             </ul>
@@ -427,7 +416,7 @@ export default function LayoutPublic({ children }) {
                     </div>
 
                     <div className="border-t border-slate-200 pt-8 mt-8 flex flex-col md:flex-row justify-between items-center text-xs text-slate-400">
-                        <p>© 2025 Constructora PropTech Hub. Todos los derechos reservados.</p>
+                        <p>© 2025 PropTech Hub. Todos los derechos reservados.</p>
                         <div className="flex space-x-6 mt-4 md:mt-0">
                             <a href="#" className="hover:text-orange-600 transition-colors">Política de Privacidad</a>
                             <a href="#" className="hover:text-orange-600 transition-colors">Términos de Servicio</a>
