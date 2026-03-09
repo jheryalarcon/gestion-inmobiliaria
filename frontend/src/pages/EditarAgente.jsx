@@ -65,7 +65,17 @@ export default function EditarAgente() {
         }
     }, [navigate, id]);
 
-
+    // Protección ante recarga/cierre de pestaña
+    useEffect(() => {
+        const handleBeforeUnload = (e) => {
+            if (hayCambios()) {
+                e.preventDefault();
+                e.returnValue = '';
+            }
+        };
+        window.addEventListener('beforeunload', handleBeforeUnload);
+        return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+    });
 
     const cargarAgente = async () => {
         try {
@@ -542,7 +552,6 @@ export default function EditarAgente() {
 
                             <div className="space-y-2 text-sm text-gray-600">
                                 <p>• Solo se pueden editar los datos personales del agente</p>
-                                <p>• El rol no se puede modificar desde esta vista</p>
                                 <p>• El email y cédula deben ser únicos en el sistema</p>
                                 <p>• El agente puede recuperar su contraseña desde la página de inicio de sesión</p>
                             </div>

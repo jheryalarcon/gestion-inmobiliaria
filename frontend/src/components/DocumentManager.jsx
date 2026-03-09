@@ -189,6 +189,7 @@ export default function DocumentManager({ documentos, onUpload, onDelete, tipoCo
                                     onUpload={(f) => handleUploadWrapper(f, 'identificacion')}
                                     onDelete={(idx) => onDelete('identificacion', idx)}
                                     required={true}
+                                    error={!!errores?.identificacion}
                                 />
                             </div>
                         </Accordion.Content>
@@ -212,7 +213,7 @@ export default function DocumentManager({ documentos, onUpload, onDelete, tipoCo
                                     files={documentos.contrato}
                                     onUpload={(f) => handleUploadWrapper(f, 'contrato')}
                                     onDelete={(idx) => onDelete('contrato', idx)}
-                                    accept=".pdf"
+                                    accept=".pdf,.jpg,.jpeg,.png"
                                 />
                             </div>
                         </Accordion.Content>

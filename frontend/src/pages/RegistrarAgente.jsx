@@ -149,6 +149,10 @@ export default function RegistrarAgente() {
             nuevosErrores.confirmPassword = 'Las contraseñas no coinciden';
         }
 
+        if (!documentos.identificacion || documentos.identificacion.length === 0) {
+            nuevosErrores.identificacion = 'El documento de Cédula / Pasaporte es obligatorio';
+        }
+
         return nuevosErrores;
     };
 
@@ -484,8 +488,14 @@ export default function RegistrarAgente() {
                                     documentos={documentos}
                                     onUpload={handleUpload}
                                     onDelete={handleDelete}
+                                    errores={errores}
                                 />
                             </div>
+                            {errores.identificacion && (
+                                <p className="text-red-500 text-xs mt-2 font-medium flex items-center gap-1">
+                                    ⚠️ {errores.identificacion}
+                                </p>
+                            )}
                         </section>
 
                         {/* BOTONES DE ACCIÓN */}
