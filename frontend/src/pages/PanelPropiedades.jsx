@@ -252,7 +252,8 @@ export default function PanelPropiedades() {
                     <h2 className="text-lg font-semibold text-gray-900">Filtros de búsqueda</h2>
 
                     <div className="flex flex-wrap gap-4 items-center">
-                        {/* View Toggle */}
+                        {/* View Toggle — deshabilitado: solo se usa vista de tarjetas */}
+                        {/*
                         <div className="flex bg-gray-100 rounded-lg p-1 border border-gray-200">
                             <button
                                 onClick={() => setViewType('grid')}
@@ -273,6 +274,7 @@ export default function PanelPropiedades() {
                                 </svg>
                             </button>
                         </div>
+                        */}
 
                         {/* UI para AGENTES: Toggle Mías / Todas */}
                         {usuario?.rol !== 'admin' && (
@@ -350,17 +352,17 @@ export default function PanelPropiedades() {
             {/* CONTENIDO PRINCIPAL */}
             {propiedadesFiltradas.length > 0 ? (
                 <>
-                    {viewType === 'grid' ? (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {propiedadesFiltradas.map((prop) => (
-                                <CardPropiedad
-                                    key={prop.id}
-                                    propiedad={prop}
-                                    onActualizarPropiedad={actualizarPropiedadLocal}
-                                />
-                            ))}
-                        </div>
-                    ) : (
+                    {/* Vista lista (tabla) deshabilitada — solo se usa vista de tarjetas */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {propiedadesFiltradas.map((prop) => (
+                            <CardPropiedad
+                                key={prop.id}
+                                propiedad={prop}
+                                onActualizarPropiedad={actualizarPropiedadLocal}
+                            />
+                        ))}
+                    </div>
+                    {false && viewType === 'list' && (
                         <div className="bg-white rounded-lg shadow border border-gray-200 overflow-hidden">
                             <div className="overflow-x-auto">
                                 <table className="min-w-full divide-y divide-gray-200">

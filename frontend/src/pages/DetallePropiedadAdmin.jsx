@@ -355,23 +355,7 @@ export default function DetallePropiedadAdmin() {
                             </svg>
                             General
                         </button>
-                        <button
-                            onClick={() => setActiveTab('negociaciones')}
-                            className={`${activeTab === 'negociaciones'
-                                ? 'border-orange-500 text-orange-600'
-                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                                } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2 transition-colors relative`}
-                        >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                            </svg>
-                            Negociaciones
-                            {propiedad.negociaciones && propiedad.negociaciones.length > 0 && (
-                                <span className="ml-2 bg-orange-100 text-orange-600 py-0.5 px-2 rounded-full text-xs font-semibold">
-                                    {propiedad.negociaciones.length}
-                                </span>
-                            )}
-                        </button>
+                        {/* Tab Negociaciones - oculto temporalmente */}
                         <button
                             onClick={() => setActiveTab('documentos')}
                             className={`${activeTab === 'documentos'
@@ -389,18 +373,7 @@ export default function DetallePropiedadAdmin() {
                                 </span>
                             )}
                         </button>
-                        <button
-                            onClick={() => setActiveTab('actividad')}
-                            className={`${activeTab === 'actividad'
-                                ? 'border-orange-500 text-orange-600'
-                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                                } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2 transition-colors`}
-                        >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            Actividad
-                        </button>
+                        {/* Tab Actividad - oculto temporalmente */}
                     </nav>
                 </div>
             </div>
@@ -1045,9 +1018,9 @@ export default function DetallePropiedadAdmin() {
             )
             }
 
-            {/* Tab: Negociaciones */}
+            {/* Tab: Negociaciones - oculto temporalmente */}
             {
-                activeTab === 'negociaciones' && (
+                false && activeTab === 'negociaciones' && (
                     <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
                         <div className="bg-white rounded-lg shadow-sm border border-gray-200">
                             <div className="p-6">
@@ -1262,9 +1235,9 @@ export default function DetallePropiedadAdmin() {
                 )
             }
 
-            {/* Tab: Actividad */}
+            {/* Tab: Actividad - oculto temporalmente */}
             {
-                activeTab === 'actividad' && (
+                false && activeTab === 'actividad' && (
                     <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
                         <div className="bg-white rounded-lg shadow-sm border border-gray-200">
                             <div className="p-6">
