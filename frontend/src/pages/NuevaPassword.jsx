@@ -33,8 +33,8 @@ export default function NuevaPassword() {
             toast.error('La contraseña es obligatoria');
             return;
         }
-        if (password.length < 6) {
-            toast.error('La contraseña debe tener al menos 6 caracteres');
+        if (!/^(?=.*[A-Z])(?=.*\d).{8,}$/.test(password)) {
+            toast.error('Debe tener al menos 8 caracteres, una mayúscula y un número');
             return;
         }
         if (password !== confirmPassword) {

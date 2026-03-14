@@ -49,6 +49,7 @@ export default function DetallePropiedadAdmin() {
     const [propiedad, setPropiedad] = useState(null);
     const [loading, setLoading] = useState(true);
     const [usuario, setUsuario] = useState(null);
+    const [notFound, setNotFound] = useState(false);
     const [modalAbierto, setModalAbierto] = useState(false);
     const [imagenActual, setImagenActual] = useState(0);
     const [activeTab, setActiveTab] = useState('general');
@@ -98,9 +99,17 @@ export default function DetallePropiedadAdmin() {
             }).catch(err => {
                 if (err.response?.status === 403) {
                     toast.error('No tienes permisos para ver esta propiedad');
-                } else {
-                    toast.error('Error al cargar la propiedad');
+                    navigate(decoded.rol === 'admin' ? '/admin' : '/agente');
+                    return;
                 }
+
+                if (err.response?.status === 404) {
+                    setNotFound(true);
+                    setLoading(false);
+                    return;
+                }
+
+                toast.error('Error al cargar la propiedad');
                 navigate(decoded.rol === 'admin' ? '/admin' : '/agente');
             });
         } catch (error) {
@@ -254,6 +263,29 @@ export default function DetallePropiedadAdmin() {
         // Ordenar por fecha (más reciente primero)
         return events.sort((a, b) => b.date - a.date);
     };
+
+    if (notFound) {
+        const rutaPanel = usuario?.rol === 'admin' ? '/admin/panel-propiedades' : '/agente/panel-propiedades';
+        return (
+            <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+                <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8 text-center">
+                    <div className="text-6xl mb-4">🏠</div>
+                    <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-2">
+                        Propiedad no encontrada
+                    </h1>
+                    <p className="text-slate-600 mb-6">
+                        La propiedad que buscas no existe o ya no está disponible.
+                    </p>
+                    <button
+                        onClick={() => navigate(rutaPanel)}
+                        className="inline-flex items-center px-5 py-2.5 rounded-lg bg-slate-900 text-white text-sm font-semibold hover:bg-black transition"
+                    >
+                        Volver al Panel
+                    </button>
+                </div>
+            </div>
+        );
+    }
 
     if (loading) {
         return (

@@ -43,15 +43,46 @@ const DocumentRow = ({ label, files, onUpload, onDelete, required = false, accep
                         </div>
 
                         {files[0].url && (
-                            <a
-                                href={`${import.meta.env.VITE_BACKEND_URL}${files[0].url}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
+                            <button
+                                type="button"
+                                onClick={async () => {
+                                    try {
+                                        const file = files[0];
+                                        // Blob URL local (archivo recién seleccionado, no guardado aún)
+                                        if (file.url.startsWith('blob:')) {
+                                            const a = document.createElement('a');
+                                            a.href = file.url;
+                                            a.download = file.name || 'documento';
+                                            document.body.appendChild(a);
+                                            a.click();
+                                            document.body.removeChild(a);
+                                            return;
+                                        }
+                                        // URL de servidor → fetch con token
+                                        const token = localStorage.getItem('token');
+                                        const url = `${import.meta.env.VITE_BACKEND_URL}${file.url}`;
+                                        const response = await fetch(url, {
+                                            headers: token ? { Authorization: `Bearer ${token}` } : {}
+                                        });
+                                        if (!response.ok) throw new Error('Error al descargar');
+                                        const blob = await response.blob();
+                                        const blobUrl = window.URL.createObjectURL(blob);
+                                        const a = document.createElement('a');
+                                        a.href = blobUrl;
+                                        a.download = file.name || 'documento';
+                                        document.body.appendChild(a);
+                                        a.click();
+                                        window.URL.revokeObjectURL(blobUrl);
+                                        document.body.removeChild(a);
+                                    } catch (err) {
+                                        console.error('Error al descargar documento:', err);
+                                    }
+                                }}
                                 className="p-1.5 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-full transition-colors"
                                 title="Descargar"
                             >
                                 <Download className="w-4 h-4" />
-                            </a>
+                            </button>
                         )}
 
                         <button

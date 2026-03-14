@@ -34,6 +34,12 @@ export default function Propiedades() {
     });
     const [busqueda, setBusqueda] = useState('');
 
+    const hayFiltros = !!(busqueda || filtros.tipo_propiedad || filtros.ciudad ||
+        filtros.transaccion || filtros.minPrecio || filtros.maxPrecio ||
+        filtros.nro_habitaciones || filtros.nro_banos || filtros.parqueaderos ||
+        filtros.nro_pisos || filtros.areaConstruccionMin || filtros.areaTerrenoMin ||
+        filtros.estadoFisico || filtros.anioMin);
+
     useEffect(() => {
         // Cargar favoritos al inicio
         cargarFavoritos();
@@ -225,46 +231,34 @@ export default function Propiedades() {
                                         </svg>
                                     </div>
                                 </div>
-                                <h3 className="text-xl font-bold text-gray-900 mb-2">No encontramos coincidencias</h3>
+                                <h3 className="text-xl font-bold text-gray-900 mb-2">
+                                    {hayFiltros ? 'No encontramos coincidencias' : 'Aún no hay propiedades disponibles'}
+                                </h3>
                                 <p className="text-gray-500 mb-8 max-w-md mx-auto">
-                                    Intenta ajustar los filtros o buscar términos más generales.
+                                    {hayFiltros
+                                        ? 'Intenta ajustar los filtros o buscar términos más generales.'
+                                        : 'Pronto publicaremos nuevas propiedades. ¡Vuelve a visitarnos!'}
                                 </p>
-                                <button
-                                    onClick={() => {
-                                        setFiltros({
-                                            tipo_propiedad: '',
-                                            ciudad: '',
-                                            minPrecio: '',
-                                            maxPrecio: '',
-                                            nro_habitaciones: '',
-                                            nro_banos: '',
-                                            transaccion: '',
-                                            parqueaderos: '',
-                                            nro_pisos: '',
-                                            areaConstruccionMin: '',
-                                            areaConstruccionMax: '',
-                                            areaTerrenoMin: '',
-                                            areaTerrenoMax: '',
-                                            areaTerrenoMax: '',
-                                            estadoFisico: '',
-                                            anioMin: '',
-                                            tiene_piscina: false,
-                                            tiene_seguridad: false,
-                                            tiene_ascensor: false,
-                                            tiene_area_bbq: false,
-                                            tiene_ascensor: false,
-                                            tiene_area_bbq: false,
-                                            tiene_terraza: false,
-                                            unidadTerreno: 'm2'
-                                        });
-                                        setBusqueda('');
-                                        // setPropiedadesFiltradas(propiedades); // Ya no es necesario
-                                        window.scrollTo(0, 0);
-                                    }}
-                                    className="bg-slate-900 text-white px-8 py-3 rounded-xl font-semibold hover:bg-black transition shadow-lg hover:shadow-xl hover:-translate-y-0.5"
-                                >
-                                    Ver todas las propiedades
-                                </button>
+                                {hayFiltros && (
+                                    <button
+                                        onClick={() => {
+                                            setFiltros({
+                                                tipo_propiedad: '', ciudad: '', minPrecio: '', maxPrecio: '',
+                                                nro_habitaciones: '', nro_banos: '', transaccion: '',
+                                                parqueaderos: '', nro_pisos: '', areaConstruccionMin: '',
+                                                areaConstruccionMax: '', areaTerrenoMin: '', areaTerrenoMax: '',
+                                                estadoFisico: '', anioMin: '', tiene_piscina: false,
+                                                tiene_seguridad: false, tiene_ascensor: false,
+                                                tiene_area_bbq: false, tiene_terraza: false, unidadTerreno: 'm2'
+                                            });
+                                            setBusqueda('');
+                                            window.scrollTo(0, 0);
+                                        }}
+                                        className="bg-slate-900 text-white px-8 py-3 rounded-xl font-semibold hover:bg-black transition shadow-lg hover:shadow-xl hover:-translate-y-0.5"
+                                    >
+                                        Ver todas las propiedades
+                                    </button>
+                                )}
                             </div>
                         ) : (
                             <div className="grid gap-8 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">

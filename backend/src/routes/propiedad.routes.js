@@ -18,7 +18,7 @@ import {
 import verificarToken from '../middlewares/verificarToken.js';
 import esPropietarioOAdmin from '../middlewares/esPropietarioOAdmin.js';
 import esAdmin from '../middlewares/esAdmin.js'
-import upload from '../config/multer.js';
+import upload, { uploadPropiedadImg } from '../config/multer.js';
 import optimizarImagen from '../middlewares/imageOptimizer.js';
 
 const router = express.Router();
@@ -34,7 +34,7 @@ router.get('/ultimas', obtenerUltimasPropiedades);
 router.post(
     '/',
     verificarToken,
-    upload.array('imagenes', 15),
+    uploadPropiedadImg.array('imagenes', 15),
     optimizarImagen,
     crearPropiedad
 );
@@ -47,7 +47,7 @@ router.get('/recomendaciones', verificarToken, obtenerRecomendaciones);
 router.get('/filtros-metadata', verificarToken, obtenerMetadataFiltros); // NUEVA RUTA
 router.get('/preview-codigo', verificarToken, obtenerCodigoPreview);
 router.get('/:id', verificarToken, obtenerPropiedadPorId);
-router.put('/:id', verificarToken, esPropietarioOAdmin, upload.array('imagenes', 15), optimizarImagen, actualizarPropiedad);
+router.put('/:id', verificarToken, esPropietarioOAdmin, uploadPropiedadImg.array('imagenes', 15), optimizarImagen, actualizarPropiedad);
 router.patch('/:id/estado', verificarToken, esPropietarioOAdmin, actualizarEstadoPropiedad);
 router.delete('/:id', verificarToken, esAdmin, eliminarPropiedad);
 

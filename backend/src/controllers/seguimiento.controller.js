@@ -18,7 +18,6 @@ const obtenerSeguimientos = async (req, res) => {
                 activo: true
             },
             include: {
-                propiedad: true, // Necesario para validar al Captador
                 agente: {
                     select: { id: true, name: true, email: true, rol: true }
                 }
@@ -29,16 +28,15 @@ const obtenerSeguimientos = async (req, res) => {
             return res.status(404).json({ mensaje: '❌ Negociación no encontrada' });
         }
 
-        // 🛡️ SEGURIDAD: Validar que quien consulta tiene permisos
-        // Permisos: Admin, Vendedor (Dueño Negociación) o Captador (Dueño Propiedad)
-        const investigadorId = req.usuario.id; // ID del usuario que hace la petición
+        // 🛡️ SEGURIDAD: Solo el agente dueño de la negociación y el admin pueden ver el historial.
+        // El captador NO accede: el historial es la conversación privada del vendedor con su cliente.
+        const investigadorId = req.usuario.id;
         const esAdmin = req.usuario.rol === 'admin';
         const esVendedor = negociacion.agenteId === investigadorId;
-        const esCaptador = negociacion.propiedad.agenteId === investigadorId;
 
-        if (!esAdmin && !esVendedor && !esCaptador) {
+        if (!esAdmin && !esVendedor) {
             return res.status(403).json({
-                mensaje: '⛔ Acceso Denegado: No tienes permisos para ver el historial de esta negociación.'
+                mensaje: '⛔ Acceso Denegado: Solo el agente responsable de la negociación o un administrador pueden ver este historial.'
             });
         }
 

@@ -424,7 +424,7 @@ export default function LayoutPublic({ children }) {
                     </div>
                 </div>
             </footer>
-            {/* WhatsApp Floating Button */}
+{/* WhatsApp Floating Button - COMENTADO
             <a
                 href="https://wa.me/593981231304"
                 target="_blank"
@@ -439,6 +439,7 @@ export default function LayoutPublic({ children }) {
                     Contáctanos
                 </span>
             </a>
+            */}
         </div>
     );
 }

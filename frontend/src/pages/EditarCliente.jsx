@@ -165,6 +165,15 @@ export default function EditarCliente() {
             });
 
             const clienteData = response.data.cliente;
+
+            // Bloquear acceso al formulario si el cliente está inactivo
+            if (!clienteData.activo) {
+                toast.error('Este cliente está inactivo. Reactívalo primero para poder editarlo.', { duration: 5000 });
+                const decoded = jwtDecode(localStorage.getItem('token'));
+                navigate(decoded.rol === 'admin' ? '/admin/panel-clientes' : '/agente/panel-clientes');
+                return;
+            }
+
             setCliente(clienteData);
 
             setDatos({
@@ -399,12 +408,6 @@ export default function EditarCliente() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-
-        // Verificar si el cliente está inactivo
-        if (!cliente.activo) {
-            toast.error('No se puede editar un cliente inactivo. Solo un administrador puede reactivarlo.');
-            return;
-        }
 
         setErrores({});
         const nuevosErrores = validarFormulario();

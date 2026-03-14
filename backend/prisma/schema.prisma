@@ -1,10 +1,3 @@
-
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -14,181 +7,288 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// MODELO de Usuarios
 model Usuario {
-  id          Int         @id @default(autoincrement())
-  name        String // nombre de la persona
-  email       String      @unique
-  telefono    String? // teléfono de contacto (opcional para clientes, obligatorio para admin/agente)
-  cedula      String?     @unique // Nueva: Identificación única (opcional para flexibilidad)
-  direccion   String?     // Nueva: Dirección domiciliaria
-  password    String
-  rol         Rol // "cliente", "agente", "admin"
-  activo      Boolean     @default(true) //permite desactivar cuentas sin borrarlas
-  verificado  Boolean     @default(false)
-  token_verificacion String?
-  token_verificacion_expiracion DateTime? // Caducidad del token de registro
-  
-  token_recuperacion String?
-  token_recuperacion_expiracion DateTime? // Caducidad del token de contraseña
-  propiedades Propiedad[]
-  favoritos Favorito[]
-  clientes    Cliente[]   // Relación con clientes asignados
-  clientes_desactivados Cliente[] @relation("ClienteDesactivador") // Clientes desactivados por este usuario
-  negociaciones Negociacion[] // Negociaciones gestionadas por este agente
-  seguimientos Seguimiento[] // Seguimientos registrados por este agente
-  notasInternas NotaInterna[] // Notas internas creadas por este agente
-  archivosNegociacion ArchivoNegociacion[] // Archivos adjuntos por este agente
-  documentos  DocumentoAgente[] // Documentos personales del agente
-  propiedades_actualizadas Propiedad[] @relation("PropiedadActualizador")
-  propiedades_desactivadas Propiedad[] @relation("PropiedadDesactivador")
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  id                            Int                  @id @default(autoincrement())
+  name                          String
+  email                         String               @unique
+  password                      String
+  rol                           Rol
+  createdAt                     DateTime             @default(now())
+  activo                        Boolean              @default(true)
+  telefono                      String?
+  updatedAt                     DateTime             @updatedAt
+  token_verificacion            String?
+  verificado                    Boolean              @default(false)
+  cedula                        String?              @unique
+  direccion                     String?
+  token_recuperacion            String?
+  token_recuperacion_expiracion DateTime?
+  token_verificacion_expiracion DateTime?
+  archivosNegociacion           ArchivoNegociacion[]
+  clientes                      Cliente[]
+  clientes_desactivados         Cliente[]            @relation("ClienteDesactivador")
+  documentos                    DocumentoAgente[]
+  favoritos                     Favorito[]
+  negociaciones                 Negociacion[]
+  notasInternas                 NotaInterna[]
+  propiedades                   Propiedad[]
+  propiedades_desactivadas      Propiedad[]          @relation("PropiedadDesactivador")
+  propiedades_actualizadas      Propiedad[]          @relation("PropiedadActualizador")
+  seguimientos                  Seguimiento[]
 }
 
-// Roles que puede tener un usuario
+model Propiedad {
+  id                       Int                    @id @default(autoincrement())
+  titulo                   String
+  descripcion              String?
+  tipo_propiedad           TipoPropiedad
+  estado_propiedad         EstadoFisico
+  transaccion              TipoTransaccion
+  precio                   Decimal                @db.Decimal(12, 2)
+  moneda                   String                 @default("USD")
+  direccion                String
+  ciudad                   String
+  provincia                Provincia
+  pais                     String                 @default("Ecuador")
+  codigo_postal            String?
+  latitud                  Decimal?               @db.Decimal(10, 7)
+  longitud                 Decimal?               @db.Decimal(10, 7)
+  area_terreno             Decimal                @db.Decimal(10, 2)
+  area_construccion        Decimal?               @db.Decimal(10, 2)
+  nro_habitaciones         Int?
+  nro_banos                Int?
+  nro_parqueaderos         Int?
+  nro_pisos                Int?
+  anio_construccion        Int?
+  estado_publicacion       EstadoPropiedad        @default(disponible)
+  agenteId                 Int
+  createdAt                DateTime               @default(now())
+  updatedAt                DateTime               @updatedAt
+  amoblado                 Boolean                @default(false)
+  codigo_interno           String?                @unique
+  comision                 Decimal?               @db.Decimal(10, 2)
+  desactivado_por          Int?
+  fecha_desactivacion      DateTime?
+  fecha_fin_contrato       DateTime?
+  orientacion              String?
+  precio_minimo            Decimal?               @db.Decimal(12, 2)
+  propietarioId            Int?
+  referencia               String?
+  sector                   String?
+  tiene_area_bbq           Boolean                @default(false)
+  tiene_areas_comunales    Boolean                @default(false)
+  tiene_ascensor           Boolean                @default(false)
+  tiene_balcon             Boolean                @default(false)
+  tiene_bodega             Boolean                @default(false)
+  tiene_gas_centralizado   Boolean                @default(false)
+  tiene_patio              Boolean                @default(false)
+  tiene_piscina            Boolean                @default(false)
+  tiene_seguridad          Boolean                @default(false)
+  tiene_terraza            Boolean                @default(false)
+  tipo_comision            String?                @default("porcentaje")
+  tipo_contrato            String?
+  updatedBy                Int?
+  uso_propiedad            UsoPropiedad?
+  tiene_cisterna           Boolean                @default(false)
+  tiene_lavanderia         Boolean                @default(false)
+  fecha_captacion          DateTime?              @default(now())
+  unidad_area_construccion String                 @default("m2")
+  unidad_area_terreno      String                 @default("m2")
+  valor_garantia           Decimal?               @db.Decimal(12, 2)
+  documentos               DocumentoPropiedad[]
+  favoritos                Favorito[]
+  imagenes                 Imagen[]
+  negociaciones            Negociacion[]
+  agente                   Usuario                @relation(fields: [agenteId], references: [id])
+  usuarioDesactivador      Usuario?               @relation("PropiedadDesactivador", fields: [desactivado_por], references: [id])
+  propietario              Cliente?               @relation("PropiedadPropietario", fields: [propietarioId], references: [id])
+  usuarioActualizador      Usuario?               @relation("PropiedadActualizador", fields: [updatedBy], references: [id])
+  propietarios             PropiedadPropietario[]
+}
+
+model DocumentoPropiedad {
+  id          Int                    @id @default(autoincrement())
+  nombre      String
+  url         String
+  tipo        TipoDocumentoPropiedad
+  categoria   CategoriaDocumento
+  propiedadId Int
+  createdAt   DateTime               @default(now())
+  propiedad   Propiedad              @relation(fields: [propiedadId], references: [id])
+}
+
+model PropiedadPropietario {
+  id           Int       @id @default(autoincrement())
+  propiedadId  Int
+  clienteId    Int
+  porcentaje   Decimal   @default(0) @db.Decimal(5, 2)
+  es_principal Boolean   @default(false)
+  updatedAt    DateTime  @updatedAt
+  createdAt    DateTime  @default(now())
+  cliente      Cliente   @relation(fields: [clienteId], references: [id])
+  propiedad    Propiedad @relation(fields: [propiedadId], references: [id])
+
+  @@unique([propiedadId, clienteId])
+}
+
+model Imagen {
+  id          Int       @id @default(autoincrement())
+  url         String
+  propiedadId Int
+  propiedad   Propiedad @relation(fields: [propiedadId], references: [id])
+}
+
+model Favorito {
+  id          Int       @id @default(autoincrement())
+  usuarioId   Int
+  propiedadId Int
+  createdAt   DateTime  @default(now())
+  propiedad   Propiedad @relation(fields: [propiedadId], references: [id])
+  usuario     Usuario   @relation(fields: [usuarioId], references: [id])
+
+  @@unique([usuarioId, propiedadId])
+}
+
+model Cliente {
+  id                       Int                    @id @default(autoincrement())
+  nombre                   String
+  telefono                 String
+  email                    String?
+  tipo_cliente             TipoCliente
+  observaciones            String?
+  activo                   Boolean                @default(true)
+  agenteId                 Int?
+  createdAt                DateTime               @default(now())
+  updatedAt                DateTime               @updatedAt
+  desactivado_por          Int?
+  fecha_desactivacion      DateTime?
+  cedula                   String?
+  estado_civil             EstadoCivil?
+  agente                   Usuario?               @relation(fields: [agenteId], references: [id])
+  usuario_desactivador     Usuario?               @relation("ClienteDesactivador", fields: [desactivado_por], references: [id])
+  documentos               DocumentoCliente[]
+  negociaciones            Negociacion[]
+  propiedades              Propiedad[]            @relation("PropiedadPropietario")
+  participacionPropiedades PropiedadPropietario[]
+}
+
+model DocumentoCliente {
+  id        Int                  @id @default(autoincrement())
+  nombre    String
+  url       String
+  tipo      TipoDocumentoCliente
+  clienteId Int
+  createdAt DateTime             @default(now())
+  cliente   Cliente              @relation(fields: [clienteId], references: [id])
+}
+
+model Negociacion {
+  id                  Int                  @id @default(autoincrement())
+  clienteId           Int
+  propiedadId         Int
+  agenteId            Int
+  etapa               EtapaNegociacion     @default(interes)
+  fecha_inicio        DateTime             @default(now())
+  activo              Boolean              @default(true)
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  fecha_cambio_etapa  DateTime             @default(now())
+  archivosNegociacion ArchivoNegociacion[]
+  agente              Usuario              @relation(fields: [agenteId], references: [id])
+  cliente             Cliente              @relation(fields: [clienteId], references: [id])
+  propiedad           Propiedad            @relation(fields: [propiedadId], references: [id])
+  notasInternas       NotaInterna[]
+  seguimientos        Seguimiento[]
+
+  @@unique([clienteId, propiedadId])
+}
+
+model Seguimiento {
+  id            Int             @id @default(autoincrement())
+  negociacionId Int
+  agenteId      Int
+  fecha         DateTime        @default(now())
+  comentario    String
+  tipo          TipoSeguimiento @default(otro)
+  activo        Boolean         @default(true)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  agente        Usuario         @relation(fields: [agenteId], references: [id])
+  negociacion   Negociacion     @relation(fields: [negociacionId], references: [id])
+
+  @@map("Seguimiento")
+}
+
+model NotaInterna {
+  id            Int         @id @default(autoincrement())
+  negociacionId Int
+  agenteId      Int
+  fecha         DateTime    @default(now())
+  contenido     String
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  agente        Usuario     @relation(fields: [agenteId], references: [id])
+  negociacion   Negociacion @relation(fields: [negociacionId], references: [id])
+
+  @@map("NotaInterna")
+}
+
+model ArchivoNegociacion {
+  id              Int          @id @default(autoincrement())
+  negociacionId   Int
+  agenteId        Int
+  nombre_archivo  String
+  nombre_guardado String
+  tipo            TipoArchivo?
+  fecha_subida    DateTime     @default(now())
+  url             String
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  activo          Boolean      @default(true)
+  tamano          Int
+  agente          Usuario      @relation(fields: [agenteId], references: [id])
+  negociacion     Negociacion  @relation(fields: [negociacionId], references: [id])
+
+  @@map("ArchivoNegociacion")
+}
+
+model DocumentoAgente {
+  id        Int                 @id @default(autoincrement())
+  nombre    String
+  url       String
+  tipo      TipoDocumentoAgente
+  agenteId  Int
+  createdAt DateTime            @default(now())
+  agente    Usuario             @relation(fields: [agenteId], references: [id])
+
+  @@map("DocumentoAgente")
+}
+
 enum Rol {
   cliente
   agente
   admin
 }
 
-// MODELO de propiedades inmobiliarias
-model Propiedad {
-  id               Int             @id @default(autoincrement())
-  titulo           String //nombre atractivo o breve descripción, ej. “Casa de 3 habitaciones en Quito”
-  descripcion      String? //detalle completo de la propiedad
-  tipo_propiedad   TipoPropiedad //casa, departamento, terreno, local comercial, finca, quinta
-  estado_propiedad EstadoFisico //nueva, usada, en construcción
-  transaccion      TipoTransaccion //venta, alquiler
-  precio           Decimal         @db.Decimal(12, 2) //valor en dólares u otra moneda
-  moneda           String          @default("USD") //USD, EUR, etc.
-
-  direccion     String
-  ciudad        String
-  sector        String?   // Sector o Barrio
-  referencia    String?   // Referencia de ubicación
-  provincia     Provincia
-  pais          String    @default("Ecuador")
-  codigo_postal String?
-  latitud       Decimal?  @db.Decimal(10, 7) //para mapas
-  longitud      Decimal?  @db.Decimal(10, 7) //para mapas
-
-  area_terreno      Decimal  @db.Decimal(10, 2)
-  unidad_area_terreno String @default("m2") // "m2" o "ha"
-  area_construccion Decimal?  @db.Decimal(10, 2)
-  unidad_area_construccion String @default("m2") // "m2" o "ha"
-  nro_habitaciones  Int?
-  nro_banos         Int?
-  nro_parqueaderos  Int?
-  nro_pisos         Int?
-  anio_construccion Int?
-
-  // --- CARACTERÍSTICAS FÍSICAS ---
-  orientacion       String?   // Norte, Sur, Este, Oeste, etc.
-
-  // --- AMENITIES / CARACTERÍSTICAS ADICIONALES ---
-  tiene_balcon           Boolean @default(false)
-  tiene_terraza          Boolean @default(false)
-  tiene_patio            Boolean @default(false)
-  tiene_bodega           Boolean @default(false)
-  tiene_area_bbq         Boolean @default(false)
-  tiene_piscina          Boolean @default(false)
-  tiene_ascensor         Boolean @default(false)
-  tiene_seguridad        Boolean @default(false)
-  tiene_areas_comunales  Boolean @default(false)
-  tiene_gas_centralizado Boolean @default(false)
-  tiene_cisterna         Boolean @default(false)
-  tiene_lavanderia       Boolean @default(false)
-  amoblado               Boolean @default(false)
-
-  estado_publicacion EstadoPropiedad @default(disponible) // disponible, vendida, arrendada, reservada, inactiva.
-
-  imagenes Imagen[] //Enlaces web de las imagenes
-
-  agenteId Int
-  agente   Usuario @relation(fields: [agenteId], references: [id])
-  
-  documentos DocumentoPropiedad[]
-
-  // --- IDENTIFICACIÓN ---
-  codigo_interno  String?   @unique // Generado ej: CAS-001
-  uso_propiedad   UsoPropiedad? // Residencial, Comercial, Mixto
-
-  // --- DATOS DE CAPTACIÓN (Negocio) ---
-  propietarioId     Int?
-  propietario       Cliente? @relation("PropiedadPropietario", fields: [propietarioId], references: [id])
-  comision          Decimal? @db.Decimal(10, 2)
-  tipo_comision     String?  @default("porcentaje") // "porcentaje" o "fijo"
-  precio_minimo     Decimal? @db.Decimal(12, 2)
-  valor_garantia    Decimal? @db.Decimal(12, 2) // Valor de garantía para alquileres
-  tipo_contrato     String?  // "exclusiva", "abierta"
-  fecha_fin_contrato DateTime? 
-  fecha_captacion    DateTime? @default(now()) 
-
-  favoritos Favorito[]
-  negociaciones Negociacion[] // Negociaciones de esta propiedad
-  
-  updatedBy Int?
-  usuarioActualizador Usuario? @relation("PropiedadActualizador", fields: [updatedBy], references: [id])
-
-  // Campos de auditoría para desactivación
-  fecha_desactivacion DateTime?
-  desactivado_por     Int?
-  usuarioDesactivador Usuario? @relation("PropiedadDesactivador", fields: [desactivado_por], references: [id])
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  propietarios PropiedadPropietario[] // Relación M-N con propietarios
-}
-
-model DocumentoPropiedad {
-  id           Int      @id @default(autoincrement())
-  nombre       String
-  url          String
-  tipo         TipoDocumentoPropiedad
-  categoria    CategoriaDocumento
-  propiedadId  Int
-  propiedad    Propiedad @relation(fields: [propiedadId], references: [id])
-  createdAt    DateTime @default(now())
-}
-
-model PropiedadPropietario {
-  id            Int       @id @default(autoincrement())
-  propiedadId   Int
-  propiedad     Propiedad @relation(fields: [propiedadId], references: [id])
-  clienteId     Int
-  cliente       Cliente   @relation(fields: [clienteId], references: [id])
-  porcentaje    Decimal   @default(0) @db.Decimal(5, 2) // Porcentaje de 0.00 a 100.00
-  es_principal  Boolean   @default(false)
-  
-  updatedAt     DateTime  @updatedAt
-  createdAt     DateTime  @default(now())
-
-  @@unique([propiedadId, clienteId])
-}
-
-// Posibles estados que puede tener una propiedad inmobiliaria
 enum EstadoPropiedad {
   disponible
   vendida
   arrendada
   reservada
-  inactiva //Para soft delete de la propiedad (evitar eliminar realmente de la base de datos)
+  inactiva
 }
 
 enum TipoPropiedad {
   casa
   departamento
-  suite
+  terreno
   local_comercial
+  finca
+  quinta
+  suite
   oficina
   bodega_galpon
   edificio
-  terreno
-  finca
-  quinta
 }
 
 enum UsoPropiedad {
@@ -226,16 +326,16 @@ enum TipoDocumentoPropiedad {
   IRM
   REGLAMENTO_PH
   ALICUOTA
+  OTRO
   AUTORIZACION_VENTA
-  CONTRATO_EXCLUSIVIDAD // Nuevo
   FICHA_CATASTRAL
   CERTIFICADO_USO_SUELO
   CERTIFICADO_ALICUOTA
-  CERTIFICADO_EXPENSAS // Nuevo
   PLANILLA_LUZ
   PLANILLA_AGUA
   PLANILLA_ALICUOTA
-  OTRO
+  CONTRATO_EXCLUSIVIDAD
+  CERTIFICADO_EXPENSAS
 }
 
 enum TipoDocumentoCliente {
@@ -286,67 +386,6 @@ enum Provincia {
   Zamora_Chinchipe
 }
 
-//MODELO de imagenes (por cada propiedad habrá una o más imagenes)
-model Imagen {
-  id          Int       @id @default(autoincrement())
-  url         String
-  propiedadId Int
-  propiedad   Propiedad @relation(fields: [propiedadId], references: [id])
-}
-
-
-// MODELO de favoritos (relación muchos a muchos entre Usuario y Propiedad)
-model Favorito {
-  id          Int        @id @default(autoincrement())
-  usuario     Usuario    @relation(fields: [usuarioId], references: [id])
-  usuarioId   Int
-  propiedad   Propiedad  @relation(fields: [propiedadId], references: [id])
-  propiedadId Int
-  createdAt   DateTime   @default(now())
-
-  @@unique([usuarioId, propiedadId]) // No permite duplicados
-}
-
-// MODELO de clientes (personas interesadas en propiedades)
-model Cliente {
-  id          Int       @id @default(autoincrement())
-  nombre      String    // Nombre completo del cliente
-  telefono    String    // Teléfono de contacto
-  email       String?   // Correo electrónico (opcional para prospectos)
-  cedula      String?   // Cédula/RUC (opcional para prospectos)
-  estado_civil EstadoCivil?
-  documentos  DocumentoCliente[]
-  tipo_cliente TipoCliente // Tipo de cliente (comprador, arrendatario, etc.)
-  observaciones String? // Observaciones opcionales
-  activo      Boolean     @default(true) //permite desactivar cuentas sin borrarlas
-  agenteId    Int?      // Agente responsable (opcional, solo para admin)
-  agente      Usuario?  @relation(fields: [agenteId], references: [id])
-  
-  // Campos de auditoría para desactivación
-  fecha_desactivacion DateTime? // Fecha cuando fue desactivado
-  desactivado_por     Int?      // ID del usuario que desactivó el cliente
-  usuario_desactivador Usuario? @relation("ClienteDesactivador", fields: [desactivado_por], references: [id])
-  
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  
-  negociaciones Negociacion[] // Negociaciones de este cliente
-  propiedades   Propiedad[]   @relation("PropiedadPropietario") // Propiedades que posee este cliente (Legacy/Direct)
-
-  participacionPropiedades PropiedadPropietario[] // Nueva relación M-N
-}
-
-model DocumentoCliente {
-  id        Int      @id @default(autoincrement())
-  nombre    String
-  url       String
-  tipo      TipoDocumentoCliente
-  clienteId Int
-  cliente   Cliente @relation(fields: [clienteId], references: [id])
-  createdAt DateTime @default(now())
-}
-
-// Tipos de cliente
 enum TipoCliente {
   comprador
   arrendatario
@@ -357,40 +396,14 @@ enum TipoCliente {
   prospecto
 }
 
-// MODELO de negociaciones (vínculo entre cliente y propiedad)
-model Negociacion {
-  id          Int       @id @default(autoincrement())
-  clienteId   Int
-  cliente     Cliente   @relation(fields: [clienteId], references: [id])
-  propiedadId Int
-  propiedad   Propiedad @relation(fields: [propiedadId], references: [id])
-  agenteId    Int
-  agente      Usuario   @relation(fields: [agenteId], references: [id])
-  etapa       EtapaNegociacion @default(interes)
-  fecha_inicio DateTime @default(now())
-  fecha_cambio_etapa DateTime @default(now()) // Fecha del último cambio de etapa
-  activo      Boolean   @default(true) // Soft delete
-  
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-
-  seguimientos Seguimiento[] // Historial de seguimientos
-  notasInternas NotaInterna[] // Notas internas privadas del agente
-  archivosNegociacion ArchivoNegociacion[] // Archivos adjuntos a esta negociación
-
-  @@unique([clienteId, propiedadId]) // Evita duplicados
-}
-
-// Etapas de una negociación
 enum EtapaNegociacion {
-  interes      // Cliente ha mostrado interés por una propiedad
-  negociacion  // Cliente ha visto la propiedad o ha solicitado más información
-  cierre       // Las condiciones están casi acordadas, gestionando documentación
-  finalizada   // La operación terminó satisfactoriamente
-  cancelada    // El cliente desistió o no se concretó la operación
+  interes
+  negociacion
+  cierre
+  finalizada
+  cancelada
 }
 
-// Tipos de seguimiento
 enum TipoSeguimiento {
   llamada
   visita
@@ -401,82 +414,6 @@ enum TipoSeguimiento {
   otro
 }
 
-// MODELO de seguimientos (historial de interacciones por negociación)
-model Seguimiento {
-  id             Int             @id @default(autoincrement())
-  negociacionId  Int
-  agenteId       Int
-  fecha          DateTime        @default(now())
-  comentario     String
-  tipo           TipoSeguimiento @default(otro)
-  activo         Boolean         @default(true) // Soft delete
-  
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
-
-  // Relaciones
-  negociacion    Negociacion     @relation(fields: [negociacionId], references: [id])
-  agente         Usuario         @relation(fields: [agenteId], references: [id])
-
-  @@map("Seguimiento")
-}
-
-// MODELO de notas internas privadas del agente
-model NotaInterna {
-  id             Int       @id @default(autoincrement())
-  negociacionId  Int
-  agenteId       Int
-  fecha          DateTime  @default(now())
-  contenido      String    // Texto de la nota interna
-  
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
-
-  // Relaciones
-  negociacion    Negociacion @relation(fields: [negociacionId], references: [id])
-  agente         Usuario     @relation(fields: [agenteId], references: [id])
-
-  @@map("NotaInterna")
-}
-
-// MODELO de archivos adjuntos por negociación
-model ArchivoNegociacion {
-  id              Int       @id @default(autoincrement())
-  negociacionId   Int
-  agenteId        Int
-  nombre_archivo  String    // Nombre original del archivo
-  nombre_guardado String    // Nombre del archivo en el servidor
-  tipo            TipoArchivo? // Tipo de archivo para categorización
-  fecha_subida    DateTime  @default(now())
-  url             String    // Ruta del archivo en el servidor
-  tamano          Int       // Tamaño en bytes
-  activo          Boolean   @default(true) // Soft delete
-  
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-
-  // Relaciones
-  negociacion     Negociacion @relation(fields: [negociacionId], references: [id])
-  agente          Usuario     @relation(fields: [agenteId], references: [id])
-
-  @@map("ArchivoNegociacion")
-}
-
-// MODELO de documentos personales de agentes (RRHH)
-model DocumentoAgente {
-  id        Int      @id @default(autoincrement())
-  nombre    String   // Nombre original del archivo
-  url       String   // Ubicación en servidor
-  tipo      TipoDocumentoAgente // Categoría del documento
-  
-  agenteId  Int
-  agente    Usuario  @relation(fields: [agenteId], references: [id])
-  
-  createdAt DateTime @default(now())
-
-  @@map("DocumentoAgente")
-}
-
 enum TipoDocumentoAgente {
   IDENTIFICACION
   CONTRATO
@@ -485,7 +422,6 @@ enum TipoDocumentoAgente {
   OTRO
 }
 
-// Tipos de archivo para categorización
 enum TipoArchivo {
   contrato
   cedula

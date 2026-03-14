@@ -206,7 +206,7 @@ export default function CardPropiedad({ propiedad, onActualizarPropiedad }) {
                             </>
                         )}
 
-                        {usuario?.rol === 'admin' && (
+                        {puedeEditar && (
                             <button
                                 onClick={() => setMostrarEliminar(true)}
                                 className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"

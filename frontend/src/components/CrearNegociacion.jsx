@@ -833,7 +833,7 @@ const CrearNegociacion = ({ isOpen, onClose, onSuccess, usuario }) => {
                         <button
                             type="submit"
                             form="form-negociacion"
-                            disabled={loading || !formData.clienteId || !formData.propiedadId}
+                            disabled={loading || !formData.clienteId || !formData.propiedadId || clientes.length === 0 || propiedadesCompletas.length === 0}
                             className="px-6 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:bg-gray-300 disabled:cursor-not-allowed font-medium transition-colors shadow-sm flex items-center gap-2"
                         >
                             {loading ? (

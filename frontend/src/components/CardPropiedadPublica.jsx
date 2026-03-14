@@ -162,7 +162,7 @@ export default function CardPropiedadPublica({ propiedad, className = '', favori
 
             {/* Footer: Botones de Acción - FUERA del Link para evitar <a> anidados */}
             <div className="mt-auto flex justify-between items-center pt-3 px-4 pb-4 border-t border-gray-100">
-                {/* Botón WhatsApp */}
+{/* Botón WhatsApp - COMENTADO
                 <a
                     href={`https://wa.me/593981231304?text=${encodeURIComponent(`Hola, estoy interesado en información sobre la propiedad: ${propiedad.titulo} - ${window.location.origin}/propiedad/${propiedad.id}`)}`}
                     target="_blank"
@@ -175,6 +175,7 @@ export default function CardPropiedadPublica({ propiedad, className = '', favori
                     </svg>
                     <span className="text-xs font-bold">Info</span>
                 </a>
+                */}
 
                 {/* Botón Ver Detalles */}
                 <Link

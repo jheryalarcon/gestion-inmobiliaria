@@ -13,13 +13,12 @@ const ModalActualizarEtapaNegociacion = ({
     const [etapa, setEtapa] = useState(negociacion?.etapa || 'interes');
     const [loading, setLoading] = useState(false);
 
-    // Etapas válidas según el esquema
+    // Etapas válidas según el esquema del backend
     const etapasValidas = [
         { value: 'interes', label: 'Interés', description: 'Cliente interesado en la propiedad' },
         { value: 'negociacion', label: 'Negociación', description: 'En proceso de negociación' },
-        { value: 'oferta', label: 'Oferta', description: 'Oferta presentada al cliente' },
-        { value: 'aceptada', label: 'Aceptada', description: 'Oferta aceptada por el cliente' },
-        { value: 'cerrada', label: 'Cerrada', description: 'Negociación cerrada exitosamente' },
+        { value: 'cierre', label: 'Cierre', description: 'Acuerdo verbal, redactando contratos' },
+        { value: 'finalizada', label: 'Finalizada', description: 'Operación exitosa y completada' },
         { value: 'cancelada', label: 'Cancelada', description: 'Negociación cancelada' }
     ];
 

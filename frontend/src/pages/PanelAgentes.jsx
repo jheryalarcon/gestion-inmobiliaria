@@ -24,10 +24,6 @@ export default function PanelAgentes() {
     });
     const [showDesactivarModal, setShowDesactivarModal] = useState(false);
     const [showReactivarModal, setShowReactivarModal] = useState(false);
-    const [showReasignarModal, setShowReasignarModal] = useState(false);
-    const [agenteParaDesactivar, setAgenteParaDesactivar] = useState(null);
-    const [targetAgenteId, setTargetAgenteId] = useState('');
-    const [statsPendientes, setStatsPendientes] = useState(null);
     const [agenteSeleccionado, setAgenteSeleccionado] = useState(null);
     const [error, setError] = useState(null);
     const [searchInput, setSearchInput] = useState(''); // Input local para debounce
@@ -71,7 +67,9 @@ export default function PanelAgentes() {
             if (decoded.rol !== 'admin') {
                 console.log('Usuario no es admin, redirigiendo');
                 toast.error('No tienes permisos para acceder a esta página');
-                navigate('/admin');
+                if (decoded.rol === 'agente') navigate('/agente/panel-propiedades');
+                else if (decoded.rol === 'cliente') navigate('/');
+                else navigate('/');
                 return;
             }
 
@@ -639,81 +637,6 @@ export default function PanelAgentes() {
                                 className="bg-green-500 hover:bg-green-600 text-white font-medium text-sm px-4 py-2 rounded-lg shadow-md transition disabled:opacity-50"
                             >
                                 {submitting ? 'Reactivando...' : 'Reactivar'}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-            {/* Modal de Reasignación */}
-            {showReasignarModal && agenteParaDesactivar && statsPendientes && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-                    <div className="bg-white rounded-lg max-w-md w-full p-6 shadow-xl">
-                        <div className="flex items-center gap-3 mb-4 text-orange-600">
-                            <Briefcase className="w-6 h-6" />
-                            <h3 className="text-lg font-bold">Transferir Responsabilidades</h3>
-                        </div>
-
-                        <p className="text-gray-600 mb-4">
-                            El agente <strong>{agenteParaDesactivar.name}</strong> tiene registros activos que deben ser transferidos antes de desactivarlo:
-                        </p>
-
-                        <div className="bg-orange-50 p-4 rounded-lg mb-6 space-y-2 text-sm">
-                            <div className="flex justify-between">
-                                <span className="text-gray-600">Clientes Activos:</span>
-                                <span className="font-bold text-orange-800">{statsPendientes.clientes}</span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span className="text-gray-600">Propiedades Activas:</span>
-                                <span className="font-bold text-orange-800">{statsPendientes.propiedades}</span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span className="text-gray-600">Negociaciones Activas:</span>
-                                <span className="font-bold text-orange-800">{statsPendientes.negociaciones}</span>
-                            </div>
-                        </div>
-
-                        <div className="mb-6">
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Transferir a:
-                            </label>
-                            <select
-                                value={targetAgenteId}
-                                onChange={(e) => setTargetAgenteId(e.target.value)}
-                                className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                            >
-                                <option value="">Selecciona un agente...</option>
-                                {agentes
-                                    .filter(a => a.activo && a.id !== agenteParaDesactivar.id)
-                                    .map(agente => (
-                                        <option key={agente.id} value={agente.id}>
-                                            {agente.name} ({agente.email})
-                                        </option>
-                                    ))
-                                }
-                            </select>
-                        </div>
-
-                        <div className="flex justify-end gap-3">
-                            <button
-                                onClick={() => {
-                                    setShowReasignarModal(false);
-                                    setAgenteParaDesactivar(null);
-                                    setStatsPendientes(null);
-                                }}
-                                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-                            >
-                                Cancelar
-                            </button>
-                            <button
-                                onClick={confirmarReasignacion}
-                                disabled={!targetAgenteId}
-                                className={`px-4 py-2 text-white rounded-lg transition-colors flex items-center gap-2
-                                    ${!targetAgenteId
-                                        ? 'bg-gray-400 cursor-not-allowed'
-                                        : 'bg-orange-600 hover:bg-orange-700 shadow-sm'}`}
-                            >
-                                <RotateCw className="w-4 h-4" />
-                                Transferir y Desactivar
                             </button>
                         </div>
                     </div>

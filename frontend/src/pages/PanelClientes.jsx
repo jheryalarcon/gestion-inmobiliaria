@@ -119,22 +119,6 @@ export default function PanelClientes() {
         }));
     };
 
-    const handleSort = (columna) => {
-        setFiltros(prev => ({
-            ...prev,
-            sortBy: columna,
-            order: prev.sortBy === columna && prev.order === 'asc' ? 'desc' : 'asc',
-            page: 1
-        }));
-    };
-
-    const SortIcon = ({ columna }) => {
-        if (filtros.sortBy !== columna) return <ArrowUpDown className="w-4 h-4 text-gray-400 opacity-50" />;
-        return filtros.order === 'asc'
-            ? <ArrowUp className="w-4 h-4 text-orange-600" />
-            : <ArrowDown className="w-4 h-4 text-orange-600" />;
-    };
-
     const handlePageChange = (nuevaPagina) => {
         setFiltros(prev => ({
             ...prev,
@@ -357,23 +341,11 @@ export default function PanelClientes() {
                     <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">
                             <tr>
-                                <th
-                                    onClick={() => handleSort('nombre')}
-                                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors group"
-                                >
-                                    <div className="flex items-center gap-1">
-                                        Cliente
-                                        <SortIcon columna="nombre" />
-                                    </div>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Cliente
                                 </th>
-                                <th
-                                    onClick={() => handleSort('email')} // Usamos email como proxy de contacto
-                                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors group"
-                                >
-                                    <div className="flex items-center gap-1">
-                                        Contacto
-                                        <SortIcon columna="email" />
-                                    </div>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Contacto
                                 </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Tipo
@@ -386,16 +358,12 @@ export default function PanelClientes() {
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Estado
                                 </th>
-                                <th
-                                    onClick={() => handleSort('ultima_interaccion')}
-                                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors group"
-                                >
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     <div className="flex items-center gap-1">
                                         Última Interacción
                                         <div title="Fecha de actualización de la última negociación o fecha de registro" className="cursor-help">
                                             <Info className="w-3.5 h-3.5 text-gray-400" />
                                         </div>
-                                        <SortIcon columna="ultima_interaccion" />
                                     </div>
                                 </th>
                                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -491,9 +459,15 @@ export default function PanelClientes() {
                                                     <Briefcase className="w-4 h-4" />
                                                 </button>
                                                 <button
-                                                    onClick={() => navigate(`${usuario?.rol === 'admin' ? '/admin' : '/agente'}/editar-cliente/${cliente.id}`)}
+                                                    onClick={() => {
+                                                        if (!cliente.activo) {
+                                                            toast.error('Este cliente está inactivo. Reactívalo primero para poder editarlo.', { duration: 4000 });
+                                                            return;
+                                                        }
+                                                        navigate(`${usuario?.rol === 'admin' ? '/admin' : '/agente'}/editar-cliente/${cliente.id}`);
+                                                    }}
                                                     className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
-                                                    title="Editar cliente"
+                                                    title={cliente.activo ? 'Editar cliente' : 'Reactiva el cliente para editarlo'}
                                                 >
                                                     <Edit className="w-4 h-4" />
                                                 </button>

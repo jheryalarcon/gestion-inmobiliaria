@@ -229,7 +229,7 @@ export default function FiltroPropiedadesAdmin({ filtros, setFiltros, busqueda, 
                                 { val: 'disponible', label: 'Disponible' },
                                 { val: 'reservada', label: 'Reservada' },
                                 { val: 'vendida', label: 'Vendida' },
-                                { val: 'alquilada', label: 'Alquilada' },
+                                { val: 'arrendada', label: 'Arrendada' },
                                 { val: 'inactiva', label: 'Inactiva' }
                             ].map(opt => (
                                 <button key={opt.val} onClick={() => { handleChange('estado', opt.val); setActiveDropdown(null) }} className={`px-3 py-2 text-left text-sm hover:bg-gray-50 rounded-lg ${filtros.estado === opt.val ? 'bg-blue-50 text-blue-700 font-medium' : ''}`}>

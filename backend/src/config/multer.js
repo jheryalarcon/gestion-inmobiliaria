@@ -1,26 +1,40 @@
 import multer from 'multer';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import fs from 'fs';
 
-// Ruta para guardar imágenes
+// Ruta para guardar archivos
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const storage = multer.memoryStorage();
+// Ruta absoluta al directorio uploads (backend/uploads/)
+const uploadsDir = path.join(__dirname, '..', '..', 'uploads');
+
+// Crear la carpeta uploads si no existe
+if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+// ✅ diskStorage: guarda en disco y genera archivo.filename
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, uploadsDir);
+    },
+    filename: (req, file, cb) => {
+        const ext = path.extname(file.originalname);
+        const uniqueName = `${Date.now()}-${Math.round(Math.random() * 1e6)}${ext}`;
+        cb(null, uniqueName);
+    }
+});
 
 const upload = multer({
     storage,
     limits: {
-        fileSize: 10 * 1024 * 1024, // ✅ 10MB por archivo (Estandarizado con Frontend)
+        fileSize: 10 * 1024 * 1024, // ✅ 10MB por archivo
     },
     fileFilter: (req, file, cb) => {
         const tiposPermitidos = /jpeg|jpg|png|webp|pdf|doc|docx/;
         const extname = tiposPermitidos.test(path.extname(file.originalname).toLowerCase());
-        // Relaxing mimetype check slightly or including common document mimetypes
-        // For simplicity, checking extname is critical, mimetype is often enough if it matches 'image/' or 'application/'
-        // But strict regex test on mimetype might fail for docx.
-        // Let's rely on extension for doc/docx/pdf combined with basic mime check or just allow if extension is valid.
-
         if (extname) {
             return cb(null, true);
         }
@@ -28,7 +42,25 @@ const upload = multer({
     },
 });
 
-// Configuración específica para archivos de negociación
+
+// ✅ memoryStorage para imágenes de propiedades → van a Cloudinary (necesita file.buffer)
+const storageMemory = multer.memoryStorage();
+
+const uploadPropiedadImg = multer({
+    storage: storageMemory,
+    limits: {
+        fileSize: 10 * 1024 * 1024, // 10MB por imagen
+    },
+    fileFilter: (req, file, cb) => {
+        const tiposPermitidos = /jpeg|jpg|png|webp/;
+        const extname = tiposPermitidos.test(path.extname(file.originalname).toLowerCase());
+        const mimetype = tiposPermitidos.test(file.mimetype);
+        if (extname && mimetype) return cb(null, true);
+        cb(new Error('Solo se permiten imágenes (JPG, PNG, WebP).'));
+    },
+});
+
+// Configuración específica para archivos de negociación (también va a Cloudinary)
 const storageNegociacion = multer.memoryStorage();
 
 const uploadNegociacion = multer({
@@ -47,4 +79,4 @@ const uploadNegociacion = multer({
     },
 });
 
-export { upload as default, uploadNegociacion };
+export { upload as default, uploadNegociacion, uploadPropiedadImg };

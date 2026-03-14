@@ -1079,9 +1079,24 @@ export const actualizarEstadoPropiedad = async (req, res) => {
 
 export const eliminarPropiedad = async (req, res) => {
     const { id } = req.params;
+    const usuario = req.usuario;
 
     try {
-        // 🛡️ REGLA: No eliminar si tiene negociaciones EN CIERRE (Contrato activo)
+        // Verificar que la propiedad existe
+        const propiedadExistente = await prisma.propiedad.findUnique({
+            where: { id: parseInt(id) }
+        });
+
+        if (!propiedadExistente) {
+            return res.status(404).json({ mensaje: 'Propiedad no encontrada' });
+        }
+
+        // ⛔ SEGURIDAD: Solo el Agente Captador (Dueño) o Admin pueden desactivar
+        if (usuario.rol === 'agente' && propiedadExistente.agenteId !== usuario.id) {
+            return res.status(403).json({ mensaje: '⛔ No tienes permisos para desactivar esta propiedad.' });
+        }
+
+        // 🛡️ REGLA: No desactivar si tiene negociaciones EN CIERRE (Contrato activo)
         const negociacionesEnCierre = await prisma.negociacion.count({
             where: {
                 propiedadId: parseInt(id),
@@ -1092,7 +1107,7 @@ export const eliminarPropiedad = async (req, res) => {
 
         if (negociacionesEnCierre > 0) {
             return res.status(400).json({
-                mensaje: `⛔ No se puede eliminar la propiedad. Hay una negociación en etapa de CIERRE (Reserva activa).`
+                mensaje: `⛔ No se puede desactivar la propiedad. Hay una negociación en etapa de CIERRE (Reserva activa).`
             });
         }
 
@@ -1112,6 +1127,7 @@ export const eliminarPropiedad = async (req, res) => {
         return res.status(500).json({ mensaje: 'Error al eliminar la propiedad' });
     }
 };
+
 
 export const obtenerPropiedadesPublicas = async (req, res) => {
     try {

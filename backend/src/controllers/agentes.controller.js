@@ -46,10 +46,11 @@ export const crearAgente = async (req, res) => {
             });
         }
 
-        // Validar contraseña (mínimo 6 caracteres)
-        if (password.length < 6) {
+        // Validar contraseña: mínimo 8 caracteres, al menos una mayúscula y un número
+        const passwordRegex = /^(?=.*[A-Z])(?=.*\d).{8,}$/;
+        if (!passwordRegex.test(password)) {
             return res.status(400).json({
-                error: 'La contraseña debe tener al menos 6 caracteres'
+                error: 'La contraseña debe tener al menos 8 caracteres, una letra mayúscula y un número'
             });
         }
 
@@ -278,7 +279,7 @@ export const obtenerAgentePorId = async (req, res) => {
 export const actualizarEstadoAgente = async (req, res) => {
     try {
         const { id } = req.params;
-        const { activo, nuevoAgenteId } = req.body;
+        const { activo } = req.body;
 
         // Verificar que solo administradores puedan cambiar estado
         if (req.usuario.rol !== 'admin') {
@@ -332,71 +333,27 @@ export const actualizarEstadoAgente = async (req, res) => {
 
         const totalPendientes = clientesActivos + propiedadesActivas + negociacionesActivas;
 
-        // 2. Si tiene pendientes y NO se pasó un nuevo agente, bloquear
-        if (totalPendientes > 0 && !nuevoAgenteId) {
+        // 2. Si tiene pendientes, bloquear (sin reasignación)
+        if (totalPendientes > 0) {
             return res.status(400).json({
-                error: 'El agente tiene responsabilidades activas. Debes seleccionar un nuevo agente para transferirlas.',
+                error: 'El agente tiene responsabilidades activas y no puede ser desactivado.',
                 pendientes: {
                     clientes: clientesActivos,
                     propiedades: propiedadesActivas,
                     negociaciones: negociacionesActivas
                 },
-                requiereReasignacion: true
+                requiereReasignacion: false
             });
         }
 
-        // 3. Ejecutar transacción (Traslado + Desactivación)
-        await prisma.$transaction(async (tx) => {
-            if (totalPendientes > 0 && nuevoAgenteId) {
-                // Verificar que el nuevo agente exista y sea válido
-                const nuevoAgente = await tx.usuario.findFirst({
-                    where: { id: parseInt(nuevoAgenteId), rol: 'agente', activo: true }
-                });
-
-                if (!nuevoAgente) {
-                    throw new Error('El agente seleccionado para la reasignación no es válido o está inactivo.');
-                }
-
-                if (nuevoAgente.id === parseInt(id)) {
-                    throw new Error('No puedes reasignar al mismo agente que estás desactivando.');
-                }
-
-                // Transferir Clientes
-                if (clientesActivos > 0) {
-                    await tx.cliente.updateMany({
-                        where: { agenteId: parseInt(id), activo: true },
-                        data: { agenteId: parseInt(nuevoAgenteId) }
-                    });
-                }
-
-                // Transferir Propiedades
-                if (propiedadesActivas > 0) {
-                    await tx.propiedad.updateMany({
-                        where: { agenteId: parseInt(id), estado_publicacion: { in: ['disponible', 'reservada'] } },
-                        data: { agenteId: parseInt(nuevoAgenteId) }
-                    });
-                }
-
-                // Transferir Negociaciones
-                if (negociacionesActivas > 0) {
-                    await tx.negociacion.updateMany({
-                        where: { agenteId: parseInt(id), activo: true },
-                        data: { agenteId: parseInt(nuevoAgenteId) }
-                    });
-                }
-            }
-
-            // Desactivar Agente
-            await tx.usuario.update({
-                where: { id: parseInt(id) },
-                data: { activo: false }
-            });
+        // 3. Desactivar agente (sin transferencias)
+        await prisma.usuario.update({
+            where: { id: parseInt(id) },
+            data: { activo: false },
         });
 
         res.json({
-            mensaje: totalPendientes > 0
-                ? `Agente desactivado y ${totalPendientes} registros transferidos correctamente.`
-                : 'Agente desactivado correctamente.',
+            mensaje: 'Agente desactivado correctamente.',
             agente: { id: parseInt(id), activo: false }
         });
 
@@ -581,10 +538,11 @@ export const cambiarPasswordAgente = async (req, res) => {
             });
         }
 
-        // Validar contraseña
-        if (!password || password.length < 6) {
+        // Validar contraseña: mínimo 8 caracteres, al menos una mayúscula y un número
+        const passwordRegex = /^(?=.*[A-Z])(?=.*\d).{8,}$/;
+        if (!password || !passwordRegex.test(password)) {
             return res.status(400).json({
-                error: 'La contraseña debe tener al menos 6 caracteres'
+                error: 'La contraseña debe tener al menos 8 caracteres, una letra mayúscula y un número'
             });
         }
 

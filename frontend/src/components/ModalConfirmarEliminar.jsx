@@ -13,7 +13,7 @@ export default function ModalConfirmarEliminar({ propiedadId, onClose, onSuccess
             await axios.delete(`${import.meta.env.VITE_BACKEND_URL}/api/propiedades/${propiedadId}`, {
                 headers: { Authorization: `Bearer ${token}` },
             });
-            setMensaje('Propiedad eliminada correctamente.');
+            setMensaje('Propiedad desactivada correctamente.');
             setTimeout(() => {
                 onSuccess(); // actualizar lista
                 onClose();   // cerrar modal
@@ -30,11 +30,11 @@ export default function ModalConfirmarEliminar({ propiedadId, onClose, onSuccess
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-red-100/60 to-pink-100/60 backdrop-blur-sm">
             <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md border border-gray-200 transition-all duration-300">
                 <h3 className="text-xl font-bold text-center text-red-700 mb-4 flex items-center justify-center gap-2">
-                    <span className="text-2xl">🗑️</span> ¿Eliminar esta propiedad?
+                    <span className="text-2xl">🗑️</span> ¿Desactivar esta propiedad?
                 </h3>
 
                 <p className="text-sm text-gray-600 text-center mb-4">
-                    Esta acción marcará la propiedad como <strong>inactiva</strong> y no se mostrará más en los listados.
+                    Esta acción marcará la propiedad como <strong>inactiva</strong> y dejará de mostrarse en los listados públicos.
                 </p>
 
                 {mensaje && (
@@ -58,7 +58,7 @@ export default function ModalConfirmarEliminar({ propiedadId, onClose, onSuccess
                         className={`bg-red-600 hover:bg-red-700 text-white font-medium text-sm px-4 py-2 rounded-lg shadow-md transition ${cargando ? 'opacity-50 cursor-not-allowed' : ''
                             }`}
                     >
-                        {cargando ? 'Eliminando...' : 'Eliminar'}
+                        {cargando ? 'Desactivando...' : 'Desactivar'}
                     </button>
                 </div>
             </div>
