@@ -66,6 +66,21 @@ export default function DetallePropiedad() {
 
         // Cargar favoritos si el usuario está logueado
         cargarFavoritos();
+
+        // Registrar interacción VISTA si el usuario es cliente logueado
+        const token = localStorage.getItem('token');
+        const usuarioGuardado = localStorage.getItem('usuario');
+        if (token && usuarioGuardado) {
+            try {
+                const usuarioVista = JSON.parse(usuarioGuardado);
+                if (usuarioVista?.rol === 'cliente') {
+                    axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/interacciones`,
+                        { propiedadId: parseInt(id), tipo: 'VISTA' },
+                        { headers: { Authorization: `Bearer ${token}` } }
+                    ).catch(() => {}); // silencioso
+                }
+            } catch (_) {}
+        }
     }, [id]);
 
     const cargarPropiedadesSimilares = async (propiedadActual) => {
@@ -131,6 +146,14 @@ export default function DetallePropiedad() {
     const handleFavoritoToggle = (propiedadId, isFavorito) => {
         if (isFavorito) {
             setFavoritos(prev => [...prev, { propiedadId }]);
+            // Registrar FAVORITO en el sistema de interacciones
+            const token = localStorage.getItem('token');
+            if (token) {
+                axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/interacciones`,
+                    { propiedadId, tipo: 'FAVORITO' },
+                    { headers: { Authorization: `Bearer ${token}` } }
+                ).catch(() => {}); // silencioso
+            }
         } else {
             setFavoritos(prev => prev.filter(fav => fav.propiedadId !== propiedadId));
         }
@@ -174,6 +197,16 @@ export default function DetallePropiedad() {
 
             toast.success('¡Mensaje enviado con éxito! Un agente te contactará pronto.');
             setFormSubmitted(true);
+
+            // Registrar CONTACTO en el sistema de interacciones
+            const token = localStorage.getItem('token');
+            if (token) {
+                axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/interacciones`,
+                    { propiedadId: propiedad.id, tipo: 'CONTACTO' },
+                    { headers: { Authorization: `Bearer ${token}` } }
+                ).catch(() => {}); // silencioso
+            }
+
             setFormData({
                 nombre: '',
                 email: '',

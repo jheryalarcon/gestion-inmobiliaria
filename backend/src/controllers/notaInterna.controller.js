@@ -54,14 +54,14 @@ const obtenerNotasInternas = async (req, res) => {
     }
 };
 
-// ✅ CREAR NUEVA NOTA INTERNA
+//  CREAR NUEVA NOTA INTERNA
 const crearNotaInterna = async (req, res) => {
     try {
         const { negociacionId } = req.params;
         const { contenido } = req.body;
         const agenteId = req.usuario.id;
 
-        // ✅ REGLA: Validar campos requeridos
+        //  REGLA: Validar campos requeridos
         if (!contenido || contenido.trim().length === 0) {
             return res.status(400).json({
                 mensaje: '❌ El contenido de la nota es obligatorio'
@@ -74,7 +74,7 @@ const crearNotaInterna = async (req, res) => {
             });
         }
 
-        // ✅ REGLA: Verificar que la negociación existe y está activa
+        //  REGLA: Verificar que la negociación existe y está activa
         const negociacion = await prisma.negociacion.findFirst({
             where: {
                 id: parseInt(negociacionId),

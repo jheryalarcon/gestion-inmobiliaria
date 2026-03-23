@@ -9,3 +9,11 @@ node_modules/
 
 # Ignorar .env
 **/.env
+
+# Python y temporales
+venv/
+venv*/
+env/
+__pycache__/
+*.pyc
+out*.txt

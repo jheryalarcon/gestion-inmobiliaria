@@ -29,6 +29,7 @@ model Usuario {
   clientes_desactivados         Cliente[]            @relation("ClienteDesactivador")
   documentos                    DocumentoAgente[]
   favoritos                     Favorito[]
+  interacciones                 InteraccionUsuario[]
   negociaciones                 Negociacion[]
   notasInternas                 NotaInterna[]
   propiedades                   Propiedad[]
@@ -97,6 +98,7 @@ model Propiedad {
   valor_garantia           Decimal?               @db.Decimal(12, 2)
   documentos               DocumentoPropiedad[]
   favoritos                Favorito[]
+  interacciones            InteraccionUsuario[]
   imagenes                 Imagen[]
   negociaciones            Negociacion[]
   agente                   Usuario                @relation(fields: [agenteId], references: [id])
@@ -147,6 +149,22 @@ model Favorito {
   usuario     Usuario   @relation(fields: [usuarioId], references: [id])
 
   @@unique([usuarioId, propiedadId])
+}
+
+model InteraccionUsuario {
+  id          Int             @id @default(autoincrement())
+  usuarioId   Int
+  propiedadId Int
+  tipo        TipoInteraccion
+  valor_peso  Int             // VISTA=1, FAVORITO=5, CONTACTO=10
+  fecha       DateTime        @default(now())
+
+  usuario     Usuario         @relation(fields: [usuarioId], references: [id])
+  propiedad   Propiedad       @relation(fields: [propiedadId], references: [id])
+
+  @@unique([usuarioId, propiedadId, tipo])
+  @@index([usuarioId])
+  @@index([propiedadId])
 }
 
 model Cliente {
@@ -268,6 +286,12 @@ enum Rol {
   cliente
   agente
   admin
+}
+
+enum TipoInteraccion {
+  VISTA
+  FAVORITO
+  CONTACTO
 }
 
 enum EstadoPropiedad {

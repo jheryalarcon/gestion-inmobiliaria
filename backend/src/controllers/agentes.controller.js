@@ -275,7 +275,7 @@ export const obtenerAgentePorId = async (req, res) => {
     }
 };
 
-// Actualizar estado del agente (activar/desactivar con reasignación)
+// Actualizar estado del agente (activar/desactivar)
 export const actualizarEstadoAgente = async (req, res) => {
     try {
         const { id } = req.params;
@@ -333,7 +333,7 @@ export const actualizarEstadoAgente = async (req, res) => {
 
         const totalPendientes = clientesActivos + propiedadesActivas + negociacionesActivas;
 
-        // 2. Si tiene pendientes, bloquear (sin reasignación)
+        // 2. Si tiene pendientes, bloquear 
         if (totalPendientes > 0) {
             return res.status(400).json({
                 error: 'El agente tiene responsabilidades activas y no puede ser desactivado.',

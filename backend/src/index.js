@@ -18,6 +18,7 @@ import archivoNegociacionRoutes from './routes/archivoNegociacion.routes.js';
 import agentesRoutes from './routes/agentes.routes.js';
 import documentoRoutes from './routes/documento.routes.js';
 import dashboardRoutes from './routes/dashboard.routes.js';
+import interaccionRoutes from './routes/interaccion.routes.js';
 
 // Get __dirname equivalent in ES modules
 const __filename = fileURLToPath(import.meta.url);
@@ -59,6 +60,7 @@ app.use('/api/archivos-negociacion', archivoNegociacionRoutes);
 app.use('/api/agentes', agentesRoutes);
 app.use('/api/documentos', documentoRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/interacciones', interaccionRoutes);
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {

@@ -70,14 +70,14 @@ const obtenerSeguimientos = async (req, res) => {
     }
 };
 
-// ✅ CREAR NUEVO SEGUIMIENTO
+//  CREAR NUEVO SEGUIMIENTO
 const crearSeguimiento = async (req, res) => {
     try {
         const { negociacionId } = req.params;
         const { comentario, tipo = 'otro' } = req.body;
         const agenteId = req.usuario.id;
 
-        // ✅ REGLA: Validar campos requeridos
+        //  REGLA: Validar campos requeridos
         if (!comentario || comentario.trim().length === 0) {
             return res.status(400).json({
                 mensaje: '❌ El comentario es obligatorio'
@@ -90,7 +90,7 @@ const crearSeguimiento = async (req, res) => {
             });
         }
 
-        // ✅ REGLA: Verificar que la negociación existe y está activa
+        // REGLA: Verificar que la negociación existe y está activa
         const negociacion = await prisma.negociacion.findFirst({
             where: {
                 id: parseInt(negociacionId),

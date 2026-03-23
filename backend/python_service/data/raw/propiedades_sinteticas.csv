@@ -1,0 +1,151 @@
+id,tipo_propiedad,transaccion,precio,ciudad,provincia,nro_habitaciones,nro_banos,nro_parqueaderos,area_terreno,area_construccion,tiene_piscina,tiene_seguridad,tiene_ascensor,tiene_area_bbq,tiene_terraza,tiene_balcon,tiene_patio,tiene_bodega,tiene_areas_comunales,amoblado
+1,departamento,alquiler,249.86,Loja,Loja,2,1,1,244.5,180.6,True,False,False,False,True,True,False,False,True,False
+2,casa,venta,88526.25,Guayaquil,Guayas,3,3,0,147.0,143.7,False,True,False,False,False,False,True,True,False,False
+3,departamento,alquiler,598.06,Quito,Pichincha,1,1,0,38.2,30.0,False,False,False,False,False,False,False,True,True,True
+4,departamento,alquiler,207.6,Quito,Pichincha,1,1,0,179.5,128.1,False,False,False,False,True,False,False,False,False,True
+5,casa,alquiler,576.25,Ambato,Tungurahua,3,1,1,65.8,48.2,False,False,False,True,False,False,False,False,False,False
+6,casa,alquiler,747.53,Quito,Pichincha,1,1,0,170.4,141.4,False,True,False,False,True,False,False,False,False,False
+7,local_comercial,alquiler,465.77,Guayaquil,Guayas,0,1,0,126.9,104.6,False,False,True,False,False,False,False,False,False,False
+8,suite,alquiler,285.86,Guayaquil,Guayas,1,1,1,126.8,123.6,False,False,True,False,False,False,False,False,False,True
+9,suite,venta,104264.84,Cuenca,Azuay,1,1,0,168.7,126.0,True,True,True,False,True,False,False,False,True,False
+10,finca,venta,139721.95,Ambato,Tungurahua,3,2,2,9091.7,403.1,True,True,False,False,False,False,True,False,False,False
+11,casa,venta,128741.65,Manta,Manabi,2,2,0,221.9,199.5,False,True,False,False,False,False,False,False,True,False
+12,casa,venta,133834.54,Loja,Loja,4,2,1,267.0,207.2,False,True,False,False,True,False,True,False,False,False
+13,finca,alquiler,673.54,Guayaquil,Guayas,1,1,1,7569.2,217.1,False,False,False,True,False,False,True,False,False,False
+14,departamento,alquiler,225.77,Quito,Pichincha,2,1,0,151.8,121.4,False,False,False,False,False,True,False,True,False,True
+15,departamento,venta,101157.42,Quito,Pichincha,2,2,0,171.6,123.9,False,False,True,True,False,False,False,False,False,False
+16,terreno,venta,13056.38,Quito,Pichincha,0,0,1,368.5,0.0,False,True,False,False,False,False,False,False,False,False
+17,casa,alquiler,1218.39,Guayaquil,Guayas,3,2,2,80.2,64.4,False,True,False,False,False,False,True,False,False,False
+18,casa,venta,117023.73,Cuenca,Azuay,4,2,0,39.6,30.0,False,True,False,False,False,False,True,True,False,True
+19,suite,venta,80610.82,Quito,Pichincha,1,1,1,185.9,141.4,False,False,False,False,True,False,False,False,True,False
+20,finca,venta,124567.23,Ambato,Tungurahua,3,2,1,8916.4,201.7,False,False,False,True,False,True,True,False,False,False
+21,casa,alquiler,951.2,Guayaquil,Guayas,4,2,0,152.3,119.5,False,False,False,True,True,False,False,True,True,False
+22,terreno,venta,10000.0,Santo Domingo,Santo_Domingo,0,0,0,177.8,0.0,False,False,False,False,False,True,False,False,False,False
+23,departamento,venta,84681.56,Quito,Pichincha,1,1,1,314.0,212.0,False,True,False,False,False,True,False,True,False,False
+24,departamento,venta,118534.31,Loja,Loja,3,2,0,95.6,74.0,False,True,True,False,False,False,False,False,True,False
+25,departamento,alquiler,105.71,Quito,Pichincha,2,2,0,192.7,178.2,False,False,False,False,False,True,False,False,True,True
+26,terreno,venta,10000.0,Loja,Loja,0,0,1,1006.2,0.0,False,False,False,False,False,False,False,False,False,False
+27,terreno,alquiler,193.05,Loja,Loja,0,0,1,120.3,0.0,False,False,False,False,False,False,False,True,False,False
+28,local_comercial,venta,80041.43,Cuenca,Azuay,0,1,1,214.6,158.7,False,True,True,False,False,False,False,False,False,False
+29,departamento,alquiler,696.35,Ambato,Tungurahua,1,1,0,178.2,143.0,False,False,True,True,True,True,False,True,False,True
+30,local_comercial,alquiler,532.15,Guayaquil,Guayas,0,1,0,93.4,91.5,False,True,False,True,True,False,False,False,False,False
+31,terreno,venta,37191.8,Cuenca,Azuay,0,0,0,533.7,0.0,False,False,False,False,False,False,False,False,False,False
+32,casa,alquiler,1643.66,Santo Domingo,Santo_Domingo,4,2,2,79.4,62.7,False,True,False,True,False,False,True,True,False,False
+33,casa,venta,97974.77,Guayaquil,Guayas,4,2,0,94.4,79.9,False,True,False,False,False,False,True,True,False,False
+34,casa,alquiler,734.56,Quito,Pichincha,2,2,0,123.6,117.0,False,False,False,False,False,True,False,False,False,False
+35,terreno,venta,46993.93,Quito,Pichincha,0,0,0,50.0,0.0,False,True,False,False,False,True,False,False,True,False
+36,casa,venta,89901.57,Loja,Loja,4,3,0,215.8,166.3,False,True,False,False,False,False,True,False,False,False
+37,terreno,alquiler,290.64,Cuenca,Azuay,0,0,0,476.4,0.0,False,True,False,False,False,False,False,False,False,False
+38,departamento,venta,75552.55,Guayaquil,Guayas,3,1,3,127.4,106.9,False,False,False,False,False,False,False,True,False,False
+39,casa,alquiler,741.47,Quito,Pichincha,3,2,2,163.9,140.0,False,True,False,True,False,False,True,False,False,False
+40,casa,venta,128529.71,Guayaquil,Guayas,4,2,1,44.2,30.0,True,True,False,False,True,False,False,False,False,False
+41,departamento,venta,80516.5,Cuenca,Azuay,2,1,1,176.3,166.9,False,False,True,False,False,False,False,False,True,False
+42,casa,venta,108506.02,Guayaquil,Guayas,4,3,0,86.9,70.9,True,True,False,True,False,False,False,False,False,False
+43,suite,alquiler,297.73,Quito,Pichincha,1,1,0,127.7,123.6,False,True,False,False,True,True,False,False,True,False
+44,departamento,venta,39674.15,Guayaquil,Guayas,2,1,0,154.2,104.7,False,True,False,False,True,True,False,False,True,True
+45,suite,venta,44509.59,Quito,Pichincha,1,1,0,170.9,162.8,False,False,False,False,False,False,False,False,False,True
+46,casa,venta,36511.04,Quito,Pichincha,4,1,3,84.5,71.0,False,True,False,False,False,False,True,False,False,True
+47,departamento,venta,139657.19,Quito,Pichincha,3,1,2,134.5,94.9,False,True,True,False,True,False,False,False,True,False
+48,casa,alquiler,796.81,Quito,Pichincha,4,3,1,196.8,180.9,False,False,False,False,True,True,False,True,False,False
+49,departamento,venta,46518.03,Santo Domingo,Santo_Domingo,4,2,0,179.1,131.1,False,True,True,False,True,False,False,False,False,True
+50,terreno,alquiler,60.0,Guayaquil,Guayas,0,0,0,479.9,0.0,False,False,False,False,False,False,False,False,False,False
+51,casa,alquiler,965.01,Guayaquil,Guayas,3,3,1,261.7,183.7,False,False,False,False,False,True,False,False,False,False
+52,suite,alquiler,465.49,Quito,Pichincha,1,1,0,245.0,173.2,True,False,True,False,True,False,False,False,True,False
+53,terreno,alquiler,280.06,Guayaquil,Guayas,0,0,1,866.9,0.0,False,True,False,True,False,False,False,False,False,False
+54,departamento,alquiler,147.27,Cuenca,Azuay,1,1,0,176.9,167.6,False,True,True,False,True,True,False,False,True,False
+55,finca,venta,258745.79,Santo Domingo,Santo_Domingo,2,1,1,7024.5,110.2,False,True,False,False,False,False,True,True,False,False
+56,casa,alquiler,834.72,Loja,Loja,3,1,4,180.7,167.8,False,True,False,False,False,False,True,False,False,True
+57,casa,venta,172426.55,Guayaquil,Guayas,4,2,0,77.2,69.5,False,True,False,False,False,False,False,False,False,False
+58,local_comercial,alquiler,538.01,Santo Domingo,Santo_Domingo,0,1,1,202.8,150.4,False,False,False,False,False,False,True,False,False,False
+59,terreno,venta,44777.48,Ambato,Tungurahua,0,0,1,613.9,0.0,False,True,False,False,False,True,False,False,False,False
+60,casa,alquiler,664.09,Manta,Manabi,3,2,0,168.5,130.5,False,False,True,False,False,False,False,True,False,True
+61,casa,alquiler,553.44,Guayaquil,Guayas,5,1,2,32.5,30.0,False,False,False,True,False,False,True,False,False,False
+62,departamento,alquiler,611.62,Quito,Pichincha,2,1,1,81.1,79.9,False,False,False,False,False,True,False,False,False,False
+63,casa,alquiler,1094.76,Quito,Pichincha,3,1,0,124.3,117.0,False,False,False,False,True,False,True,False,False,False
+64,casa,venta,40804.86,Guayaquil,Guayas,4,2,0,202.2,145.5,True,False,False,True,False,True,False,False,False,False
+65,casa,venta,106540.69,Guayaquil,Guayas,3,2,0,81.1,76.1,False,False,False,True,True,True,False,False,True,False
+66,departamento,alquiler,611.13,Santo Domingo,Santo_Domingo,3,2,0,91.4,87.9,False,False,False,False,False,False,False,True,True,True
+67,local_comercial,alquiler,292.42,Quito,Pichincha,0,1,0,196.2,157.1,False,False,False,False,False,False,False,False,True,True
+68,departamento,alquiler,653.28,Ambato,Tungurahua,2,2,0,69.5,46.5,True,False,False,False,False,False,False,False,True,False
+69,local_comercial,alquiler,188.55,Quito,Pichincha,0,1,0,177.6,166.6,False,False,False,False,False,True,False,False,False,False
+70,departamento,venta,64126.77,Guayaquil,Guayas,1,1,0,262.9,189.6,False,False,False,False,True,True,False,False,False,False
+71,departamento,venta,100412.37,Santo Domingo,Santo_Domingo,3,2,2,160.8,114.6,False,False,True,False,True,True,False,False,True,True
+72,departamento,venta,102489.83,Quito,Pichincha,2,2,0,37.3,30.0,False,True,True,False,False,True,False,False,True,False
+73,local_comercial,alquiler,532.59,Quito,Pichincha,0,1,1,228.5,177.8,True,False,False,False,False,False,False,False,False,False
+74,oficina,alquiler,406.14,Guayaquil,Guayas,0,1,0,282.2,206.1,False,False,False,False,False,False,False,False,False,True
+75,casa,venta,199725.25,Guayaquil,Guayas,2,2,0,33.6,30.0,False,True,False,False,False,False,False,False,False,False
+76,casa,venta,192269.23,Guayaquil,Guayas,2,2,0,226.0,163.5,False,False,False,True,True,True,False,False,False,False
+77,finca,venta,44563.45,Guayaquil,Guayas,2,1,1,1689.2,214.4,False,False,False,False,False,True,True,False,False,False
+78,departamento,alquiler,700.56,Quito,Pichincha,3,1,0,112.3,85.3,False,False,False,False,True,True,False,False,False,False
+79,casa,venta,123184.42,Santo Domingo,Santo_Domingo,3,3,1,104.4,79.6,False,True,False,False,False,False,True,True,False,False
+80,departamento,venta,83369.82,Cuenca,Azuay,1,1,0,297.1,220.7,False,True,True,False,False,True,False,True,False,True
+81,casa,venta,92320.59,Guayaquil,Guayas,2,2,0,105.0,82.7,False,False,False,False,False,False,False,False,False,False
+82,casa,alquiler,930.41,Cuenca,Azuay,3,2,3,136.5,130.2,False,False,False,False,False,False,True,False,False,False
+83,departamento,alquiler,195.53,Quito,Pichincha,2,1,0,165.4,162.5,False,True,True,True,False,False,False,False,True,False
+84,local_comercial,alquiler,769.61,Guayaquil,Guayas,0,1,0,216.6,147.8,False,False,False,False,False,False,False,False,True,False
+85,suite,alquiler,460.31,Guayaquil,Guayas,1,1,0,220.4,169.1,False,True,False,False,True,True,False,True,True,False
+86,finca,venta,10000.0,Guayaquil,Guayas,3,2,0,2620.2,243.2,False,True,False,False,False,True,False,True,False,False
+87,casa,venta,55875.07,Quito,Pichincha,3,2,0,181.2,120.9,False,False,False,False,False,False,True,False,False,False
+88,departamento,alquiler,318.83,Ambato,Tungurahua,2,1,1,110.5,87.2,False,True,True,False,False,False,False,True,False,False
+89,departamento,venta,86754.12,Quito,Pichincha,2,2,1,46.4,37.7,False,False,False,False,True,False,False,False,False,True
+90,suite,alquiler,136.37,Cuenca,Azuay,2,1,1,131.1,121.9,False,False,False,True,True,False,False,True,True,False
+91,casa,alquiler,493.97,Guayaquil,Guayas,2,2,1,216.4,191.1,True,True,False,False,False,False,True,False,False,False
+92,departamento,alquiler,579.41,Quito,Pichincha,1,1,1,159.3,123.4,False,False,False,False,True,False,False,False,True,False
+93,casa,venta,133429.61,Quito,Pichincha,3,2,3,245.5,171.6,False,False,False,False,False,False,False,False,False,False
+94,casa,alquiler,545.08,Quito,Pichincha,3,2,1,265.5,194.3,False,False,False,False,False,False,False,False,False,False
+95,casa,alquiler,726.38,Santo Domingo,Santo_Domingo,3,2,0,108.8,85.2,False,False,False,False,False,False,True,False,True,False
+96,finca,venta,227086.27,Guayaquil,Guayas,2,1,0,2548.4,50.0,False,False,False,False,False,False,True,False,False,False
+97,departamento,alquiler,472.76,Guayaquil,Guayas,1,1,1,303.6,233.2,False,False,True,False,False,True,False,False,False,False
+98,departamento,venta,49702.18,Quito,Pichincha,2,2,0,52.1,38.1,False,False,False,False,False,False,False,False,False,False
+99,departamento,venta,79226.59,Quito,Pichincha,1,1,0,125.5,111.1,False,False,False,False,False,False,False,True,True,False
+100,departamento,alquiler,513.86,Santo Domingo,Santo_Domingo,1,1,0,113.7,85.6,False,True,True,False,True,True,False,False,True,False
+101,terreno,venta,10000.0,Quito,Pichincha,0,0,2,865.2,0.0,False,False,True,False,False,False,False,True,False,False
+102,suite,venta,64328.6,Quito,Pichincha,1,1,1,200.7,189.9,False,True,True,False,False,False,False,False,False,True
+103,casa,venta,141827.99,Guayaquil,Guayas,4,1,0,78.7,59.4,False,True,False,False,False,True,False,True,False,False
+104,terreno,venta,30988.16,Guayaquil,Guayas,0,0,1,753.4,0.0,False,False,False,True,True,False,False,False,False,True
+105,departamento,alquiler,470.39,Santo Domingo,Santo_Domingo,1,1,1,103.0,79.9,False,False,True,False,False,True,False,False,True,False
+106,oficina,venta,36121.94,Quito,Pichincha,0,1,0,254.0,243.8,False,False,False,False,False,False,False,False,False,False
+107,casa,venta,66623.35,Quito,Pichincha,4,2,0,102.5,71.7,False,False,False,False,False,False,False,False,False,False
+108,casa,alquiler,898.93,Santo Domingo,Santo_Domingo,3,2,0,118.2,96.5,False,False,False,False,False,False,False,False,False,False
+109,suite,venta,36551.8,Quito,Pichincha,1,1,1,118.1,89.4,False,False,True,False,True,True,False,False,False,False
+110,casa,alquiler,953.26,Manta,Manabi,2,2,0,43.0,30.0,False,False,False,True,False,True,False,False,False,False
+111,local_comercial,alquiler,60.0,Santo Domingo,Santo_Domingo,0,1,0,262.0,185.2,False,False,False,False,False,True,False,True,False,False
+112,casa,alquiler,848.49,Quito,Pichincha,4,2,1,145.2,132.9,False,True,False,True,False,False,False,False,True,False
+113,casa,alquiler,915.98,Manta,Manabi,5,1,0,95.8,78.7,False,False,False,False,False,False,False,False,False,False
+114,departamento,alquiler,472.18,Guayaquil,Guayas,2,1,0,292.0,221.7,False,True,True,False,True,True,False,False,True,False
+115,departamento,venta,68851.95,Quito,Pichincha,2,2,0,109.7,85.3,False,True,False,False,True,False,False,False,False,False
+116,suite,venta,40831.86,Loja,Loja,1,1,0,43.6,30.0,False,False,True,False,False,False,True,False,True,False
+117,departamento,venta,50031.18,Cuenca,Azuay,1,1,1,122.9,101.6,False,True,True,False,False,False,False,False,False,True
+118,departamento,alquiler,460.5,Ambato,Tungurahua,1,1,1,101.1,81.3,False,True,True,False,True,False,False,False,False,False
+119,casa,venta,146403.42,Santo Domingo,Santo_Domingo,3,1,0,101.2,78.4,False,False,False,False,False,True,True,True,False,False
+120,casa,alquiler,551.35,Cuenca,Azuay,3,1,2,95.8,71.6,False,False,False,False,False,False,True,False,True,False
+121,casa,venta,29810.93,Guayaquil,Guayas,3,2,1,193.1,133.7,False,False,False,False,False,False,True,False,False,False
+122,terreno,venta,13414.95,Ambato,Tungurahua,0,0,1,338.0,0.0,False,True,False,False,False,False,False,False,False,False
+123,departamento,alquiler,648.17,Loja,Loja,4,1,1,179.4,149.8,True,False,False,False,False,False,False,False,False,True
+124,terreno,alquiler,296.57,Quito,Pichincha,0,0,0,591.2,0.0,False,False,False,False,False,False,False,False,False,False
+125,local_comercial,venta,110844.9,Loja,Loja,0,1,1,168.7,153.3,False,False,False,False,False,True,False,False,False,False
+126,departamento,alquiler,466.12,Cuenca,Azuay,1,1,2,86.5,61.7,False,True,False,True,False,False,False,False,True,False
+127,terreno,alquiler,60.0,Santo Domingo,Santo_Domingo,0,0,1,775.4,0.0,False,True,False,True,False,False,False,False,False,False
+128,finca,venta,215972.47,Guayaquil,Guayas,3,1,0,6977.7,275.0,True,True,False,False,False,False,False,False,False,False
+129,departamento,alquiler,460.79,Quito,Pichincha,2,2,1,44.1,41.5,False,False,True,False,False,True,False,False,False,False
+130,departamento,alquiler,445.4,Quito,Pichincha,1,1,0,125.4,95.4,False,False,True,True,False,True,False,False,True,False
+131,casa,venta,106351.23,Santo Domingo,Santo_Domingo,2,2,1,104.9,90.7,False,False,False,False,False,False,True,False,False,False
+132,casa,alquiler,777.45,Quito,Pichincha,3,1,1,193.2,183.5,False,False,True,False,False,False,True,False,False,False
+133,terreno,alquiler,180.5,Guayaquil,Guayas,0,0,0,744.8,0.0,False,False,False,False,False,False,False,True,False,False
+134,suite,alquiler,353.08,Guayaquil,Guayas,1,1,0,36.2,35.2,False,False,True,False,True,True,False,True,True,False
+135,departamento,venta,74422.19,Guayaquil,Guayas,2,1,0,204.6,152.8,False,False,False,False,False,True,True,False,False,True
+136,casa,alquiler,71.53,Quito,Pichincha,3,2,0,57.8,38.9,False,True,False,False,False,False,True,False,True,False
+137,departamento,venta,75626.59,Santo Domingo,Santo_Domingo,2,1,0,91.1,83.0,False,False,False,False,True,False,False,False,False,False
+138,local_comercial,venta,103202.6,Quito,Pichincha,0,1,0,80.9,54.7,False,True,False,False,True,False,False,False,False,False
+139,casa,venta,112208.93,Guayaquil,Guayas,3,2,2,36.6,30.0,False,True,False,False,True,False,False,False,False,False
+140,departamento,venta,88865.18,Santo Domingo,Santo_Domingo,3,2,1,185.6,133.9,False,True,True,False,False,True,False,True,True,False
+141,departamento,venta,38906.02,Quito,Pichincha,1,1,1,108.8,74.5,False,True,False,False,False,False,False,False,False,False
+142,departamento,alquiler,168.06,Guayaquil,Guayas,1,1,0,30.6,30.0,True,True,False,False,False,False,False,False,False,False
+143,departamento,alquiler,455.86,Manta,Manabi,2,2,0,140.2,112.3,False,False,True,False,False,True,False,True,False,False
+144,terreno,venta,77778.87,Ambato,Tungurahua,0,0,0,911.1,0.0,False,True,False,False,False,False,True,True,False,True
+145,departamento,alquiler,583.31,Quito,Pichincha,1,1,1,58.2,58.2,False,False,True,False,False,False,False,False,True,False
+146,departamento,alquiler,315.17,Manta,Manabi,3,1,1,107.0,84.1,False,True,False,False,False,True,False,False,True,False
+147,departamento,venta,81857.3,Guayaquil,Guayas,3,2,3,227.7,169.0,False,False,True,False,True,True,False,False,False,False
+148,departamento,alquiler,436.64,Quito,Pichincha,1,1,0,130.1,116.4,False,False,False,False,True,False,False,False,True,False
+149,departamento,alquiler,531.86,Quito,Pichincha,2,1,0,216.0,161.6,False,True,False,False,False,False,True,False,True,False
+150,casa,alquiler,602.4,Guayaquil,Guayas,4,2,0,109.8,78.9,False,False,False,False,True,False,False,False,False,False

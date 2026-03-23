@@ -985,7 +985,7 @@ export const actualizarEstadoPropiedad = async (req, res) => {
     const { nuevoEstado } = req.body;
     const usuario = req.usuario;
 
-    // 🔒 BLINDAJE: Solo permitir estados administrativos.
+    // BLINDAJE: Solo permitir estados administrativos.
     // 'vendida', 'reservada', 'arrendada' se gestionan EXCLUSIVAMENTE vía Negociación.
     const estadosPermitidos = ['disponible', 'inactiva'];
 
@@ -1400,43 +1400,39 @@ const calcularDistancia = (propiedad1, propiedad2) => {
     return distancia;
 };
 
-// Función para obtener recomendaciones usando algoritmo KNN con Python/scikit-learn
+// Función para obtener recomendaciones con Python
 export const obtenerRecomendaciones = async (req, res) => {
     try {
         const usuario = req.usuario;
         const limit = req.query.limit ? parseInt(req.query.limit) : 6;
-        const k = req.query.k ? parseInt(req.query.k) : 3; // k=3 por defecto
 
-        // Obtener favoritos del usuario
+        // 1. Obtener favoritos del usuario
         const favoritos = await prisma.favorito.findMany({
             where: { usuarioId: usuario.id },
             include: {
-                propiedad: {
-                    include: { imagenes: true }
-                }
+                propiedad: { include: { imagenes: true } }
             }
         });
 
-        if (favoritos.length === 0) {
+        // 2. Obtener todas las interacciones del usuario (VISTA, FAVORITO, CONTACTO)
+        const interacciones = await prisma.interaccionUsuario.findMany({
+            where: { usuarioId: usuario.id }
+        });
+
+        const tieneInteracciones = interacciones.length > 0 || favoritos.length > 0;
+        if (!tieneInteracciones) {
             return res.status(200).json({
                 recomendaciones: [],
                 mensaje: "Aún no podemos recomendarte propiedades. Guarda algunas favoritas primero",
                 tieneFavoritos: false,
-                algoritmo: "KNN (scikit-learn)"
+                algoritmo: "SVD (Basado en Contenido)"
             });
         }
 
-        // Obtener todas las propiedades disponibles
+        // 3. Obtener todas las propiedades disponibles
         const todasLasPropiedades = await prisma.propiedad.findMany({
-            where: {
-                estado_publicacion: 'disponible'
-            },
-            include: {
-                imagenes: {
-                    take: 1,
-                    select: { url: true }
-                }
-            }
+            where: { estado_publicacion: 'disponible' },
+            include: { imagenes: { take: 1, select: { url: true } } }
         });
 
         if (todasLasPropiedades.length === 0) {
@@ -1444,95 +1440,101 @@ export const obtenerRecomendaciones = async (req, res) => {
                 recomendaciones: [],
                 mensaje: "No hay propiedades disponibles para recomendarte",
                 tieneFavoritos: true,
-                algoritmo: "KNN (scikit-learn)"
+                algoritmo: "SVD (Basado en Contenido)"
             });
         }
 
-        // Preparar datos para el servicio Python
-        const favoritosData = favoritos.map(fav => ({
-            id: fav.propiedad.id,
-            precio: fav.propiedad.precio,
-            tipo_propiedad: fav.propiedad.tipo_propiedad,
-            ciudad: fav.propiedad.ciudad,
-            nro_habitaciones: fav.propiedad.nro_habitaciones,
-            nro_banos: fav.propiedad.nro_banos,
-            area_construccion: fav.propiedad.area_construccion,
-            area_terreno: fav.propiedad.area_terreno,
-            nro_parqueaderos: fav.propiedad.nro_parqueaderos
+        // 4. Consolidar pesos por propiedad (suma de VISTA+FAVORITO+CONTACTO)
+        const pesosPorPropiedad = {};
+        interacciones.forEach(inter => {
+            const pid = inter.propiedadId;
+            pesosPorPropiedad[pid] = (pesosPorPropiedad[pid] || 0) + inter.valor_peso;
+        });
+        // Incluir favoritos que aún no estén registrados en interacciones
+        favoritos.forEach(fav => {
+            if (!pesosPorPropiedad[fav.propiedadId]) {
+                pesosPorPropiedad[fav.propiedadId] = 5;
+            }
+        });
+        const interaccionesConsolidadas = Object.entries(pesosPorPropiedad).map(([propiedadId, peso_total]) => ({
+            propiedadId: parseInt(propiedadId),
+            peso_total
         }));
 
+        // 5. Preparar features ricas de propiedades para el SVD
         const propiedadesDisponiblesData = todasLasPropiedades.map(prop => ({
             id: prop.id,
-            precio: prop.precio,
+            precio: parseFloat(prop.precio),
             tipo_propiedad: prop.tipo_propiedad,
+            transaccion: prop.transaccion,
             ciudad: prop.ciudad,
-            nro_habitaciones: prop.nro_habitaciones,
-            nro_banos: prop.nro_banos,
-            area_construccion: prop.area_construccion,
-            area_terreno: prop.area_terreno,
-            nro_parqueaderos: prop.nro_parqueaderos
+            provincia: prop.provincia,
+            nro_habitaciones: prop.nro_habitaciones || 0,
+            nro_banos: prop.nro_banos || 0,
+            nro_parqueaderos: prop.nro_parqueaderos || 0,
+            area_construccion: parseFloat(prop.area_construccion || 0),
+            area_terreno: parseFloat(prop.area_terreno || 0),
+            tiene_balcon: prop.tiene_balcon,
+            tiene_terraza: prop.tiene_terraza,
+            tiene_patio: prop.tiene_patio,
+            tiene_piscina: prop.tiene_piscina,
+            tiene_bodega: prop.tiene_bodega,
+            tiene_area_bbq: prop.tiene_area_bbq,
+            tiene_ascensor: prop.tiene_ascensor,
+            tiene_seguridad: prop.tiene_seguridad,
+            tiene_areas_comunales: prop.tiene_areas_comunales,
+            amoblado: prop.amoblado
         }));
 
-        // Llamar al servicio Python
+        // 6. Llamar al servicio Python con el modelo SVD
         const pythonServiceUrl = process.env.PYTHON_SERVICE_URL || 'http://localhost:5001';
 
         try {
             const response = await axios.post(`${pythonServiceUrl}/recomendaciones`, {
-                favoritos: favoritosData,
+                usuario_id: usuario.id,
+                interacciones: interaccionesConsolidadas,
                 propiedades_disponibles: propiedadesDisponiblesData,
-                k: k,
                 limit: limit
             }, {
-                timeout: 10000, // 10 segundos timeout
-                headers: {
-                    'Content-Type': 'application/json'
-                }
+                timeout: 15000,
+                headers: { 'Content-Type': 'application/json' }
             });
 
-            // El servicio Python devuelve IDs de propiedades recomendadas
-            const recomendacionesIds = response.data.recomendaciones.map(rec => rec.id_original);
+            // Python devuelve lista de IDs ordenados por score
+            const recomendacionesIds = response.data.recomendaciones.map(rec => rec.id);
 
-            // Obtener datos completos de las propiedades recomendadas
-            const recomendacionesCompletas = todasLasPropiedades.filter(prop =>
-                recomendacionesIds.includes(prop.id)
-            );
-
-            // Ordenar según el orden de recomendaciones del Python
+            // Recuperar objetos completos manteniendo el orden del ranking
             const recomendacionesOrdenadas = [];
             recomendacionesIds.forEach(id => {
-                const prop = recomendacionesCompletas.find(p => p.id === id);
-                if (prop) {
-                    recomendacionesOrdenadas.push(prop);
-                }
+                const prop = todasLasPropiedades.find(p => p.id === id);
+                if (prop) recomendacionesOrdenadas.push(prop);
             });
 
             return res.status(200).json({
                 recomendaciones: recomendacionesOrdenadas,
                 mensaje: response.data.mensaje,
-                tieneFavoritos: response.data.tieneFavoritos,
-                totalFavoritos: response.data.totalFavoritos,
+                tieneFavoritos: true,
+                totalFavoritos: favoritos.length,
                 algoritmo: response.data.algoritmo,
-                k: response.data.k,
                 metricas: response.data.metricas
             });
 
         } catch (pythonError) {
             console.error('Error al comunicarse con servicio Python:', pythonError.message);
-
-            // Fallback al algoritmo JavaScript si Python falla
-            console.log('🔄 Usando algoritmo JavaScript como fallback...');
-            return await obtenerRecomendacionesFallback(req, res, favoritos, todasLasPropiedades, k, limit);
+            console.log('Usando algoritmo JavaScript como fallback...');
+            return await obtenerRecomendacionesFallback(req, res, favoritos, todasLasPropiedades, 3, limit);
         }
 
     } catch (error) {
-        console.error('Error en algoritmo KNN:', error);
+        console.error('Error en recomendaciones:', error);
         return res.status(500).json({
             mensaje: 'Error al obtener recomendaciones',
             error: error.message,
-            algoritmo: "KNN (scikit-learn)"
+            algoritmo: "SVD (Basado en Contenido)"
         });
     }
 };
+
 
 // Función fallback usando algoritmo JavaScript
 const obtenerRecomendacionesFallback = async (req, res, favoritos, todasLasPropiedades, k, limit) => {

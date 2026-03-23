@@ -1,0 +1,31 @@
+﻿=======================================================
+  EVALUACIËN DE M╔TRICAS ù SISTEMA DE RECOMENDACIONES
+=======================================================
+
+[1] 4505 interacciones cargadas
+[2] Modelo SVD cargado (15 factores latentes)
+python : Traceback (most recent call last):
+At line:1 char:1
++ python evaluate_metrics.py 2>&1 | Out-File -Encoding utf8 -FilePath " ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Traceback (most recent call last 
+   )::String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+  File "C:\Users\Usuario\Documents\Mis Documentos\3. Universidad\Semestres\inm
+obiliaria-app\backend\python_service\evaluate_metrics.py", line 299, in 
+<module>
+    evaluate()
+    ~~~~~~~~^^
+  File "C:\Users\Usuario\Documents\Mis Documentos\3. Universidad\Semestres\inm
+obiliaria-app\backend\python_service\evaluate_metrics.py", line 146, in 
+evaluate
+    print(f"[3] Split 80/20 \u2192 Entrenamiento: {len(train_df)} | Prueba: 
+{len(test_df)}")
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^
+  File "C:\Python313\Lib\encodings\cp1252.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode character '\u2192' in 
+position 16: character maps to <undefined>

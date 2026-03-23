@@ -215,7 +215,7 @@ export default function Recomendaciones({ favoritos, onFavoritoToggle }) {
                             Recomendaciones para ti
                         </h2>
                         <p className="text-gray-600 text-lg max-w-2xl mx-auto">
-                            Analizando tus favoritos con algoritmo KNN...
+                            Analizando tu perfil con nuestro modelo de IA...
                         </p>
                     </div>
                     <div className="flex justify-center items-center py-20">
@@ -241,7 +241,7 @@ export default function Recomendaciones({ favoritos, onFavoritoToggle }) {
                             Recomendaciones personalizadas
                         </h2>
                         <p className="text-gray-600 text-lg max-w-2xl mx-auto mb-6">
-                            <span className="font-semibold text-orange-600">Guarda algunas propiedades como favoritas</span> y
+                            <span className="font-semibold text-orange-600">Interactúa con propiedades (vistas, favoritos, contacto)</span> y
                             nuestro algoritmo te mostrará inmuebles que te podrían interesar.
                         </p>
 
@@ -323,7 +323,7 @@ export default function Recomendaciones({ favoritos, onFavoritoToggle }) {
                         Recomendaciones para ti
                     </h2>
                     <p className="text-gray-600 text-lg max-w-2xl mx-auto">
-                        Basado en tus propiedades favoritas, creemos que estas opciones te pueden interesar
+                        Basado en tu historial de interacciones y propiedades favoritas, creemos que estas opciones te pueden interesar
                     </p>
                 </div>
 
