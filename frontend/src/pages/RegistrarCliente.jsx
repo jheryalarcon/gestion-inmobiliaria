@@ -29,6 +29,7 @@ export default function RegistrarCliente() {
 
     const [errores, setErrores] = useState({});
     const [loading, setLoading] = useState(true);
+    const [guardando, setGuardando] = useState(false);
     const cancelarRef = useRef(null);
 
     const initialDatos = {
@@ -173,23 +174,26 @@ export default function RegistrarCliente() {
                 }
             }
 
-            // Validación de teléfono (Permitir + y espacios)
+            // Validación de teléfono: formato ecuatoriano 10 dígitos
             if (name === 'telefono' && value.trim() !== '') {
-                const telefonoRegex = /^[\d\s\-\+\(\)]+$/;
-                if (!telefonoRegex.test(value)) {
-                    nuevos.telefono = 'Formato de teléfono inválido (solo números, espacios, +, -)';
+                const soloDigitos = value.replace(/\s/g, '');
+                const telefonoRegex = /^(09\d{8}|0[2-7]\d{7})$/;
+                if (!/^[\d\s]+$/.test(value)) {
+                    nuevos.telefono = 'El teléfono solo debe contener números';
+                } else if (!telefonoRegex.test(soloDigitos)) {
+                    nuevos.telefono = 'Ingresa un número ecuatoriano válido de 10 dígitos (ej: 0991234567)';
                 } else {
                     delete nuevos.telefono;
                 }
             }
 
-            // Validación de Cédula/RUC (Solo números y max 13)
+            // Validación de Cédula: exactamente 10 dígitos (Ecuador)
             if (name === 'cedula' && value.trim() !== '') {
                 const cedulaRegex = /^\d+$/;
                 if (!cedulaRegex.test(value)) {
-                    nuevos.cedula = 'La cédula/RUC debe contener solo números';
-                } else if (value.length > 13) {
-                    nuevos.cedula = 'La cédula/RUC no debe superar los 13 dígitos';
+                    nuevos.cedula = 'La cédula debe contener solo números';
+                } else if (value.length !== 10) {
+                    nuevos.cedula = 'La cédula debe tener exactamente 10 dígitos';
                 } else {
                     delete nuevos.cedula;
                 }
@@ -222,15 +226,19 @@ export default function RegistrarCliente() {
         // Validación de Cédula
         if (datos.cedula.trim()) {
             if (!/^\d+$/.test(datos.cedula)) {
-                nuevosErrores.cedula = 'La cédula/RUC debe contener solo números';
-            } else if (datos.cedula.length > 13) {
-                nuevosErrores.cedula = 'Máximo 13 dígitos';
+                nuevosErrores.cedula = 'La cédula debe contener solo números';
+            } else if (datos.cedula.length !== 10) {
+                nuevosErrores.cedula = 'La cédula debe tener exactamente 10 dígitos';
             }
         }
 
-        // Validación de teléfono
-        if (datos.telefono.trim() && !/^[\d\s\-\+\(\)]+$/.test(datos.telefono)) {
-            nuevosErrores.telefono = 'Formato de teléfono inválido';
+        // Validación de teléfono: formato ecuatoriano 10 dígitos
+        if (datos.telefono.trim()) {
+            const soloDigitos = datos.telefono.replace(/\s/g, '');
+            const telefonoRegex = /^(09\d{8}|0[2-7]\d{7})$/;
+            if (!telefonoRegex.test(soloDigitos)) {
+                nuevosErrores.telefono = 'Ingresa un número ecuatoriano válido de 10 dígitos (ej: 0991234567)';
+            }
         }
 
         if (usuario?.rol === 'admin' && !datos.agenteId) {
@@ -272,30 +280,66 @@ export default function RegistrarCliente() {
     const handleSubmit = async (e) => {
         e.preventDefault();
         setErrores({});
-        const nuevosErrores = validarFormulario();
+        setGuardando(true);
 
-        if (Object.keys(nuevosErrores).length > 0) {
-            setErrores(nuevosErrores);
+        // 1. Validación local (campos obligatorios, formatos)
+        const erroresLocales = validarFormulario();
+
+        // 2. Verificaciones asíncronas de duplicados (en paralelo)
+        const token = localStorage.getItem('token');
+        const baseUrl = import.meta.env.VITE_BACKEND_URL;
+        const headers = { Authorization: `Bearer ${token}` };
+
+        const checks = [];
+
+        // Solo verificar email si tiene formato válido
+        const emailRegex = /^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$/;
+        if (datos.email?.trim() && emailRegex.test(datos.email.trim())) {
+            checks.push(
+                fetch(`${baseUrl}/api/clientes/verificar/email?email=${encodeURIComponent(datos.email.trim())}`, { headers })
+                    .then(r => r.json())
+                    .then(d => !d.disponible ? { campo: 'email', mensaje: d.mensaje } : null)
+                    .catch(() => null)
+            );
+        }
+
+        // Solo verificar cédula si tiene 10–13 dígitos
+        if (datos.cedula?.trim() && /^\d{10,13}$/.test(datos.cedula.trim())) {
+            checks.push(
+                fetch(`${baseUrl}/api/clientes/verificar/cedula?cedula=${encodeURIComponent(datos.cedula.trim())}`, { headers })
+                    .then(r => r.json())
+                    .then(d => !d.disponible ? { campo: 'cedula', mensaje: d.mensaje } : null)
+                    .catch(() => null)
+            );
+        }
+
+        const resultadosChecks = await Promise.all(checks);
+        const erroresBackendDuplicados = {};
+        resultadosChecks.forEach(r => {
+            if (r) erroresBackendDuplicados[r.campo] = r.mensaje;
+        });
+
+        // 3. Fusionar todos los errores
+        const todosLosErrores = { ...erroresLocales, ...erroresBackendDuplicados };
+
+        if (Object.keys(todosLosErrores).length > 0) {
+            setErrores(todosLosErrores);
+            setGuardando(false);
             toast.error('Por favor, corrige los errores en el formulario.', {
                 duration: 3000,
-                id: 'errores-validacion' // Evita duplicados
+                id: 'errores-validacion'
             });
 
-            // Scroll al primer error
+            // Scroll al primer campo con error
             setTimeout(() => {
-                const primerCampoConError = Object.keys(nuevosErrores)[0];
-                if (primerCampoConError) {
-                    const selector = `[name="${primerCampoConError}"]`;
-                    // Intentar encontrar el input o el select
+                const primerCampo = Object.keys(todosLosErrores)[0];
+                if (primerCampo) {
+                    const selector = `[name="${primerCampo}"]`;
                     const elemento = document.querySelector(selector) ||
                         document.querySelector(`${selector} select`) ||
                         document.querySelector(`${selector} input`);
-
                     if (elemento) {
-                        elemento.scrollIntoView({
-                            behavior: 'smooth',
-                            block: 'center'
-                        });
+                        elemento.scrollIntoView({ behavior: 'smooth', block: 'center' });
                         elemento.focus();
                     }
                 }
@@ -304,7 +348,6 @@ export default function RegistrarCliente() {
         }
 
         try {
-            const token = localStorage.getItem('token');
             const datosEnviar = { ...datos };
 
             // Solo enviar agenteId si es admin y está seleccionado
@@ -425,16 +468,12 @@ export default function RegistrarCliente() {
                     const primerCampoConError = Object.keys(nuevosErrores)[0];
                     if (primerCampoConError) {
                         const selector = `[name="${primerCampoConError}"]`;
-                        // Intentar encontrar el input o el select o el div contenedor si es necesario
                         const elemento = document.querySelector(selector) ||
                             document.querySelector(`${selector} select`) ||
                             document.querySelector(`${selector} input`);
 
                         if (elemento) {
-                            elemento.scrollIntoView({
-                                behavior: 'smooth',
-                                block: 'center'
-                            });
+                            elemento.scrollIntoView({ behavior: 'smooth', block: 'center' });
                             elemento.focus();
                         }
                     }
@@ -442,16 +481,14 @@ export default function RegistrarCliente() {
             } else {
                 toast.error(error.response?.data?.mensaje || 'Ocurrió un error al registrar el cliente.', { duration: 4000 });
             }
+            setGuardando(false);
         }
     };
 
     const hayCambios = () => {
-        // Compara datos actuales con los iniciales
-        for (const key in initialDatos) {
-            if (datos[key] !== initialDatos[key]) return true;
-        }
-        for (const key in initialDatos) {
-            if (datos[key] !== initialDatos[key]) return true;
+        const camposComparar = ['nombre', 'telefono', 'email', 'cedula', 'tipo_cliente', 'agenteId', 'observaciones'];
+        for (const key of camposComparar) {
+            if ((datos[key] ?? '') !== (initialDatos[key] ?? '')) return true;
         }
         // Verificar si hay documentos cargados
         for (const key in documentos) {
@@ -495,7 +532,7 @@ export default function RegistrarCliente() {
                 </div>
 
                 <div className="p-8">
-                    <form onSubmit={handleSubmit} className="space-y-8">
+                    <form onSubmit={handleSubmit} noValidate className="space-y-8">
                         {/* DATOS PERSONALES */}
                         <section>
                             <h3 className="text-lg font-bold text-gray-800 mb-5 flex items-center gap-2 border-b pb-2">
@@ -527,7 +564,7 @@ export default function RegistrarCliente() {
                                         <input
                                             type="text"
                                             name="cedula"
-                                            maxLength="13"
+                                            maxLength="10"
                                             value={datos.cedula}
                                             onChange={(e) => {
                                                 // Prevent entering non-numeric chars
@@ -635,7 +672,7 @@ export default function RegistrarCliente() {
                                         <div className="relative" ref={agentRef}>
                                             <input
                                                 type="text"
-                                                placeholder="Buscar agente..."
+                                                placeholder="Buscar agente por nombre o correo..."
                                                 value={getAgenteInputValue()}
                                                 onChange={(e) => {
                                                     setBusquedaAgente(e.target.value);
@@ -693,10 +730,13 @@ export default function RegistrarCliente() {
 
                         {/* DOCUMENTACIÓN (Modo Cliente) */}
                         <section className="bg-orange-50 rounded-xl p-6 border border-orange-100">
-                            <h3 className="text-lg font-bold text-orange-800 mb-4 flex items-center gap-2">
+                            <h3 className="text-lg font-bold text-orange-800 mb-1 flex items-center gap-2">
                                 <FileText className="w-5 h-5" />
                                 Documentación del Cliente
                             </h3>
+                            <p className="text-xs text-orange-600 mb-4">
+                                Formatos aceptados: <strong>PDF, JPG, PNG</strong> · Peso máximo por archivo: <strong>10 MB</strong>
+                            </p>
                             <div className="w-full">
                                 <DocumentManager
                                     documentos={documentos}

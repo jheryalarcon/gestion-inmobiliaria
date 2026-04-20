@@ -3,6 +3,8 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { uploadToCloudinary } from '../config/cloudinary.js';
+import cloudinary from '../config/cloudinary.js';
+
 
 const prisma = new PrismaClient();
 const __filename = fileURLToPath(import.meta.url);
@@ -201,14 +203,29 @@ export const descargarArchivo = async (req, res) => {
             });
         }
 
-        // Asegurar que la URL sea un attachment
-        let downloadUrl = archivo.url;
-        if (downloadUrl.includes('/upload/')) {
-            downloadUrl = downloadUrl.replace('/upload/', '/upload/fl_attachment/');
-        }
+        // Extraer el public_id del archivo desde la URL guardada
+        // Formato URL: https://res.cloudinary.com/<cloud>/image/upload/v<ver>/inmobiliaria/negociaciones/<id>.pdf
+        const url = archivo.url;
+        const parts = url.split('/');
+        const uploadIndex = parts.findIndex(p => p === 'upload');
 
-        // Redirigir a la URL de Cloudinary
-        res.redirect(downloadUrl);
+        // Determinar resource_type desde la URL (image, video, raw)
+        const resourceType = parts[uploadIndex - 1] || 'image';
+
+        // El public_id incluye la carpeta y el nombre sin extensión
+        const afterUpload = parts.slice(uploadIndex + 2).join('/'); // salta versión (v123456)
+        const publicId = afterUpload.replace(/\.[^/.]+$/, ''); // quita extensión
+
+        // Generar URL firmada con firma HMAC estándar (compatible con todos los planes)
+        const signedUrl = cloudinary.url(publicId, {
+            resource_type: resourceType,
+            type: 'upload',
+            sign_url: true,
+            attachment: archivo.nombre_archivo, // fuerza descarga con nombre correcto
+        });
+
+        // Redirigir al cliente a la URL firmada
+        res.redirect(signedUrl);
 
     } catch (error) {
         console.error('Error al descargar archivo:', error);
@@ -217,6 +234,10 @@ export const descargarArchivo = async (req, res) => {
         });
     }
 };
+
+
+
+
 
 // Obtener estadísticas de archivos por negociación
 export const obtenerEstadisticas = async (req, res) => {

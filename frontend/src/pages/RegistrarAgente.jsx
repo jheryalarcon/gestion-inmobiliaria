@@ -334,7 +334,7 @@ export default function RegistrarAgente() {
 
                                 {/* Cédula */}
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Cédula / DNI <span className="text-red-500">*</span></label>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Cédula<span className="text-red-500">*</span></label>
                                     <div className="relative">
                                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
                                             <CreditCard className="w-4 h-4" />

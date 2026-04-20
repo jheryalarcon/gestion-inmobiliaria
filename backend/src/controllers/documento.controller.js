@@ -1,19 +1,14 @@
 import prisma from '../prisma/client.js';
-import path from 'path';
-import fs from 'fs';
+import { uploadToCloudinary, deleteFromCloudinary, extractPublicId } from '../config/cloudinary.js';
 
 // --- DOCUMENTOS DE PROPIEDAD ---
 
 export const subirDocumentosPropiedad = async (req, res) => {
-    const { id } = req.params; // ID de la propiedad
+    const { id } = req.params;
     const { tipo, categoria } = req.body;
-    const archivos = req.files; // Array de archivos
-    console.log(`📂 Subiendo docs para Propiedad ID: ${id}`);
-    console.log(`   - Archivos: ${archivos ? archivos.length : 0}`);
-    console.log(`   - Tipo: ${tipo}, Categoria: ${categoria}`);
+    const archivos = req.files;
 
     if (!archivos || archivos.length === 0) {
-        console.warn('⚠️ No llegaron archivos en la request');
         return res.status(400).json({ mensaje: 'No se han subido archivos' });
     }
 
@@ -23,18 +18,32 @@ export const subirDocumentosPropiedad = async (req, res) => {
             return res.status(404).json({ mensaje: 'Propiedad no encontrada' });
         }
 
+        // Si es documento de comercialización, eliminar el tipo contrario para evitar acumulación
+        const tiposConflicto = {
+            'CONTRATO_EXCLUSIVIDAD': 'AUTORIZACION_VENTA',
+            'AUTORIZACION_VENTA': 'CONTRATO_EXCLUSIVIDAD'
+        };
+        if (tiposConflicto[tipo]) {
+            const docsConflictivos = await prisma.documentoPropiedad.findMany({
+                where: { propiedadId: parseInt(id), tipo: tiposConflicto[tipo] }
+            });
+            for (const doc of docsConflictivos) {
+                const publicId = doc.cloudinary_id || extractPublicId(doc.url);
+                if (publicId) await deleteFromCloudinary(publicId, 'raw').catch(() => {});
+                await prisma.documentoPropiedad.delete({ where: { id: doc.id } });
+            }
+        }
+
         const documentosCreados = [];
 
         for (const archivo of archivos) {
-            // En un entorno real, aquí subiríamos a S3/Cloudinary.
-            // Por ahora, asumimos que Multer ya lo guardó en disco y usamos esa ruta.
-            // La URL sería algo como '/uploads/{filename}'
-            const url = `/uploads/${archivo.filename}`;
-
+            // Subir a Cloudinary desde buffer en memoria
+            const result = await uploadToCloudinary(archivo.buffer, 'documentos/propiedades');
             const doc = await prisma.documentoPropiedad.create({
                 data: {
                     nombre: archivo.originalname,
-                    url: url,
+                    url: result.secure_url,
+                    cloudinary_id: result.public_id,
                     tipo: tipo || 'OTRO',
                     categoria: categoria || 'OTROS',
                     propiedadId: parseInt(id)
@@ -49,14 +58,13 @@ export const subirDocumentosPropiedad = async (req, res) => {
         });
 
     } catch (error) {
-        console.error(error);
+        console.error('Error subiendo documentos de propiedad:', error);
         res.status(500).json({ mensaje: 'Error al subir documentos', error: error.message });
     }
 };
 
 export const obtenerDocumentosPropiedad = async (req, res) => {
     const { id } = req.params;
-
     try {
         const documentos = await prisma.documentoPropiedad.findMany({
             where: { propiedadId: parseInt(id) },
@@ -70,20 +78,18 @@ export const obtenerDocumentosPropiedad = async (req, res) => {
 };
 
 export const eliminarDocumentoPropiedad = async (req, res) => {
-    const { id } = req.params; // ID del documento
-
+    const { id } = req.params;
     try {
         const documento = await prisma.documentoPropiedad.findUnique({ where: { id: parseInt(id) } });
         if (!documento) {
             return res.status(404).json({ mensaje: 'Documento no encontrado' });
         }
 
-        // Eliminar archivo físico (opcional, recomendado)
-        // const filePath = path.join(__dirname, '..', documento.url);
-        // if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+        // Eliminar de Cloudinary (intentar con cloudinary_id, luego extraer de URL)
+        const publicId = documento.cloudinary_id || extractPublicId(documento.url);
+        if (publicId) await deleteFromCloudinary(publicId, 'raw').catch(() => {});
 
         await prisma.documentoPropiedad.delete({ where: { id: parseInt(id) } });
-
         res.json({ mensaje: 'Documento eliminado correctamente' });
     } catch (error) {
         console.error(error);
@@ -91,11 +97,11 @@ export const eliminarDocumentoPropiedad = async (req, res) => {
     }
 };
 
-// --- DOCUMENTOS DE CLIENTE (PROPIETARIO) ---
+// --- DOCUMENTOS DE CLIENTE ---
 
 export const subirDocumentosCliente = async (req, res) => {
-    const { id } = req.params; // ID del cliente
-    const { tipo } = req.body; // CEDULA, PAPELETA, ETC
+    const { id } = req.params;
+    const { tipo } = req.body;
     const archivos = req.files;
 
     if (!archivos || archivos.length === 0) {
@@ -111,11 +117,12 @@ export const subirDocumentosCliente = async (req, res) => {
         const documentosCreados = [];
 
         for (const archivo of archivos) {
-            const url = `/uploads/${archivo.filename}`;
+            const result = await uploadToCloudinary(archivo.buffer, 'documentos/clientes');
             const doc = await prisma.documentoCliente.create({
                 data: {
                     nombre: archivo.originalname,
-                    url: url,
+                    url: result.secure_url,
+                    cloudinary_id: result.public_id,
                     tipo: tipo || 'OTRO',
                     clienteId: parseInt(id)
                 }
@@ -150,6 +157,12 @@ export const obtenerDocumentosCliente = async (req, res) => {
 export const eliminarDocumentoCliente = async (req, res) => {
     const { id } = req.params;
     try {
+        const documento = await prisma.documentoCliente.findUnique({ where: { id: parseInt(id) } });
+        if (!documento) return res.status(404).json({ mensaje: 'Documento no encontrado' });
+
+        const publicId = documento.cloudinary_id || extractPublicId(documento.url);
+        if (publicId) await deleteFromCloudinary(publicId, 'raw').catch(() => {});
+
         await prisma.documentoCliente.delete({ where: { id: parseInt(id) } });
         res.json({ mensaje: 'Documento eliminado correctamente' });
     } catch (error) {
@@ -158,11 +171,11 @@ export const eliminarDocumentoCliente = async (req, res) => {
     }
 };
 
-// --- DOCUMENTOS DE AGENTE (RRHH) ---
+// --- DOCUMENTOS DE AGENTE ---
 
 export const subirDocumentosAgente = async (req, res) => {
-    const { id } = req.params; // ID del agente
-    const { tipo } = req.body; // CONTRATO, IDENTIFICACION, ETC
+    const { id } = req.params;
+    const { tipo } = req.body;
     const archivos = req.files;
 
     if (!archivos || archivos.length === 0) {
@@ -173,7 +186,6 @@ export const subirDocumentosAgente = async (req, res) => {
         const agente = await prisma.usuario.findUnique({
             where: { id: parseInt(id), rol: 'agente' }
         });
-
         if (!agente) {
             return res.status(404).json({ mensaje: 'Agente no encontrado' });
         }
@@ -181,11 +193,12 @@ export const subirDocumentosAgente = async (req, res) => {
         const documentosCreados = [];
 
         for (const archivo of archivos) {
-            const url = `/uploads/${archivo.filename}`;
+            const result = await uploadToCloudinary(archivo.buffer, 'documentos/agentes');
             const doc = await prisma.documentoAgente.create({
                 data: {
                     nombre: archivo.originalname,
-                    url: url,
+                    url: result.secure_url,
+                    cloudinary_id: result.public_id,
                     tipo: tipo || 'OTRO',
                     agenteId: parseInt(id)
                 }
@@ -221,6 +234,12 @@ export const obtenerDocumentosAgente = async (req, res) => {
 export const eliminarDocumentoAgente = async (req, res) => {
     const { id } = req.params;
     try {
+        const documento = await prisma.documentoAgente.findUnique({ where: { id: parseInt(id) } });
+        if (!documento) return res.status(404).json({ mensaje: 'Documento no encontrado' });
+
+        const publicId = documento.cloudinary_id || extractPublicId(documento.url);
+        if (publicId) await deleteFromCloudinary(publicId, 'raw').catch(() => {});
+
         await prisma.documentoAgente.delete({ where: { id: parseInt(id) } });
         res.json({ mensaje: 'Documento eliminado correctamente' });
     } catch (error) {

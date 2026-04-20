@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+﻿import { useEffect, useState, useRef } from 'react';
 import { useNavigate, useParams, useBlocker } from 'react-router-dom';
 import axios from 'axios';
 import SelectProvincia from '../components/SelectProvincia';
@@ -41,7 +41,8 @@ export default function EditarPropiedad() {
     const [datos, setDatos] = useState(null);
     const [imagenesActuales, setImagenesActuales] = useState([]);
     const [imagenesAEliminar, setImagenesAEliminar] = useState([]);
-    const [docsAEliminar, setDocsAEliminar] = useState([]); // ADDED for Batch Delete
+    const [docsAEliminar, setDocsAEliminar] = useState([]);
+    const [docsAgregados, setDocsAgregados] = useState(false); // Rastrear si se subieron docs nuevos
     const [imagenesNuevas, setImagenesNuevas] = useState([]);
     const [vistaPrevia, setVistaPrevia] = useState([]);
     const [agentes, setAgentes] = useState([]);
@@ -234,6 +235,8 @@ export default function EditarPropiedad() {
         }
         if (imagenesNuevas.length > 0) return true;
         if (imagenesAEliminar.length > 0) return true;
+        if (docsAEliminar.length > 0) return true; // Docs eliminados
+        if (docsAgregados) return true; // Docs nuevos subidos
         return false;
     };
 
@@ -275,7 +278,6 @@ export default function EditarPropiedad() {
 
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
-        // Fix para Checkboxes (Amenities)
         const val = type === 'checkbox' ? checked : value;
 
         setDatos((prev) => {
@@ -286,24 +288,22 @@ export default function EditarPropiedad() {
                 nuevosDatos.valor_garantia = '';
             }
 
+            // El cu00f3digo interno se recalcula en el backend al guardar si cambia el tipo de propiedad.
             return nuevosDatos;
         });
 
         setErrores((prev) => {
             const nuevos = { ...prev };
-            // Solo los campos obligatorios de RegistrarPropiedad.jsx
             if ([
                 'titulo', 'tipo_propiedad', 'estado_propiedad', 'transaccion', 'precio', 'direccion', 'ciudad', 'provincia', 'area_terreno',
-                'sector', 'uso_propiedad', 'comision', 'fecha_captacion', 'tipo_contrato', 'valor_garantia'
-            ].includes(name)) { // Added valor_garantia check logic in render or separate check
-                // Logic simplified below
+                'sector', 'uso_propiedad', 'comision', 'fecha_captacion', 'tipo_contrato', 'valor_garantia', 'fecha_fin_contrato'
+            ].includes(name)) {
                 if (String(val).trim() === '' || val === '') {
                     nuevos[name] = obtenerMensajeErrorCampo(name);
                 } else {
                     delete nuevos[name];
                 }
             }
-            // Specific validations
             if (name === 'precio') {
                 if (isNaN(Number(val)) || Number(val) <= 0) {
                     nuevos.precio = 'Ingrese un precio válido';
@@ -318,7 +318,6 @@ export default function EditarPropiedad() {
                     delete nuevos.area_terreno;
                 }
             }
-            // Special case: Clear guarantee error if transaction changes
             if (name === 'transaccion' && val !== 'alquiler') {
                 delete nuevos.valor_garantia;
             }
@@ -326,7 +325,6 @@ export default function EditarPropiedad() {
             return nuevos;
         });
     };
-
 
 
     const eliminarImagenActual = (index) => {
@@ -455,17 +453,14 @@ export default function EditarPropiedad() {
     const eliminarDocumento = (tipo, index) => {
         const docToDelete = documentos[tipo][index];
 
-        // If it's an existing document (has ID), mark for deletion
         if (docToDelete.id) {
             setDocsAEliminar(prev => [...prev, docToDelete.id]);
         }
 
-        // If it's a new document,revoke object URL to avoid leaks
         if (docToDelete.isNew && docToDelete.url) {
             URL.revokeObjectURL(docToDelete.url);
         }
 
-        // Remove from UI state
         setDocumentos(prev => {
             const newByType = [...prev[tipo]];
             newByType.splice(index, 1);
@@ -489,10 +484,20 @@ export default function EditarPropiedad() {
         if (usuario?.rol === 'admin' && !datos.agenteId) nuevosErrores.agenteId = obtenerMensajeErrorCampo('agenteId');
         if (imagenesActuales.length + imagenesNuevas.length === 0) nuevosErrores.imagenes = obtenerMensajeErrorCampo('imagenes');
 
-        // Negocio Check
+        // Validacion de coordenadas (rango y tipo numerico)
+        if (datos.latitud !== '' && datos.latitud !== null && datos.latitud !== undefined) {
+            const lat = parseFloat(datos.latitud);
+            if (isNaN(lat) || lat < -90 || lat > 90) nuevosErrores.latitud = 'Ingrese una latitud valida (entre -90 y 90)';
+        }
+        if (datos.longitud !== '' && datos.longitud !== null && datos.longitud !== undefined) {
+            const lng = parseFloat(datos.longitud);
+            if (isNaN(lng) || lng < -180 || lng > 180) nuevosErrores.longitud = 'Ingrese una longitud valida (entre -180 y 180)';
+        }
+
         if (!datos.comision || isNaN(Number(datos.comision)) || Number(datos.comision) < 0) nuevosErrores.comision = obtenerMensajeErrorCampo('comision');
         if (!datos.tipo_contrato) nuevosErrores.tipo_contrato = obtenerMensajeErrorCampo('tipo_contrato');
         if (!datos.fecha_captacion) nuevosErrores.fecha_captacion = obtenerMensajeErrorCampo('fecha_captacion');
+        if (!datos.fecha_fin_contrato) nuevosErrores.fecha_fin_contrato = 'La fecha de vencimiento del contrato es obligatoria';
 
         // Garantía (Alquiler) - Validación condicional mejorada
         if (datos.transaccion === 'alquiler') {
@@ -504,7 +509,6 @@ export default function EditarPropiedad() {
         // Validación de Propietarios
         if (propietarios.length === 0) {
             nuevosErrores.propietarios = 'Debe haber al menos un propietario asignado';
-            toast.error('Debes asignar al menos un propietario', { id: 'error-propietarios' });
         } else {
             // Validar porcentajes individuales
             let hayPorcentajeInvalido = false;
@@ -512,7 +516,6 @@ export default function EditarPropiedad() {
                 const porcentaje = parseFloat(prop.porcentaje);
                 if (isNaN(porcentaje) || porcentaje <= 0 || porcentaje > 100) {
                     nuevosErrores.propietarios = `El porcentaje del propietario ${idx + 1} debe estar entre 0 y 100`;
-                    toast.error(`Porcentaje inválido en propietario ${idx + 1}`, { id: 'error-propietarios' });
                     hayPorcentajeInvalido = true;
                 }
             });
@@ -521,26 +524,22 @@ export default function EditarPropiedad() {
                 const sumaPorcentajes = propietarios.reduce((acc, curr) => acc + parseFloat(curr.porcentaje || 0), 0);
                 if (Math.abs(sumaPorcentajes - 100) > 0.1) {
                     nuevosErrores.propietarios = `La suma de porcentajes debe ser exactamente 100% (Actual: ${sumaPorcentajes.toFixed(2)}%)`;
-                    toast.error(`La suma de porcentajes debe ser 100% (Actual: ${sumaPorcentajes.toFixed(2)}%)`, { id: 'error-propietarios' });
                 }
             }
 
             if (!propietarios.some(p => p.es_principal)) {
                 nuevosErrores.propietarios = 'Debe marcar al menos un propietario como principal';
-                toast.error('Debe marcar un propietario como principal', { id: 'error-propietarios' });
             }
         }
 
-        // 🛡️ Validación de Documentos Obligatorios
+        // 🛡️ Validación de Documentos Obligatorios de Comercialización
         if (datos.tipo_contrato === 'exclusividad') {
             if (!documentos.contrato_exclusividad || documentos.contrato_exclusividad.length === 0) {
                 nuevosErrores.documentos = 'El Contrato de Exclusividad es obligatorio para este tipo de contrato';
-                toast.error('Debes subir el Contrato de Exclusividad', { id: 'error-documentos' });
             }
         } else {
             if (!documentos.autorizacion_venta || documentos.autorizacion_venta.length === 0) {
                 nuevosErrores.documentos = 'La Autorización de Venta es obligatoria para contratos abiertos';
-                toast.error('Debes subir la Autorización de Venta', { id: 'error-documentos' });
             }
         }
 
@@ -572,7 +571,10 @@ export default function EditarPropiedad() {
             if (['propietarios', 'imagenes', 'documentos', 'imagenesAEliminar'].includes(key)) continue;
 
             const valor = datos[key];
-            if (valor !== '' && valor !== null && valor !== undefined) {
+            // Incluir booleanos (false debe enviarse para campos como mas_iva)
+            if (typeof valor === 'boolean') {
+                formData.append(key, valor.toString());
+            } else if (valor !== '' && valor !== null && valor !== undefined) {
                 formData.append(key, valor);
             }
         }
@@ -592,9 +594,16 @@ export default function EditarPropiedad() {
             });
 
             // 2. Procesar ELIMINACIÓN de documentos en lote
-            const deletePromises = docsAEliminar.map(docId =>
-                axios.delete(`${import.meta.env.VITE_BACKEND_URL}/api/documentos/propiedad/${docId}`, {
+            let docsAEliminarFinal = [...docsAEliminar];
+
+
+            const deletePromises = docsAEliminarFinal.map(docId =>
+                axios.delete(`${import.meta.env.VITE_BACKEND_URL}/api/documentos/propiedad/doc/${docId}`, {
                     headers: { Authorization: `Bearer ${token}` }
+                }).catch(err => {
+                    // Si el doc ya no existe en BD, ignorar el 404
+                    if (err.response?.status === 404) return null;
+                    throw err;
                 })
             );
 
@@ -747,6 +756,7 @@ export default function EditarPropiedad() {
                     handleChange={handleChange}
                     errores={errores}
                     codigoPreview={datos.codigo_interno}
+                    tipoPropiedadOriginal={initialDatos?.tipo_propiedad}
                 />
 
                 <FormUbicacion
@@ -833,34 +843,37 @@ export default function EditarPropiedad() {
                         <span>Guardar cambios</span>
                     </button>
                 </div>
-                {
-                    blocker.state === 'blocked' && (
-                        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
-                            <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md border border-gray-200 transition-all duration-300">
-                                <h3 className="text-xl font-bold text-center text-yellow-700 mb-4 flex items-center justify-center gap-2">
-                                    <span className="text-2xl">⚠️</span> Cambios sin guardar
-                                </h3>
-                                <p className="text-gray-700 text-center mb-6">Tienes cambios sin guardar. ¿Seguro que quieres salir?</p>
-                                <div className="flex justify-end gap-2 mt-4">
-                                    <button
-                                        type="button"
-                                        onClick={() => blocker.reset()}
-                                        className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium text-sm px-4 py-2 rounded-lg shadow-sm transition"
-                                    >
-                                        Cancelar
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => blocker.proceed()}
-                                        className="bg-yellow-500 hover:bg-yellow-600 text-white font-medium text-sm px-4 py-2 rounded-lg shadow-md transition"
-                                    >
-                                        Salir sin guardar
-                                    </button>
+                {blocker.state === 'blocked' && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+                        <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md border border-yellow-200 transition-all duration-300">
+                            <div className="flex flex-col items-center text-center">
+                                <div className="w-16 h-16 bg-yellow-50 rounded-full flex items-center justify-center mb-4 border-2 border-yellow-200">
+                                    <span className="text-3xl">⚠️</span>
                                 </div>
+                                <h3 className="text-xl font-bold text-gray-900 mb-2">Cambios sin guardar</h3>
+                                <p className="text-gray-500 text-sm mb-6">
+                                    Tienes cambios sin guardar en este formulario. Si sales ahora, se perderán todos los cambios realizados.
+                                </p>
+                            </div>
+                            <div className="flex gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() => blocker.reset()}
+                                    className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold text-sm px-4 py-3 rounded-xl transition duration-200"
+                                >
+                                    Quedarme y guardar
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => blocker.proceed()}
+                                    className="flex-1 bg-yellow-500 hover:bg-yellow-600 text-white font-semibold text-sm px-4 py-3 rounded-xl shadow-md transition duration-200"
+                                >
+                                    Salir sin guardar
+                                </button>
                             </div>
                         </div>
-                    )
-                }
+                    </div>
+                )}
             </form >
         </div >
     );

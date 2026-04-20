@@ -1,39 +1,44 @@
-import SelectTipoPropiedad from '../../SelectTipoPropiedad';
+﻿import SelectTipoPropiedad from '../../SelectTipoPropiedad';
 
-export default function FormIdentificacion({ datos, handleChange, errores, codigoPreview }) {
+export default function FormIdentificacion({ datos, handleChange, errores, codigoPreview, tipoPropiedadOriginal }) {
+    const tipoCambio = tipoPropiedadOriginal && datos.tipo_propiedad && tipoPropiedadOriginal !== datos.tipo_propiedad;
     return (
         <section className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
             <div className="bg-gray-50 px-6 py-4 border-b border-gray-100">
                 <h3 className="text-lg font-bold text-gray-900 border-l-4 border-orange-500 pl-4 uppercase tracking-wide">
-                    Identificación de la Propiedad
+                    Identificacion de la Propiedad
                 </h3>
             </div>
             <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* CÓDIGO INTERNO (Autogenerado) */}
+                {/* CODIGO INTERNO (Autogenerado) */}
                 <div>
-                    <label className="block text-base font-semibold text-gray-800 mb-1">Código Interno</label>
+                    <label className="block text-base font-semibold text-gray-800 mb-1">Codigo Interno</label>
                     <input
                         type="text"
                         disabled
-                        value={codigoPreview || "Se generará automáticamente"}
+                        value={codigoPreview || "Se generara automaticamente"}
                         className="w-full border border-gray-200 rounded-lg px-4 py-2 bg-gray-100 text-gray-700 font-mono shadow-sm cursor-not-allowed font-bold"
-                        placeholder="Se generará automáticamente"
+                        placeholder="Se generara automaticamente"
                     />
-                    {!codigoPreview && (
-                        <p className="text-xs text-gray-400 mt-1">Este código es una estimación. Se confirmará al guardar.</p>
+                    {tipoCambio ? (
+                        <p className="text-xs text-amber-600 mt-1 font-medium">
+                            El codigo se recalculara al guardar con el prefijo correcto para el nuevo tipo.
+                        </p>
+                    ) : !codigoPreview && (
+                        <p className="text-xs text-gray-400 mt-1">Este codigo es una estimacion. Se confirmara al guardar.</p>
                     )}
                 </div>
 
-                {/* TIPO DE OPERACIÓN (Transacción) */}
+                {/* TIPO DE OPERACION (Transaccion) */}
                 <div>
-                    <label className="block text-base font-semibold text-gray-800 mb-1">Tipo de Operación <span className="text-red-500">*</span></label>
+                    <label className="block text-base font-semibold text-gray-800 mb-1">Tipo de Operacion <span className="text-red-500">*</span></label>
                     <select
                         name="transaccion"
                         value={datos.transaccion}
                         onChange={handleChange}
                         className={`w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500 bg-white shadow-sm transition ${errores.transaccion ? 'border-red-400' : 'border-gray-300'}`}
                     >
-                        <option value="" disabled hidden>Seleccione operación</option>
+                        <option value="" disabled hidden>Seleccione operacion</option>
                         <option value="venta">Venta</option>
                         <option value="alquiler">Alquiler</option>
                     </select>
@@ -63,8 +68,8 @@ export default function FormIdentificacion({ datos, handleChange, errores, codig
                         <option value="residencial">Residencial</option>
                         <option value="comercial">Comercial</option>
                         <option value="industrial">Industrial</option>
-                        <option value="agricola">Agrícola</option>
-                        <option value="turistico">Turístico</option>
+                        <option value="agricola">Agricola</option>
+                        <option value="turistico">Turistico</option>
                         <option value="mixto">Mixto</option>
                     </select>
                     {errores.uso_propiedad && <p className="text-red-600 text-sm mt-1 font-medium">{errores.uso_propiedad}</p>}

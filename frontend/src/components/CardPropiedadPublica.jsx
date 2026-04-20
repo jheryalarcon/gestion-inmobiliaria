@@ -121,15 +121,15 @@ export default function CardPropiedadPublica({ propiedad, className = '', favori
                         </span>
                     </div>
 
-                    {/* Características (Style Admin - Compacto) */}
-                    <div className="flex items-center gap-3 text-sm text-gray-600 mb-3 px-1">
+                    {/* Características (mismo estilo y orden que tarjeta admin) */}
+                    <div className="flex items-center gap-4 text-sm text-gray-600 mb-3 px-1">
                         {/* Habitaciones */}
                         {propiedad.nro_habitaciones > 0 && (
                             <div className="flex items-center gap-1" title="Habitaciones">
                                 <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 10v9h2v-2h14v2h2v-9a2 2 0 00-2-2H5a2 2 0 00-2 2zM5 8a2 2 0 012-2h4a2 2 0 012 2v2H5V8z" />
                                 </svg>
-                                <span className="font-semibold">{propiedad.nro_habitaciones}</span>
+                                <span className="font-medium">{propiedad.nro_habitaciones}</span>
                             </div>
                         )}
 
@@ -139,20 +139,30 @@ export default function CardPropiedadPublica({ propiedad, className = '', favori
                                 <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 14h18v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-5zM6 14V9a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v5" />
                                 </svg>
-                                <span className="font-semibold">{propiedad.nro_banos}</span>
+                                <span className="font-medium">{propiedad.nro_banos}</span>
                             </div>
                         )}
 
-                        {/* Área */}
-                        {((propiedad.area_construccion && Number(propiedad.area_construccion) > 0) || (propiedad.area_terreno && Number(propiedad.area_terreno) > 0)) && (
-                            <div className="flex items-center gap-1" title="Área">
+                        {/* Área de Terreno */}
+                        {propiedad.area_terreno && Number(propiedad.area_terreno) > 0 && (
+                            <div className="flex items-center gap-1" title="Área de Terreno">
                                 <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
                                 </svg>
-                                <span className="font-semibold">
-                                    {(propiedad.area_construccion && Number(propiedad.area_construccion) > 0)
-                                        ? `${Number(propiedad.area_construccion).toLocaleString('es-EC')}m²`
-                                        : `${Number(propiedad.area_terreno).toLocaleString('es-EC')}m²`}
+                                <span className="font-medium text-xs">
+                                    {Number(propiedad.area_terreno).toLocaleString('es-EC')}m² T
+                                </span>
+                            </div>
+                        )}
+
+                        {/* Área de Construcción */}
+                        {propiedad.area_construccion && Number(propiedad.area_construccion) > 0 && (
+                            <div className="flex items-center gap-1" title="Área de Construcción">
+                                <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                                </svg>
+                                <span className="font-medium text-xs">
+                                    {Number(propiedad.area_construccion).toLocaleString('es-EC')}m²
                                 </span>
                             </div>
                         )}

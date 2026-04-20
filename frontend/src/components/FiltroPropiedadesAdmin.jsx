@@ -15,8 +15,10 @@ import {
     BedDouble,
     Bath,
     Car,
-    Ruler
+    Ruler,
+    CalendarDays
 } from 'lucide-react';
+
 
 
 const FilterChip = ({ label, activeInfo, dropdownKey, activeDropdown, setActiveDropdown, icon: Icon, children }) => {
@@ -67,19 +69,19 @@ export default function FiltroPropiedadesAdmin({ filtros, setFiltros, busqueda, 
 
     // Lista de amenidades
     const AMENIDADES = [
-        { key: 'tiene_piscina', label: 'Piscina' },
-        { key: 'tiene_seguridad', label: 'Seguridad' },
-        { key: 'tiene_ascensor', label: 'Ascensor' },
-        { key: 'tiene_area_bbq', label: 'Area BBQ' },
-        { key: 'tiene_terraza', label: 'Terraza' },
         { key: 'tiene_balcon', label: 'Balcón' },
+        { key: 'tiene_terraza', label: 'Terraza' },
         { key: 'tiene_patio', label: 'Patio' },
         { key: 'tiene_bodega', label: 'Bodega' },
-        { key: 'tiene_areas_comunales', label: 'Áreas Com.' },
-        { key: 'tiene_gas_centralizado', label: 'Gas Cent.' },
-        { key: 'tiene_cisterna', label: 'Cisterna' },
+        { key: 'tiene_area_bbq', label: 'Área BBQ' },
+        { key: 'tiene_piscina', label: 'Piscina' },
+        { key: 'tiene_ascensor', label: 'Ascensor' },
+        { key: 'tiene_seguridad', label: 'Seguridad privada' },
+        { key: 'tiene_areas_comunales', label: 'Áreas comunales' },
+        { key: 'tiene_gas_centralizado', label: 'Gas centralizado' },
         { key: 'tiene_lavanderia', label: 'Lavandería' },
-        { key: 'amoblado', label: 'Amoblado' }
+        { key: 'tiene_cisterna', label: 'Cisterna' },
+        { key: 'amoblado', label: 'Amoblado' },
     ];
 
     useEffect(() => {
@@ -129,10 +131,11 @@ export default function FiltroPropiedadesAdmin({ filtros, setFiltros, busqueda, 
             estado: '',
             tipo: '',
             transaccion: '',
+            ubicacion: '',
             ciudad: '',
             precioMin: '',
             precioMax: '',
-            agenteId: '', // Aunque lo ocultemos, lo mantenemos en estado por si acaso
+            agenteId: '',
             orden: 'recientes',
             nro_habitaciones: '',
             nro_banos: '',
@@ -216,7 +219,7 @@ export default function FiltroPropiedadesAdmin({ filtros, setFiltros, busqueda, 
                     </FilterChip>
 
                     <FilterChip
-                        label={filtros.estado || "Estado"}
+                        label={filtros.estado ? (filtros.estado === '__todas__' ? 'Todas' : filtros.estado.charAt(0).toUpperCase() + filtros.estado.slice(1)) : 'Disponibles'}
                         activeInfo={filtros.estado}
                         dropdownKey="estado"
                         activeDropdown={activeDropdown}
@@ -224,7 +227,8 @@ export default function FiltroPropiedadesAdmin({ filtros, setFiltros, busqueda, 
                         icon={CheckCircle2}
                     >
                         <div className="flex flex-col gap-1">
-                            <button onClick={() => { handleChange('estado', ''); setActiveDropdown(null) }} className="px-3 py-2 text-left text-sm hover:bg-gray-50 rounded-lg">Cualquiera</button>
+                            <button onClick={() => { handleChange('estado', ''); setActiveDropdown(null) }} className={`px-3 py-2 text-left text-sm hover:bg-gray-50 rounded-lg ${filtros.estado === '' ? 'bg-blue-50 text-blue-700 font-medium' : ''}`}>Disponibles (defecto)</button>
+                            <button onClick={() => { handleChange('estado', '__todas__'); setActiveDropdown(null) }} className={`px-3 py-2 text-left text-sm hover:bg-gray-50 rounded-lg ${filtros.estado === '__todas__' ? 'bg-blue-50 text-blue-700 font-medium' : ''}`}>Todas</button>
                             {[
                                 { val: 'disponible', label: 'Disponible' },
                                 { val: 'reservada', label: 'Reservada' },
@@ -336,8 +340,10 @@ export default function FiltroPropiedadesAdmin({ filtros, setFiltros, busqueda, 
                                     </div>
                                     {/* Año */}
                                     <div className="space-y-1">
-                                        <label className="text-xs font-semibold text-gray-500 flex items-center gap-1">Año Const.</label>
-                                        <input type="number" placeholder="Ej. 2020" value={filtros.anioMin} onChange={(e) => handleChange('anioMin', e.target.value)} className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:border-blue-500 outline-none" />
+                                        <label className="text-xs font-semibold text-gray-500 flex items-center gap-1">
+                                            <CalendarDays className="w-3.5 h-3.5" /> Año Const. (desde)
+                                        </label>
+                                        <input type="number" placeholder="Ej. 2010" value={filtros.anioMin} onChange={(e) => handleChange('anioMin', e.target.value)} className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:border-blue-500 outline-none" />
                                     </div>
                                 </div>
 

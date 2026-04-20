@@ -47,7 +47,8 @@ export const login = async (req, res) => {
                 id: usuario.id,
                 name: usuario.name,
                 email: usuario.email,
-                rol: usuario.rol
+                rol: usuario.rol,
+                telefono: usuario.telefono || ''
             }
         });
     } catch (error) {
@@ -236,7 +237,8 @@ export const verifyEmail = async (req, res) => {
             where: { id: usuario.id },
             data: {
                 verificado: true,
-                token_verificacion: null
+                token_verificacion: null,
+                token_verificacion_expiracion: null
             }
         });
 

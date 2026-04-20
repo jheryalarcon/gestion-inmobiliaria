@@ -45,7 +45,7 @@ export default function Recomendaciones({ favoritos, onFavoritoToggle }) {
             if (favoritos.length === 1 && !toastPrimerFavoritoMostrado && !localStorage.getItem('toast_primer_favorito_mostrado')) {
                 toast.success('¡Excelente!', {
                     duration: 3000,
-                    description: 'Ahora podemos recomendarte propiedades similares'
+                    description: 'Tu historial de interacciones ayuda a nuestro algoritmo a recomendarte propiedades'
                 });
                 setToastPrimerFavoritoMostrado(true);
                 localStorage.setItem('toast_primer_favorito_mostrado', 'true');
@@ -99,7 +99,7 @@ export default function Recomendaciones({ favoritos, onFavoritoToggle }) {
             if (!response.data.tieneFavoritos && !localStorage.getItem('recomendaciones_bienvenida_mostrada')) {
                 toast.success('¡Bienvenido!', {
                     duration: 3000,
-                    description: 'Explora propiedades y guárdalas como favoritas para recibir recomendaciones personalizadas'
+                    description: 'Explora y interactúa con propiedades (vistas, favoritos, contacto) para recibir recomendaciones personalizadas de nuestra IA'
                 });
                 localStorage.setItem('recomendaciones_bienvenida_mostrada', 'true');
             }
@@ -238,11 +238,11 @@ export default function Recomendaciones({ favoritos, onFavoritoToggle }) {
                             </svg>
                         </div>
                         <h2 className="text-2xl font-bold text-gray-900 mb-4">
-                            Recomendaciones personalizadas
+                            Recomendaciones inteligentes
                         </h2>
                         <p className="text-gray-600 text-lg max-w-2xl mx-auto mb-6">
-                            <span className="font-semibold text-orange-600">Interactúa con propiedades (vistas, favoritos, contacto)</span> y
-                            nuestro algoritmo te mostrará inmuebles que te podrían interesar.
+                            Nuestro modelo de IA necesita aprender qué te gusta.
+                            Empieza a interactuar navegando por las propiedades (vistas, favoritos, consultas) y aquí aparecerán recomendaciones hechas a tu medida.
                         </p>
 
                         <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-100 max-w-xl mx-auto mb-6">
@@ -257,13 +257,13 @@ export default function Recomendaciones({ favoritos, onFavoritoToggle }) {
                                     <div className="w-6 h-6 bg-orange-100 rounded-full flex items-center justify-center">
                                         <span className="text-orange-600 font-bold text-xs">2</span>
                                     </div>
-                                    <span>Guarda</span>
+                                    <span>Interactúa</span>
                                 </div>
                                 <div className="flex items-center space-x-2">
                                     <div className="w-6 h-6 bg-orange-100 rounded-full flex items-center justify-center">
                                         <span className="text-orange-600 font-bold text-xs">3</span>
                                     </div>
-                                    <span>Recibe</span>
+                                    <span>Descubre</span>
                                 </div>
                             </div>
                         </div>
@@ -295,10 +295,10 @@ export default function Recomendaciones({ favoritos, onFavoritoToggle }) {
                             </svg>
                         </div>
                         <h2 className="text-2xl font-bold text-gray-900 mb-4">
-                            No encontramos recomendaciones
+                            El algoritmo aún no tiene sugerencias para ti
                         </h2>
                         <p className="text-gray-600 text-lg max-w-2xl mx-auto mb-8">
-                            {mensaje || "No encontramos propiedades similares a tus favoritas"}
+                            {mensaje || "Nuestro modelo de IA analiza tus interacciones (propiedades vistas, favoritas y consultas) para generar recomendaciones. Sigue explorando para obtener resultados personalizados."}
                         </p>
                         <button
                             onClick={() => {
@@ -323,7 +323,7 @@ export default function Recomendaciones({ favoritos, onFavoritoToggle }) {
                         Recomendaciones para ti
                     </h2>
                     <p className="text-gray-600 text-lg max-w-2xl mx-auto">
-                        Basado en tu historial de interacciones y propiedades favoritas, creemos que estas opciones te pueden interesar
+                        Basado en tu historial de interacciones (propiedades vistas, favoritas y consultadas), nuestro modelo de IA seleccionó estas opciones para ti
                     </p>
                 </div>
 

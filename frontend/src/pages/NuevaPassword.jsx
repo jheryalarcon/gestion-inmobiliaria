@@ -14,6 +14,7 @@ export default function NuevaPassword() {
     const [cargando, setCargando] = useState(false);
     const [tokenValido, setTokenValido] = useState(true);
     const [mensajeExito, setMensajeExito] = useState(false);
+    const [errores, setErrores] = useState({});
 
     const [searchParams] = useSearchParams();
     const params = useParams();
@@ -28,24 +29,31 @@ export default function NuevaPassword() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setErrores({});
+
+        const nuevosErrores = {};
 
         if (!password) {
-            toast.error('La contraseña es obligatoria');
-            return;
+            nuevosErrores.password = 'La contraseña es obligatoria';
+        } else if (!/^(?=.*[A-Z])(?=.*\d).{8,}$/.test(password)) {
+            nuevosErrores.password = 'Debe tener al menos 8 caracteres, una mayúscula y un número';
         }
-        if (!/^(?=.*[A-Z])(?=.*\d).{8,}$/.test(password)) {
-            toast.error('Debe tener al menos 8 caracteres, una mayúscula y un número');
-            return;
+
+        if (!confirmPassword) {
+            nuevosErrores.confirmPassword = 'Debes confirmar la contraseña';
+        } else if (password && password !== confirmPassword) {
+            nuevosErrores.confirmPassword = 'Las contraseñas no coinciden';
         }
-        if (password !== confirmPassword) {
-            toast.error('Las contraseñas no coinciden');
+
+        if (Object.keys(nuevosErrores).length > 0) {
+            setErrores(nuevosErrores);
             return;
         }
 
         setCargando(true);
 
         try {
-            const { data } = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/auth/reset-password/${token}`, { password });
+            await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/auth/reset-password/${token}`, { password });
 
             setMensajeExito(true);
             toast.success('Contraseña restablecida');
@@ -55,9 +63,7 @@ export default function NuevaPassword() {
             }, 3000);
 
         } catch (error) {
-            toast.error('Error', {
-                description: error.response?.data?.mensaje || 'Hubo un error al guardar la contraseña'
-            });
+            setErrores({ global: error.response?.data?.mensaje || 'Hubo un error al guardar la contraseña' });
         } finally {
             setCargando(false);
         }
@@ -70,7 +76,7 @@ export default function NuevaPassword() {
                     <div className="text-center bg-white p-8 rounded-2xl shadow-xl border border-slate-100 max-w-md w-full">
                         <h1 className="text-2xl font-bold text-slate-900">Token no válido</h1>
                         <p className="mt-2 text-slate-500 text-sm">Este enlace no es válido o ha expirado.</p>
-                        <Link to="/olvide-password" class="mt-4 inline-block text-orange-600 hover:text-orange-700 font-bold text-sm">Volver a intentar</Link>
+                        <Link to="/olvide-password" className="mt-4 inline-block text-orange-600 hover:text-orange-700 font-bold text-sm">Volver a intentar</Link>
                     </div>
                 </div>
             </LayoutPublic>
@@ -106,14 +112,18 @@ export default function NuevaPassword() {
                                 </p>
                             </div>
 
-                            <form className="space-y-4" onSubmit={handleSubmit}>
+                            <form className="space-y-4" onSubmit={handleSubmit} noValidate>
                                 <div className="space-y-4">
+                                    {/* Nueva contraseña */}
                                     <div className="relative">
                                         <LockClosedIcon className="w-5 h-5 text-gray-400 absolute left-3 top-2.5" />
                                         <input
                                             type={showPassword ? "text" : "password"}
-                                            required
-                                            className="w-full pl-10 pr-10 py-2.5 border rounded-lg bg-slate-50 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all text-sm border-slate-200"
+                                            className={`w-full pl-10 pr-10 py-2.5 border rounded-lg bg-slate-50 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 transition-all text-sm ${
+                                                errores.password
+                                                    ? 'border-red-300 focus:ring-red-200 focus:border-red-400'
+                                                    : 'border-slate-200 focus:ring-orange-500/20 focus:border-orange-500'
+                                            }`}
                                             placeholder="Nueva Contraseña"
                                             value={password}
                                             onChange={(e) => setPassword(e.target.value)}
@@ -125,14 +135,19 @@ export default function NuevaPassword() {
                                         >
                                             {showPassword ? <EyeSlashIcon className="h-5 w-5" /> : <EyeIcon className="h-5 w-5" />}
                                         </button>
+                                        {errores.password && <p className="text-xs text-red-600 mt-1 font-medium">{errores.password}</p>}
                                     </div>
 
+                                    {/* Confirmar contraseña */}
                                     <div className="relative">
                                         <LockClosedIcon className="w-5 h-5 text-gray-400 absolute left-3 top-2.5" />
                                         <input
                                             type={showConfirmPassword ? "text" : "password"}
-                                            required
-                                            className="w-full pl-10 pr-10 py-2.5 border rounded-lg bg-slate-50 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all text-sm border-slate-200"
+                                            className={`w-full pl-10 pr-10 py-2.5 border rounded-lg bg-slate-50 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 transition-all text-sm ${
+                                                errores.confirmPassword
+                                                    ? 'border-red-300 focus:ring-red-200 focus:border-red-400'
+                                                    : 'border-slate-200 focus:ring-orange-500/20 focus:border-orange-500'
+                                            }`}
                                             placeholder="Confirmar Contraseña"
                                             value={confirmPassword}
                                             onChange={(e) => setConfirmPassword(e.target.value)}
@@ -144,8 +159,14 @@ export default function NuevaPassword() {
                                         >
                                             {showConfirmPassword ? <EyeSlashIcon className="h-5 w-5" /> : <EyeIcon className="h-5 w-5" />}
                                         </button>
+                                        {errores.confirmPassword && <p className="text-xs text-red-600 mt-1 font-medium">{errores.confirmPassword}</p>}
                                     </div>
                                 </div>
+
+                                {/* Error global (token inválido/expirado desde API) */}
+                                {errores.global && (
+                                    <div className="text-sm text-center text-red-600 font-medium">{errores.global}</div>
+                                )}
 
                                 <div>
                                     <button

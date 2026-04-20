@@ -96,6 +96,10 @@ model Propiedad {
   unidad_area_construccion String                 @default("m2")
   unidad_area_terreno      String                 @default("m2")
   valor_garantia           Decimal?               @db.Decimal(12, 2)
+  mas_iva                  Boolean                @default(false)
+  comision_subtotal        Decimal?               @db.Decimal(12, 2)
+  comision_iva             Decimal?               @db.Decimal(12, 2)
+  comision_total           Decimal?               @db.Decimal(12, 2)
   documentos               DocumentoPropiedad[]
   favoritos                Favorito[]
   interacciones            InteraccionUsuario[]
@@ -109,14 +113,15 @@ model Propiedad {
 }
 
 model DocumentoPropiedad {
-  id          Int                    @id @default(autoincrement())
-  nombre      String
-  url         String
-  tipo        TipoDocumentoPropiedad
-  categoria   CategoriaDocumento
-  propiedadId Int
-  createdAt   DateTime               @default(now())
-  propiedad   Propiedad              @relation(fields: [propiedadId], references: [id])
+  id            Int                    @id @default(autoincrement())
+  nombre        String
+  url           String
+  cloudinary_id String?
+  tipo          TipoDocumentoPropiedad
+  categoria     CategoriaDocumento
+  propiedadId   Int
+  createdAt     DateTime               @default(now())
+  propiedad     Propiedad              @relation(fields: [propiedadId], references: [id])
 }
 
 model PropiedadPropietario {
@@ -171,7 +176,7 @@ model Cliente {
   id                       Int                    @id @default(autoincrement())
   nombre                   String
   telefono                 String
-  email                    String?
+  email                    String?              @unique
   tipo_cliente             TipoCliente
   observaciones            String?
   activo                   Boolean                @default(true)
@@ -180,8 +185,7 @@ model Cliente {
   updatedAt                DateTime               @updatedAt
   desactivado_por          Int?
   fecha_desactivacion      DateTime?
-  cedula                   String?
-  estado_civil             EstadoCivil?
+  cedula                   String?                @unique
   agente                   Usuario?               @relation(fields: [agenteId], references: [id])
   usuario_desactivador     Usuario?               @relation("ClienteDesactivador", fields: [desactivado_por], references: [id])
   documentos               DocumentoCliente[]
@@ -191,13 +195,14 @@ model Cliente {
 }
 
 model DocumentoCliente {
-  id        Int                  @id @default(autoincrement())
-  nombre    String
-  url       String
-  tipo      TipoDocumentoCliente
-  clienteId Int
-  createdAt DateTime             @default(now())
-  cliente   Cliente              @relation(fields: [clienteId], references: [id])
+  id            Int                  @id @default(autoincrement())
+  nombre        String
+  url           String
+  cloudinary_id String?
+  tipo          TipoDocumentoCliente
+  clienteId     Int
+  createdAt     DateTime             @default(now())
+  cliente       Cliente              @relation(fields: [clienteId], references: [id])
 }
 
 model Negociacion {
@@ -271,13 +276,14 @@ model ArchivoNegociacion {
 }
 
 model DocumentoAgente {
-  id        Int                 @id @default(autoincrement())
-  nombre    String
-  url       String
-  tipo      TipoDocumentoAgente
-  agenteId  Int
-  createdAt DateTime            @default(now())
-  agente    Usuario             @relation(fields: [agenteId], references: [id])
+  id            Int                 @id @default(autoincrement())
+  nombre        String
+  url           String
+  cloudinary_id String?
+  tipo          TipoDocumentoAgente
+  agenteId      Int
+  createdAt     DateTime            @default(now())
+  agente        Usuario             @relation(fields: [agenteId], references: [id])
 
   @@map("DocumentoAgente")
 }
@@ -414,9 +420,8 @@ enum TipoCliente {
   comprador
   arrendatario
   propietario
-  vendedor
   inversionista
-  consultor
+  colega_inmobiliario
   prospecto
 }
 

@@ -6,7 +6,7 @@ const SelectTipoCliente = ({ value, onChange, error }) => {
         { value: 'comprador', label: 'Comprador' },
         { value: 'arrendatario', label: 'Arrendatario' },
         { value: 'inversionista', label: 'Inversionista' },
-        { value: 'consultor', label: 'Colega Inmobiliario' },
+        { value: 'colega_inmobiliario', label: 'Colega Inmobiliario' },
         { value: 'prospecto', label: 'Prospecto (Lead)' }
     ];
 

@@ -510,8 +510,20 @@ export default function DetallePropiedadAdmin() {
                                 <label className="text-sm font-medium text-gray-500">
                                     {propiedad.transaccion === 'alquiler' ? 'Precio de Arriendo' : 'Precio de Venta'}
                                 </label>
-                                <p className="text-2xl font-bold text-green-600">{formatearPrecio(propiedad.precio)}</p>
+                                <div className="mt-1">
+                                    <p className="text-2xl font-bold text-green-600">{formatearPrecio(propiedad.precio)}</p>
+                                </div>
                             </div>
+                            
+                            {/* Precio Mínimo */}
+                            {propiedad.precio_minimo && (
+                                <div>
+                                    <label className="text-sm font-medium text-gray-500">Precio Mínimo Acceptado</label>
+                                    <div className="mt-1">
+                                        <p className="text-2xl font-bold text-orange-500">{formatearPrecio(propiedad.precio_minimo)}</p>
+                                    </div>
+                                </div>
+                            )}
 
                             {/* Valor de Garantía - Solo para alquiler */}
                             {propiedad.transaccion === 'alquiler' && propiedad.valor_garantia && (
@@ -550,7 +562,7 @@ export default function DetallePropiedadAdmin() {
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                                 </svg>
                                 <span>
-                                    <span className="font-semibold">Registro:</span> {new Date(propiedad.createdAt).toLocaleDateString()}
+                                    <span className="font-semibold">Registro:</span> {new Date(propiedad.createdAt).toLocaleString('es-EC', { timeZone: 'America/Guayaquil', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute:'2-digit' })}
                                 </span>
                             </div>
 
@@ -561,7 +573,7 @@ export default function DetallePropiedadAdmin() {
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                     </svg>
                                     <span>
-                                        <span className="font-semibold">Captación:</span> {new Date(propiedad.fecha_captacion).toLocaleDateString()}
+                                        <span className="font-semibold">Captación:</span> {new Date(propiedad.fecha_captacion).toLocaleString('es-EC', { timeZone: 'UTC', day: '2-digit', month: '2-digit', year: 'numeric' })}
                                     </span>
                                 </div>
                             )}
@@ -573,7 +585,7 @@ export default function DetallePropiedadAdmin() {
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                                     </svg>
                                     <span>
-                                        <span className="font-semibold">Actualización:</span> {new Date(propiedad.updatedAt).toLocaleDateString()}
+                                        <span className="font-semibold">Actualización:</span> {new Date(propiedad.updatedAt).toLocaleString('es-EC', { timeZone: 'America/Guayaquil', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute:'2-digit' })}
                                     </span>
                                 </div>
                             )}
@@ -585,7 +597,7 @@ export default function DetallePropiedadAdmin() {
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
                                     </svg>
                                     <span>
-                                        <span className="font-semibold">Desactivación:</span> {new Date(propiedad.fecha_desactivacion).toLocaleDateString()}
+                                        <span className="font-semibold">Desactivación:</span> {new Date(propiedad.fecha_desactivacion).toLocaleString('es-EC', { timeZone: 'America/Guayaquil', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute:'2-digit' })}
                                     </span>
                                 </div>
                             )}
@@ -772,18 +784,38 @@ export default function DetallePropiedadAdmin() {
                                 </div>
 
                                 {propiedad.comision && (
-                                    <div>
+                                    <div className="md:col-span-2 lg:col-span-1">
                                         <label className="text-sm font-medium text-gray-500">Comisión Pactada</label>
-                                        <div className="flex items-baseline gap-1">
-                                            <p className="text-lg font-semibold text-gray-900">
-                                                {propiedad.tipo_comision === 'porcentaje'
-                                                    ? `${propiedad.comision}%`
-                                                    : formatearPrecio(propiedad.comision)}
-                                            </p>
-                                            {propiedad.tipo_comision === 'porcentaje' && (
-                                                <span className="text-xs text-gray-500">
-                                                    ({formatearPrecio((propiedad.precio * propiedad.comision) / 100)})
-                                                </span>
+                                        <div className="flex flex-col mt-1">
+                                            <div className="flex items-center gap-2">
+                                                <p className="text-lg font-semibold text-gray-900">
+                                                    {propiedad.tipo_comision === 'porcentaje'
+                                                        ? `${propiedad.comision}%`
+                                                        : formatearPrecio(propiedad.comision)}
+                                                </p>
+                                                {propiedad.mas_iva && (
+                                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-blue-100 text-blue-800 uppercase tracking-wide">
+                                                        + IVA
+                                                    </span>
+                                                )}
+                                            </div>
+                                            {(propiedad.comision_subtotal != null) && (
+                                                <div className="bg-gray-50 rounded-lg p-3 border border-gray-200 mt-2 text-sm w-full sm:max-w-xs">
+                                                    <div className="flex justify-between text-gray-500 mb-1">
+                                                        <span>Subtotal:</span>
+                                                        <span className="font-medium text-gray-700">{formatearPrecio(propiedad.comision_subtotal)}</span>
+                                                    </div>
+                                                    {propiedad.mas_iva && (
+                                                        <div className="flex justify-between text-gray-500 mb-1">
+                                                            <span>IVA (15%):</span>
+                                                            <span className="font-medium text-gray-700">{formatearPrecio(propiedad.comision_iva)}</span>
+                                                        </div>
+                                                    )}
+                                                    <div className="flex justify-between text-gray-900 font-semibold border-t border-gray-200 mt-2 pt-2">
+                                                        <span>Total Comisión:</span>
+                                                        <span className="text-orange-600">{formatearPrecio(propiedad.comision_total)}</span>
+                                                    </div>
+                                                </div>
                                             )}
                                         </div>
                                     </div>
@@ -813,7 +845,7 @@ export default function DetallePropiedadAdmin() {
                                         <div>
                                             <span className="text-xs text-gray-400 block">Captación</span>
                                             <span className="text-sm font-medium text-gray-900">
-                                                {propiedad.fecha_captacion ? new Date(propiedad.fecha_captacion).toLocaleDateString() : '-'}
+                                                {propiedad.fecha_captacion ? new Date(propiedad.fecha_captacion).toLocaleDateString('es-EC', { timeZone: 'America/Guayaquil' }) : '-'}
                                             </span>
                                         </div>
                                         <div>
@@ -822,7 +854,7 @@ export default function DetallePropiedadAdmin() {
                                                 ? 'text-red-600'
                                                 : 'text-gray-900'
                                                 }`}>
-                                                {propiedad.fecha_fin_contrato ? new Date(propiedad.fecha_fin_contrato).toLocaleDateString() : '-'}
+                                                {propiedad.fecha_fin_contrato ? new Date(propiedad.fecha_fin_contrato).toLocaleDateString('es-EC', { timeZone: 'America/Guayaquil' }) : '-'}
                                             </span>
                                         </div>
                                         {propiedad.fecha_captacion && propiedad.fecha_fin_contrato && (
@@ -881,7 +913,7 @@ export default function DetallePropiedadAdmin() {
                                         <svg className="w-4 h-4 text-green-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                                         </svg>
-                                        <span className="text-sm font-medium text-gray-700">Seguridad</span>
+                                        <span className="text-sm font-medium text-gray-700">Seguridad privada</span>
                                     </div>
                                 )}
                                 {propiedad.tiene_ascensor && (
@@ -937,7 +969,7 @@ export default function DetallePropiedadAdmin() {
                                         <svg className="w-4 h-4 text-green-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                                         </svg>
-                                        <span className="text-sm font-medium text-gray-700">Áreas Comunales</span>
+                                        <span className="text-sm font-medium text-gray-700">Áreas comunales</span>
                                     </div>
                                 )}
                                 {propiedad.tiene_gas_centralizado && (
@@ -945,7 +977,7 @@ export default function DetallePropiedadAdmin() {
                                         <svg className="w-4 h-4 text-green-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                                         </svg>
-                                        <span className="text-sm font-medium text-gray-700">Gas Centralizado</span>
+                                        <span className="text-sm font-medium text-gray-700">Gas centralizado</span>
                                     </div>
                                 )}
                                 {propiedad.tiene_cisterna && (
@@ -1028,8 +1060,8 @@ export default function DetallePropiedadAdmin() {
                                             <div className="p-4 bg-gray-50 border-b border-gray-100 flex justify-between items-center">
                                                 <h3 className="text-sm font-semibold text-gray-900">Mapa de Ubicación</h3>
                                                 <div className="flex items-center gap-3 text-xs text-gray-500 font-mono">
-                                                    <span>Lat: {Number(propiedad.latitud).toFixed(4)}</span>
-                                                    <span>Lng: {Number(propiedad.longitud).toFixed(4)}</span>
+                                                    <span>Lat: {propiedad.latitud}</span>
+                                                    <span>Lng: {propiedad.longitud}</span>
                                                 </div>
                                             </div>
                                             <div className="flex-grow min-h-[300px] p-2">
@@ -1121,13 +1153,13 @@ export default function DetallePropiedadAdmin() {
                                         },
                                         LEGAL: {
                                             nombre: 'Documentos Legales de Propiedad',
-                                            tipos: ['ESCRITURA', 'CERTIFICADO_GRAVAMEN', 'PODER', 'OTRO'],
+                                            tipos: ['ESCRITURA', 'CERTIFICADO_GRAVAMEN', 'PODER', 'PAGO_PREDIAL', 'OTRO'],
                                             color: 'blue',
                                             icon: <Scale className="w-5 h-5" />
                                         },
                                         TECNICO: {
                                             nombre: 'Documentos Técnicos',
-                                            tipos: ['PAGO_PREDIAL', 'PLANO', 'CERTIFICADO_USO_SUELO', 'FICHA_CATASTRAL'],
+                                            tipos: ['PLANO', 'CERTIFICADO_USO_SUELO', 'FICHA_CATASTRAL'],
                                             color: 'emerald',
                                             icon: <ScrollText className="w-5 h-5" />
                                         },
@@ -1182,12 +1214,12 @@ export default function DetallePropiedadAdmin() {
                                                                         <div className="flex-1 min-w-0">
                                                                             <p className="font-medium text-gray-900 text-sm truncate" title={doc.nombre}>{doc.nombre}</p>
                                                                             <span className={`text-xs px-2 py-0.5 rounded-full bg-${categoria.color}-100 text-${categoria.color}-700 inline-block mt-1 whitespace-nowrap`}>
-                                                                                {doc.tipo.replace(/_/g, ' ')}
+                                                                                {doc.tipo === 'PLANO' ? 'Plano arquitectónico' : doc.tipo.replace(/_/g, ' ')}
                                                                             </span>
                                                                         </div>
                                                                     </div>
                                                                     <a
-                                                                        href={`${import.meta.env.VITE_BACKEND_URL}${doc.url}`}
+                                                                        href={doc.url && (doc.url.startsWith("http://") || doc.url.startsWith("https://")) ? doc.url : `${import.meta.env.VITE_BACKEND_URL}${doc.url}`}
                                                                         target="_blank"
                                                                         rel="noopener noreferrer"
                                                                         className="ml-3 px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-1.5 flex-shrink-0"
@@ -1235,7 +1267,7 @@ export default function DetallePropiedadAdmin() {
                                                                     </div>
                                                                 </div>
                                                                 <a
-                                                                    href={`${import.meta.env.VITE_BACKEND_URL}${doc.url}`}
+                                                                    href={doc.url && (doc.url.startsWith("http://") || doc.url.startsWith("https://")) ? doc.url : `${import.meta.env.VITE_BACKEND_URL}${doc.url}`}
                                                                     target="_blank"
                                                                     rel="noopener noreferrer"
                                                                     className="ml-3 px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-1.5 flex-shrink-0"
@@ -1297,6 +1329,7 @@ export default function DetallePropiedadAdmin() {
                                                                 </div>
                                                                 <p className="mt-0.5 text-sm text-gray-500">
                                                                     {event.user} • {event.date.toLocaleString('es-EC', {
+                                                                        timeZone: 'America/Guayaquil',
                                                                         year: 'numeric',
                                                                         month: 'short',
                                                                         day: 'numeric',

@@ -10,17 +10,19 @@ export default function ModalConfirmarEliminar({ propiedadId, onClose, onSuccess
         setCargando(true);
         setMensaje('');
         try {
-            await axios.delete(`${import.meta.env.VITE_BACKEND_URL}/api/propiedades/${propiedadId}`, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
+            await axios.patch(
+                `${import.meta.env.VITE_BACKEND_URL}/api/propiedades/${propiedadId}/estado`,
+                { nuevoEstado: 'inactiva' },
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
             setMensaje('Propiedad desactivada correctamente.');
             setTimeout(() => {
                 onSuccess(); // actualizar lista
                 onClose();   // cerrar modal
             }, 1000);
         } catch (error) {
-            console.error('Error al eliminar:', error);
-            setMensaje(error.response?.data?.mensaje || 'Error al eliminar la propiedad');
+            console.error('Error al desactivar:', error);
+            setMensaje(error.response?.data?.mensaje || 'Error al desactivar la propiedad');
         } finally {
             setCargando(false);
         }
@@ -30,7 +32,7 @@ export default function ModalConfirmarEliminar({ propiedadId, onClose, onSuccess
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-red-100/60 to-pink-100/60 backdrop-blur-sm">
             <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md border border-gray-200 transition-all duration-300">
                 <h3 className="text-xl font-bold text-center text-red-700 mb-4 flex items-center justify-center gap-2">
-                    <span className="text-2xl">🗑️</span> ¿Desactivar esta propiedad?
+                    ¿Desactivar esta propiedad?
                 </h3>
 
                 <p className="text-sm text-gray-600 text-center mb-4">

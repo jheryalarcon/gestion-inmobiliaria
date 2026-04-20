@@ -57,9 +57,16 @@ const MapaUbicacion = ({ lat, lng, onChange, externalCenter }) => {
 
     // Sincronizar props con estado interno (marcador)
     useEffect(() => {
-        if (lat && lng) {
-            const newPos = { lat: parseFloat(lat), lng: parseFloat(lng) };
-            setPosition(newPos);
+        if (lat !== '' && lat !== null && lat !== undefined &&
+            lng !== '' && lng !== null && lng !== undefined) {
+            const parsedLat = parseFloat(lat);
+            const parsedLng = parseFloat(lng);
+            // Solo actualizar si ambos son números válidos dentro de rango
+            if (isFinite(parsedLat) && isFinite(parsedLng) &&
+                parsedLat >= -90 && parsedLat <= 90 &&
+                parsedLng >= -180 && parsedLng <= 180) {
+                setPosition({ lat: parsedLat, lng: parsedLng });
+            }
         }
     }, [lat, lng]);
 

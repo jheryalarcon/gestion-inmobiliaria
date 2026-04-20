@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 
 export default function FiltrosPropiedades({ filtros, setFiltros, onFiltrar, busqueda, setBusqueda }) {
     const [ciudades, setCiudades] = useState([]);
@@ -116,7 +116,7 @@ export default function FiltrosPropiedades({ filtros, setFiltros, onFiltrar, bus
                         <svg className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2 group-focus-within:text-orange-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
                         <input
                             type="text"
-                            placeholder="Título, Ubicación, Código o Descripción..."
+                            placeholder="Ej: título, código, descripción, ciudad, sector, dirección, referencia..."
                             value={busqueda}
                             onChange={(e) => setBusqueda(e.target.value)}
                             className="w-full bg-gray-50 border border-gray-200 rounded-lg pl-10 pr-4 py-2 text-sm text-gray-700 placeholder-gray-400 focus:ring-1 focus:ring-orange-500 focus:border-orange-500 transition-all"
@@ -265,6 +265,19 @@ export default function FiltrosPropiedades({ filtros, setFiltros, onFiltrar, bus
                 >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" /></svg>
                 </button>
+
+                {/* Botón Borrar Filtros - Visible siempre en la barra básica */}
+                {(busqueda || filtros.tipo_propiedad || filtros.ciudad || filtros.transaccion ||
+                    filtros.minPrecio || filtros.maxPrecio) && (
+                    <button
+                        onClick={limpiarFiltros}
+                        className="h-[38px] px-3 rounded-lg flex items-center gap-1.5 text-sm font-medium text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 border border-red-100 hover:border-red-200 transition-all whitespace-nowrap"
+                        title="Borrar todos los filtros"
+                    >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                        Borrar
+                    </button>
+                )}
             </div>
 
             {/* Panel Avanzado Simplificado */}
@@ -318,7 +331,7 @@ export default function FiltrosPropiedades({ filtros, setFiltros, onFiltrar, bus
                     </div>
 
                     <div className="space-y-1">
-                        <label className="text-xs font-semibold text-gray-400 uppercase ml-1">Estado</label>
+                        <label className="text-xs font-semibold text-gray-400 uppercase ml-1">Estado Físico</label>
                         <select
                             value={filtros.estadoFisico || ''}
                             onChange={(e) => handleFiltroChange('estadoFisico', e.target.value)}
@@ -326,7 +339,9 @@ export default function FiltrosPropiedades({ filtros, setFiltros, onFiltrar, bus
                         >
                             <option value="">Todos</option>
                             <option value="nueva">Nueva</option>
-                            <option value="usada">Usada</option>
+                            <option value="bueno">Buena</option>
+                            <option value="regular">Regular</option>
+                            <option value="por_remodelar">Por remodelar</option>
                             <option value="en_construccion">En Construcción</option>
                         </select>
                     </div>

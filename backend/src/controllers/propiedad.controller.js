@@ -58,6 +58,8 @@ export const crearPropiedad = async (req, res) => {
         tiene_lavanderia,
         tiene_cisterna,
         amoblado,
+        valor_garantia,
+        mas_iva,
         propietarios
     } = req.body;
 
@@ -159,14 +161,25 @@ export const crearPropiedad = async (req, res) => {
         };
         const prefix = prefixMap[tipo_propiedad] || 'PRO';
 
-        // Contamos cuántas propiedades de este tipo existen para generar el secuencial
-        // Nota: Esto puede tener race conditions en alta concurrencia, pero sirve para este MVP.
-        // Para producción crítica se recomendaría una tabla de secuencias separada o transacciones.
-        const count = await prisma.propiedad.count({
-            where: { tipo_propiedad }
+        // Buscar el código más alto existente para este prefijo específico
+        // IMPORTANTE: buscar por 'startsWith: prefix' en lugar de 'tipo_propiedad',
+        // ya que una propiedad pudo haber cambiado de tipo después de ser creada.
+        const ultimaPropiedad = await prisma.propiedad.findFirst({
+            where: {
+                codigo_interno: { startsWith: `${prefix}-` }
+            },
+            orderBy: { codigo_interno: 'desc' },
+            select: { codigo_interno: true }
         });
-        const sequence = (count + 1).toString().padStart(4, '0'); // CAS-0001
-        const codigo_interno = `${prefix}-${sequence}`;
+
+        let nextSequence = 1;
+        if (ultimaPropiedad?.codigo_interno) {
+            const partes = ultimaPropiedad.codigo_interno.split('-');
+            const ultimoNum = parseInt(partes[partes.length - 1]);
+            if (!isNaN(ultimoNum)) nextSequence = ultimoNum + 1;
+        }
+
+        const codigo_interno = `${prefix}-${nextSequence.toString().padStart(4, '0')}`;
 
         const propiedad = await prisma.propiedad.create({
             data: {
@@ -223,7 +236,26 @@ export const crearPropiedad = async (req, res) => {
                 tiene_gas_centralizado: tiene_gas_centralizado === 'true' || tiene_gas_centralizado === true,
                 tiene_lavanderia: tiene_lavanderia === 'true' || tiene_lavanderia === true,
                 tiene_cisterna: tiene_cisterna === 'true' || tiene_cisterna === true,
-                amoblado: amoblado === 'true' || amoblado === true
+                amoblado: amoblado === 'true' || amoblado === true,
+                valor_garantia: valor_garantia ? parseFloat(valor_garantia) : null,
+                mas_iva: mas_iva === 'true' || mas_iva === true,
+                // Calcular totales de comisión para auditoría
+                ...(() => {
+                    const precioNum = parseFloat(precio) || 0;
+                    const comisionNum = parseFloat(comision) || 0;
+                    const tipoC = tipo_comision || 'porcentaje';
+                    const aplicaIva = mas_iva === 'true' || mas_iva === true;
+                    const subtotal = tipoC === 'porcentaje'
+                        ? Math.round(precioNum * comisionNum / 100 * 100) / 100
+                        : comisionNum;
+                    const iva = aplicaIva ? Math.round(subtotal * 0.15 * 100) / 100 : 0;
+                    const total = Math.round((subtotal + iva) * 100) / 100;
+                    return {
+                        comision_subtotal: subtotal || null,
+                        comision_iva: iva || null,
+                        comision_total: total || null,
+                    };
+                })()
             }
         });
 
@@ -301,8 +333,11 @@ export const crearPropiedad = async (req, res) => {
             propiedad,
         });
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ mensaje: 'Error al registrar la propiedad' });
+        console.error('❌ Error en crearPropiedad:', error);
+        res.status(500).json({
+            mensaje: 'Error al registrar la propiedad',
+            error: error.message || String(error)
+        });
     }
 };
 
@@ -364,11 +399,21 @@ export const obtenerPropiedades = async (req, res) => {
         const limitNum = parseInt(limit);
         const skip = (pageNum - 1) * limitNum;
 
-        // Construir filtro
+        // Construir filtro base — admin ve TODOS los estados por defecto
+        // Si se especifica 'estado', filtra exactamente ese valor
+        // Si no se especifica, muestra todo (incluyendo inactivas para admin)
         const where = {
-            estado_publicacion: { not: 'inactiva' },
+            ...(estado
+                ? { estado_publicacion: estado }
+                : { estado_publicacion: 'disponible' } // por defecto solo disponibles
+            ),
             ...(agenteId && { agenteId: parseInt(agenteId) })
         };
+
+        // Cuando estado viene explícitamente como '__todas__' mostrar sin filtro de estado
+        if (estado === '__todas__') {
+            delete where.estado_publicacion;
+        }
 
         // Filtros adicionales globales
         // Filtros adicionales globales
@@ -399,13 +444,29 @@ export const obtenerPropiedades = async (req, res) => {
         }
 
         if (ubicacion) {
+            // Find which enums match the string first (handling _, spaces, and accents)
+            const validProvincias = [
+                'Azuay', 'Bolivar', 'Canar', 'Carchi', 'Chimborazo', 'Cotopaxi', 'El_Oro', 
+                'Esmeraldas', 'Galapagos', 'Guayas', 'Imbabura', 'Loja', 'Los_Rios', 'Manabi', 
+                'Morona_Santiago', 'Napo', 'Orellana', 'Pastaza', 'Pichincha', 'Santa_Elena', 
+                'Santo_Domingo', 'Sucumbios', 'Tungurahua', 'Zamora_Chinchipe'
+            ];
+            
+            const normalizeString = (str) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[\s_]/g, "");
+            const queryNorm = normalizeString(ubicacion);
+
+            const matchedProvincias = validProvincias.filter(p => normalizeString(p).includes(queryNorm));
+
             const ubicacionOr = [
                 { direccion: { contains: ubicacion, mode: 'insensitive' } },
                 { sector: { contains: ubicacion, mode: 'insensitive' } },
                 { ciudad: { contains: ubicacion, mode: 'insensitive' } },
-                { provincia: { contains: ubicacion, mode: 'insensitive' } },
                 { referencia: { contains: ubicacion, mode: 'insensitive' } }
             ];
+
+            if (matchedProvincias.length > 0) {
+                ubicacionOr.push({ provincia: { in: matchedProvincias } });
+            }
 
             if (where.AND) {
                 if (Array.isArray(where.AND)) where.AND.push({ OR: ubicacionOr });
@@ -416,7 +477,6 @@ export const obtenerPropiedades = async (req, res) => {
         }
 
         if (transaccion) where.transaccion = transaccion;
-        if (estado) where.estado_publicacion = estado;
         if (tipo) where.tipo_propiedad = tipo;
         if (ciudad) where.ciudad = { contains: ciudad, mode: 'insensitive' };
         if (sector) where.sector = { contains: sector, mode: 'insensitive' };
@@ -726,7 +786,8 @@ export const actualizarPropiedad = async (req, res) => {
         tiene_lavanderia,
         tiene_cisterna,
         amoblado,
-        valor_garantia // ADDED
+        valor_garantia, // ADDED
+        mas_iva
     } = req.body;
 
     let imagenesAEliminar = req.body.imagenesAEliminar || [];
@@ -831,6 +892,38 @@ export const actualizarPropiedad = async (req, res) => {
             return res.status(403).json({ mensaje: 'No tiene permisos para editar esta propiedad' });
         }
 
+        // --- LÓGICA DE ACTUALIZACIÓN DE CÓDIGO INTERNO ---
+        let nuevo_codigo_interno = propiedadExistente.codigo_interno;
+        if (tipo_propiedad && tipo_propiedad !== propiedadExistente.tipo_propiedad) {
+            const prefixMap = {
+                casa: 'CAS',
+                departamento: 'DEP',
+                suite: 'SUI',
+                local_comercial: 'LOC',
+                oficina: 'OFI',
+                bodega_galpon: 'BOD',
+                edificio: 'EDI',
+                terreno: 'TER',
+                finca: 'FIN',
+                quinta: 'QUI'
+            };
+            const prefix = prefixMap[tipo_propiedad] || 'PRO';
+
+            const ultimaPropiedad = await prisma.propiedad.findFirst({
+                where: { codigo_interno: { startsWith: `${prefix}-` } },
+                orderBy: { codigo_interno: 'desc' },
+                select: { codigo_interno: true }
+            });
+
+            let nextSequence = 1;
+            if (ultimaPropiedad?.codigo_interno) {
+                const partes = ultimaPropiedad.codigo_interno.split('-');
+                const ultimoNum = parseInt(partes[partes.length - 1]);
+                if (!isNaN(ultimoNum)) nextSequence = ultimoNum + 1;
+            }
+            nuevo_codigo_interno = `${prefix}-${nextSequence.toString().padStart(4, '0')}`;
+        }
+
         // Actualiza propiedad
         const propiedad = await prisma.propiedad.update({
             where: { id: parseInt(id) },
@@ -893,7 +986,26 @@ export const actualizarPropiedad = async (req, res) => {
                 tiene_lavanderia: tiene_lavanderia === 'true' || tiene_lavanderia === true,
                 tiene_cisterna: tiene_cisterna === 'true' || tiene_cisterna === true,
                 amoblado: amoblado === 'true' || amoblado === true,
-                valor_garantia: valor_garantia ? parseFloat(valor_garantia) : null // ADDED
+                valor_garantia: valor_garantia ? parseFloat(valor_garantia) : null, // ADDED
+                codigo_interno: nuevo_codigo_interno,
+                mas_iva: mas_iva === 'true' || mas_iva === true,
+                // Calcular totales de comisión para auditoría
+                ...(() => {
+                    const precioNum = parseFloat(precio) || 0;
+                    const comisionNum = parseFloat(comision) || 0;
+                    const tipoC = tipo_comision || 'porcentaje';
+                    const aplicaIva = mas_iva === 'true' || mas_iva === true;
+                    const subtotal = tipoC === 'porcentaje'
+                        ? Math.round(precioNum * comisionNum / 100 * 100) / 100
+                        : comisionNum;
+                    const iva = aplicaIva ? Math.round(subtotal * 0.15 * 100) / 100 : 0;
+                    const total = Math.round((subtotal + iva) * 100) / 100;
+                    return {
+                        comision_subtotal: subtotal || null,
+                        comision_iva: iva || null,
+                        comision_total: total || null,
+                    };
+                })()
             },
         });
 
@@ -1177,7 +1289,10 @@ export const obtenerPropiedadesPublicas = async (req, res) => {
                 { titulo: { contains: search, mode: 'insensitive' } },
                 { direccion: { contains: search, mode: 'insensitive' } },
                 { codigo_interno: { contains: search, mode: 'insensitive' } },
-                { descripcion: { contains: search, mode: 'insensitive' } }
+                { descripcion: { contains: search, mode: 'insensitive' } },
+                { ciudad: { contains: search, mode: 'insensitive' } },
+                { sector: { contains: search, mode: 'insensitive' } },
+                { referencia: { contains: search, mode: 'insensitive' } }
             ];
         }
 
@@ -1423,7 +1538,7 @@ export const obtenerRecomendaciones = async (req, res) => {
         if (!tieneInteracciones) {
             return res.status(200).json({
                 recomendaciones: [],
-                mensaje: "Aún no podemos recomendarte propiedades. Guarda algunas favoritas primero",
+                mensaje: "Aún no tenemos suficientes datos sobre ti. Explora e interactúa con propiedades para generar recomendaciones.",
                 tieneFavoritos: false,
                 algoritmo: "SVD (Basado en Contenido)"
             });
@@ -1585,7 +1700,7 @@ const obtenerRecomendacionesFallback = async (req, res, favoritos, todasLasPropi
             recomendaciones: recomendacionesFinales,
             mensaje: recomendacionesFinales.length > 0
                 ? `Encontramos ${recomendacionesFinales.length} propiedades que te pueden interesar (Fallback)`
-                : "No encontramos propiedades similares a tus favoritas",
+                : "Nuestro modelo de IA analiza tus interacciones (propiedades vistas, favoritas y consultas) para generar recomendaciones. Sigue explorando para obtener resultados personalizados.",
             tieneFavoritos: true,
             totalFavoritos: favoritos.length,
             algoritmo: "KNN (JavaScript - Fallback)",

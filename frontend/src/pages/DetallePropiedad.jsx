@@ -1,7 +1,7 @@
-import { PhotoProvider, PhotoView } from 'react-photo-view';
+﻿import { PhotoProvider, PhotoView } from 'react-photo-view';
 import 'react-photo-view/dist/react-photo-view.css';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
 import LayoutPublic from '../components/LayoutPublic';
 import CardPropiedadPublica from '../components/CardPropiedadPublica';
@@ -28,6 +28,7 @@ export default function DetallePropiedad() {
     const [formErrors, setFormErrors] = useState({});
     const [formSubmitted, setFormSubmitted] = useState(false);
     const [propiedadesSimilares, setPropiedadesSimilares] = useState([]);
+    const formRef = useRef(null);
 
     useEffect(() => {
         // Usar endpoint público sin autenticación
@@ -42,6 +43,7 @@ export default function DetallePropiedad() {
                 if (usuarioGuardado) {
                     try {
                         const usuario = JSON.parse(usuarioGuardado);
+                        // Prellenar con todos los datos disponibles del usuario logueado
                         datosUsuario = {
                             nombre: usuario.nombre || usuario.name || '',
                             email: usuario.email || '',
@@ -160,10 +162,12 @@ export default function DetallePropiedad() {
     };
 
     const handleInputChange = (e) => {
-        setFormData({
-            ...formData,
-            [e.target.name]: e.target.value,
-        });
+        const { name, value } = e.target;
+        setFormData(prev => ({ ...prev, [name]: value }));
+        // Limpiar el error del campo al empezar a escribir
+        if (formErrors[name]) {
+            setFormErrors(prev => ({ ...prev, [name]: undefined }));
+        }
     };
 
     const validateForm = () => {
@@ -173,6 +177,11 @@ export default function DetallePropiedad() {
             errors.email = 'El email es obligatorio';
         } else if (!/^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$/.test(formData.email)) {
             errors.email = 'Formato de email inválido';
+        }
+        if (!formData.telefono.trim()) {
+            errors.telefono = 'El teléfono es obligatorio';
+        } else if (!/^(09\d{8}|0[2-7]\d{7})$/.test(formData.telefono.trim())) {
+            errors.telefono = 'Ingresa un teléfono ecuatoriano válido (ej: 0991234567)';
         }
         if (!formData.mensaje.trim()) errors.mensaje = 'El mensaje es obligatorio';
         return errors;
@@ -184,6 +193,14 @@ export default function DetallePropiedad() {
         if (Object.keys(errors).length > 0) {
             setFormErrors(errors);
             toast.error('Por favor, corrige los errores en el formulario.');
+            // Scroll al primer campo con error
+            setTimeout(() => {
+                const firstError = formRef.current?.querySelector('.border-red-500');
+                if (firstError) {
+                    firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    firstError.focus();
+                }
+            }, 80);
             return;
         }
 
@@ -195,11 +212,20 @@ export default function DetallePropiedad() {
                 propiedadId: propiedad.id
             });
 
+            const token = localStorage.getItem('token');
+            // Sincronizar telefono en localStorage si esta logueado
+            if (token && formData.telefono) {
+                const usuario = JSON.parse(localStorage.getItem('usuario'));
+                if (usuario && (!usuario.telefono || usuario.telefono === '')) {
+                    usuario.telefono = formData.telefono;
+                    localStorage.setItem('usuario', JSON.stringify(usuario));
+                }
+            }
+
             toast.success('¡Mensaje enviado con éxito! Un agente te contactará pronto.');
             setFormSubmitted(true);
 
             // Registrar CONTACTO en el sistema de interacciones
-            const token = localStorage.getItem('token');
             if (token) {
                 axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/interacciones`,
                     { propiedadId: propiedad.id, tipo: 'CONTACTO' },
@@ -327,7 +353,7 @@ export default function DetallePropiedad() {
 
                                     {/* Facebook */}
                                     <a
-                                        href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(window.location.href)}`}
+                                        href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(window.location.href)}&quote=${encodeURIComponent(`${propiedad.titulo} — ${propiedad.transaccion === 'venta' ? 'En Venta' : 'En Alquiler'} en ${propiedad.ciudad}, ${propiedad.provincia?.replace(/_/g, ' ')}. ${Number(propiedad.precio).toLocaleString('es-EC', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })}`)}`}
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         className="bg-white/10 hover:bg-blue-600 backdrop-blur-sm p-2 rounded-lg transition-all border border-white/20 hover:border-blue-400"
@@ -560,15 +586,31 @@ export default function DetallePropiedad() {
                                     <span className="text-gray-700 text-sm font-bold">Ciudad:</span>
                                     <span className="font-normal text-gray-900 text-base">{propiedad.ciudad}</span>
                                 </div>
+                                {propiedad.sector && (
+                                    <div className="flex justify-between items-center py-3 border-b border-gray-100">
+                                        <span className="text-gray-700 text-sm font-bold">Sector / Barrio:</span>
+                                        <span className="font-normal text-gray-900 text-base text-right max-w-[60%]">{propiedad.sector}</span>
+                                    </div>
+                                )}
                                 <div className="flex justify-between items-start py-3 border-b border-gray-100">
                                     <span className="text-gray-700 text-sm font-bold">Dirección:</span>
                                     <span className="font-normal text-gray-900 text-base text-right max-w-[60%]">{propiedad.direccion}</span>
                                 </div>
+                                {propiedad.referencia && (
+                                    <div className="flex justify-between items-start py-3">
+                                        <span className="text-gray-700 text-sm font-bold">Referencia:</span>
+                                        <span className="font-normal text-gray-900 text-base text-right max-w-[60%] italic text-gray-600">{propiedad.referencia}</span>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>
 
-                    {/* 5. AMENITIES - Grid */}
+                    {/* 5. AMENITIES - Grid (Solo si hay al menos una amenidad) */}
+                    {[propiedad.tiene_balcon, propiedad.tiene_terraza, propiedad.tiene_patio, propiedad.tiene_piscina,
+                      propiedad.tiene_bodega, propiedad.tiene_area_bbq, propiedad.tiene_ascensor, propiedad.tiene_seguridad,
+                      propiedad.tiene_areas_comunales, propiedad.tiene_gas_centralizado, propiedad.tiene_cisterna,
+                      propiedad.tiene_lavanderia, propiedad.amoblado].some(Boolean) && (
                     <div className="bg-gradient-to-br from-white to-gray-50 rounded-2xl shadow-xl p-8 mb-8 border-l-4 border-orange-500">
                         <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
                             <svg className="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -604,7 +646,7 @@ export default function DetallePropiedad() {
                             {propiedad.tiene_bodega && (
                                 <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors border border-gray-200">
                                     <Package className="w-6 h-6 text-slate-600" />
-                                    <span className="text-sm font-medium text-gray-700">Bodega</span>
+                                    <span className="text-sm font-medium text-gray-700">Bodega / Cuarto de servicio</span>
                                 </div>
                             )}
                             {propiedad.tiene_area_bbq && (
@@ -622,19 +664,19 @@ export default function DetallePropiedad() {
                             {propiedad.tiene_seguridad && (
                                 <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors border border-gray-200">
                                     <ShieldCheck className="w-6 h-6 text-indigo-600" />
-                                    <span className="text-sm font-medium text-gray-700">Seguridad 24/7</span>
+                                    <span className="text-sm font-medium text-gray-700">Seguridad privada</span>
                                 </div>
                             )}
                             {propiedad.tiene_areas_comunales && (
                                 <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors border border-gray-200">
                                     <Users className="w-6 h-6 text-purple-600" />
-                                    <span className="text-sm font-medium text-gray-700">Áreas Comunales</span>
+                                    <span className="text-sm font-medium text-gray-700">Áreas comunales</span>
                                 </div>
                             )}
                             {propiedad.tiene_gas_centralizado && (
                                 <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors border border-gray-200">
                                     <Flame className="w-6 h-6 text-amber-500" />
-                                    <span className="text-sm font-medium text-gray-700">Gas Centralizado</span>
+                                    <span className="text-sm font-medium text-gray-700">Gas centralizado</span>
                                 </div>
                             )}
                             {propiedad.tiene_cisterna && (
@@ -657,6 +699,7 @@ export default function DetallePropiedad() {
                             )}
                         </div>
                     </div>
+                    )}
 
                     {/* 6. CONTACT SECTION - Prominent, Full Width */}
                     <div className="bg-gradient-to-br from-orange-50 to-amber-50 rounded-2xl shadow-xl p-8 mb-8 border-2 border-orange-200">
@@ -664,7 +707,7 @@ export default function DetallePropiedad() {
                             ¿Interesado en esta propiedad?
                         </h3>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="flex justify-center">
 {/* WhatsApp Button formulario de contacto - COMENTADO
                             <div className="flex flex-col justify-center">
                                 <a
@@ -683,45 +726,117 @@ export default function DetallePropiedad() {
                             */}
 
                             {/* Contact Form */}
-                            <div className="bg-white rounded-xl p-6 shadow-md">
+                            <div className="bg-white rounded-xl p-6 shadow-md w-full max-w-lg">
                                 <h4 className="font-semibold text-gray-900 mb-4">O envía un mensaje:</h4>
-                                <form onSubmit={handleFormSubmit} className="space-y-3">
-                                    <input
-                                        type="text"
-                                        name="nombre"
-                                        placeholder="Nombre completo"
-                                        value={formData.nombre}
-                                        onChange={handleInputChange}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm"
-                                        required
-                                    />
-                                    <input
-                                        type="email"
-                                        name="email"
-                                        placeholder="Email"
-                                        value={formData.email}
-                                        onChange={handleInputChange}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm"
-                                        required
-                                    />
-                                    <input
-                                        type="tel"
-                                        name="telefono"
-                                        placeholder="Teléfono"
-                                        value={formData.telefono}
-                                        onChange={handleInputChange}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm"
-                                        required
-                                    />
-                                    <textarea
-                                        name="mensaje"
-                                        placeholder="Mensaje"
-                                        value={formData.mensaje}
-                                        onChange={handleInputChange}
-                                        rows="3"
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm resize-none"
-                                        required
-                                    ></textarea>
+                                <form ref={formRef} onSubmit={handleFormSubmit} className="space-y-3" noValidate>
+                                    {/* Nombre */}
+                                    <div>
+                                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                                            Nombre completo <span className="text-red-500">*</span>
+                                        </label>
+                                        <input
+                                            type="text"
+                                            name="nombre"
+                                            placeholder="Nombre completo"
+                                            value={formData.nombre}
+                                            onChange={handleInputChange}
+                                            className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm transition-colors ${
+                                                formErrors.nombre
+                                                    ? 'border-red-500 bg-red-50 focus:ring-red-400'
+                                                    : 'border-gray-300'
+                                            }`}
+                                        />
+                                        {formErrors.nombre && (
+                                            <p className="mt-1 text-xs text-red-600 flex items-center gap-1">
+                                                <svg className="w-3 h-3 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                                </svg>
+                                                {formErrors.nombre}
+                                            </p>
+                                        )}
+                                    </div>
+
+                                    {/* Email */}
+                                    <div>
+                                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                                            Email <span className="text-red-500">*</span>
+                                        </label>
+                                        <input
+                                            type="email"
+                                            name="email"
+                                            placeholder="Email"
+                                            value={formData.email}
+                                            onChange={handleInputChange}
+                                            className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm transition-colors ${
+                                                formErrors.email
+                                                    ? 'border-red-500 bg-red-50 focus:ring-red-400'
+                                                    : 'border-gray-300'
+                                            }`}
+                                        />
+                                        {formErrors.email && (
+                                            <p className="mt-1 text-xs text-red-600 flex items-center gap-1">
+                                                <svg className="w-3 h-3 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                                </svg>
+                                                {formErrors.email}
+                                            </p>
+                                        )}
+                                    </div>
+
+                                    {/* Teléfono */}
+                                    <div>
+                                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                                            Teléfono <span className="text-red-500">*</span>
+                                        </label>
+                                        <input
+                                            type="tel"
+                                            name="telefono"
+                                            placeholder="Teléfono"
+                                            value={formData.telefono}
+                                            onChange={handleInputChange}
+                                            className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm transition-colors ${
+                                                formErrors.telefono
+                                                    ? 'border-red-500 bg-red-50 focus:ring-red-400'
+                                                    : 'border-gray-300'
+                                            }`}
+                                        />
+                                        {formErrors.telefono && (
+                                            <p className="mt-1 text-xs text-red-600 flex items-center gap-1">
+                                                <svg className="w-3 h-3 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                                </svg>
+                                                {formErrors.telefono}
+                                            </p>
+                                        )}
+                                    </div>
+
+                                    {/* Mensaje */}
+                                    <div>
+                                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                                            Mensaje <span className="text-red-500">*</span>
+                                        </label>
+                                        <textarea
+                                            name="mensaje"
+                                            placeholder="Mensaje"
+                                            value={formData.mensaje}
+                                            onChange={handleInputChange}
+                                            rows="3"
+                                            className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm resize-none transition-colors ${
+                                                formErrors.mensaje
+                                                    ? 'border-red-500 bg-red-50 focus:ring-red-400'
+                                                    : 'border-gray-300'
+                                            }`}
+                                        />
+                                        {formErrors.mensaje && (
+                                            <p className="mt-1 text-xs text-red-600 flex items-center gap-1">
+                                                <svg className="w-3 h-3 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                                </svg>
+                                                {formErrors.mensaje}
+                                            </p>
+                                        )}
+                                    </div>
+
                                     <button
                                         type="submit"
                                         disabled={formSubmitted}

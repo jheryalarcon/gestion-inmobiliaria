@@ -4,11 +4,12 @@ import {
     obtenerClientes,
     obtenerCliente,
     actualizarCliente,
-
     obtenerEstadisticas,
     desactivarCliente,
     reactivarCliente,
-    registrarContactoPublico
+    registrarContactoPublico,
+    verificarEmail,
+    verificarCedula
 } from '../controllers/cliente.controller.js';
 import verificarToken from '../middlewares/verificarToken.js';
 import esAdmin from '../middlewares/esAdmin.js';
@@ -30,6 +31,8 @@ const esAgenteOAdmin = (req, res, next) => {
 // Rutas para agentes y administradores
 router.post('/', verificarToken, esAgenteOAdmin, crearCliente);
 router.get('/', verificarToken, esAgenteOAdmin, obtenerClientes);
+router.get('/verificar/email', verificarToken, esAgenteOAdmin, verificarEmail);
+router.get('/verificar/cedula', verificarToken, esAgenteOAdmin, verificarCedula);
 router.get('/estadisticas', verificarToken, esAgenteOAdmin, obtenerEstadisticas);
 router.get('/:id', verificarToken, esAgenteOAdmin, obtenerCliente);
 router.put('/:id', verificarToken, esAgenteOAdmin, actualizarCliente);

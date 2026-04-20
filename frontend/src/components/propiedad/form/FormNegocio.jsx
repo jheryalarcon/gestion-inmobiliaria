@@ -1,4 +1,4 @@
-import { Trash2, Lock } from 'lucide-react';
+﻿import { Trash2, Lock } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 
 export default function FormNegocio({
@@ -18,6 +18,17 @@ export default function FormNegocio({
     const [mostrarTodos, setMostrarTodos] = useState(false);
     const searchRef = useRef(null);
     const [duracionMeses, setDuracionMeses] = useState('');
+
+    // ⇢ Inicializar duración al cargar datos existentes (modo edición)
+    useEffect(() => {
+        if (datos.fecha_captacion && datos.fecha_fin_contrato) {
+            const inicio = new Date(datos.fecha_captacion);
+            const fin = new Date(datos.fecha_fin_contrato);
+            const meses = (fin.getFullYear() - inicio.getFullYear()) * 12 + (fin.getMonth() - inicio.getMonth());
+            if (meses > 0) setDuracionMeses(String(meses));
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []); // Solo al montar (modo edición inicial)
 
     const [mostrarAgentes, setMostrarAgentes] = useState(false);
     const [busquedaAgente, setBusquedaAgente] = useState('');
@@ -119,8 +130,7 @@ export default function FormNegocio({
                 <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 mb-6 flex gap-3">
                     <Lock className="w-5 h-5 text-gray-400 shrink-0" />
                     <p className="text-sm text-gray-600">
-                        Esta información es <strong>confidencial</strong> y solo visible para agentes.
-                        Útil para gestionar el contrato y la relación con el propietario.
+                        Esta información es <strong>confidencial</strong> y solo visible para <strong>agentes y administradores</strong>.
                     </p>
                 </div>
 
@@ -135,7 +145,7 @@ export default function FormNegocio({
                             <label className="block text-sm font-medium text-gray-700 mb-2">Buscar y agregar propietario <span className="text-red-500">*</span></label>
                             <input
                                 type="text"
-                                placeholder="Buscar cliente por nombre, email o cédula... (Doble clic para ver todos)"
+                                placeholder="Escribe para buscar por nombre, email o cédula"
                                 value={busquedaCliente}
                                 onChange={handleSearchChange}
                                 onDoubleClick={() => setMostrarTodos(true)}
@@ -198,19 +208,26 @@ export default function FormNegocio({
                                                     <div className="text-xs text-gray-500">{p.email}</div>
                                                     {p.cedula && <div className="text-[10px] text-gray-400 mt-0.5">CI: {p.cedula}</div>}
                                                 </td>
-                                                <td className="px-4 py-3">
-                                                    <div className="flex items-center bg-white border border-gray-200 rounded-md px-2 py-1 focus-within:ring-1 focus-within:ring-orange-500 focus-within:border-orange-500 shadow-sm">
-                                                        <input
-                                                            type="number"
-                                                            min="0"
-                                                            max="100"
-                                                            step="0.01"
-                                                            value={p.porcentaje}
-                                                            onChange={(e) => handlePropietarioChange(idx, 'porcentaje', e.target.value)}
-                                                            className="w-full text-right text-sm outline-none bg-transparent"
-                                                            placeholder="0"
-                                                        />
-                                                        <span className="ml-1 text-gray-400 text-xs">%</span>
+                                                <td className="px-4 py-3" data-field="propietarios">
+                                                    <div className="flex flex-col">
+                                                        <div className="flex items-center bg-white border border-gray-200 rounded-md px-2 py-1 focus-within:ring-1 focus-within:ring-orange-500 focus-within:border-orange-500 shadow-sm">
+                                                            <input
+                                                                type="number"
+                                                                step="0.01"
+                                                                value={p.porcentaje}
+                                                                onChange={(e) => handlePropietarioChange(idx, 'porcentaje', e.target.value)}
+                                                                className="w-full text-right text-sm outline-none bg-transparent"
+                                                                placeholder="0"
+                                                            />
+                                                            <span className="ml-1 text-gray-400 text-xs">%</span>
+                                                        </div>
+                                                        {(() => {
+                                                            const val = parseFloat(p.porcentaje);
+                                                            if (p.porcentaje !== '' && (isNaN(val) || val < 0 || val > 100)) {
+                                                                return <p className="text-red-600 text-[10px] mt-1">Debe ser entre 0 y 100</p>;
+                                                            }
+                                                            return null;
+                                                        })()}
                                                     </div>
                                                 </td>
                                                 <td className="px-4 py-3 text-center">
@@ -300,7 +317,7 @@ export default function FormNegocio({
                                     <input
                                         type="number"
                                         name="valor_garantia"
-                                        value={datos.valor_garantia}
+                                        value={datos.valor_garantia ?? ''}
                                         onChange={handleChange}
                                         className={`w-full pl-8 border rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-orange-500 bg-white shadow-sm transition ${errores.valor_garantia ? 'border-red-300' : 'border-gray-300'}`}
                                         placeholder="0.00"
@@ -418,9 +435,9 @@ export default function FormNegocio({
                                 {errores.fecha_captacion && <p className="text-red-600 text-[10px] mt-1">{errores.fecha_captacion}</p>}
                             </div>
 
-                            <div>
+                            <div data-field="fecha_fin_contrato">
                                 <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                    Vencimiento {datos.tipo_contrato && <span className="text-red-500">*</span>}
+                                    Vencimiento <span className="text-red-500">*</span>
                                 </label>
                                 <input
                                     type="date"
@@ -461,7 +478,7 @@ export default function FormNegocio({
                                         <div className="relative" ref={agentRef}>
                                             <input
                                                 type="text"
-                                                placeholder="Buscar agente..."
+                                                placeholder="Buscar agente por nombre o correo..."
                                                 value={getAgenteInputValue()}
                                                 onChange={(e) => {
                                                     setBusquedaAgente(e.target.value);

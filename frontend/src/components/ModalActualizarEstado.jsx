@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import axios from 'axios';
 import { verificarToken } from '../utils/tokenUtils';
+import { toast } from 'sonner';
 
 export default function ModalActualizarEstado({
     propiedadId,
@@ -54,7 +55,8 @@ export default function ModalActualizarEstado({
                 }
             );
             console.log('Respuesta del servidor:', response.data);
-            setMensaje('Estado actualizado correctamente');
+            setMensaje('Estado actualizado correctamente.');
+            toast.success('Estado actualizado correctamente.', { id: 'estado-actualizado' });
             onSuccess(nuevoEstado);
             setTimeout(onClose, 1000); // autocierra el modal después de 1 segundo
         } catch (error) {

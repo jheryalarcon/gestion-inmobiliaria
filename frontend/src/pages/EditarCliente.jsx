@@ -6,7 +6,7 @@ import SelectTipoCliente from '../components/SelectTipoCliente';
 import DocumentManager from '../components/DocumentManager';
 import { toast } from 'sonner';
 import { PageSpinner, ButtonSpinner } from '../components/Spinner';
-import { UserCheck, Save, X, FileText, User, Phone, Mail, AlertTriangle, CreditCard } from 'lucide-react';
+import { UserCheck, Save, X, FileText, User, Phone, Mail, AlertTriangle, CreditCard, AlignLeft } from 'lucide-react';
 
 export default function EditarCliente() {
     const { id } = useParams();
@@ -29,7 +29,8 @@ export default function EditarCliente() {
         email: '',
         cedula: '',
         tipo_cliente: '',
-        agenteId: ''
+        agenteId: '',
+        observaciones: ''
     });
 
     const [errores, setErrores] = useState({});
@@ -43,8 +44,12 @@ export default function EditarCliente() {
         email: '',
         cedula: '',
         tipo_cliente: '',
-        agenteId: ''
+        agenteId: '',
+        observaciones: ''
     });
+
+    // Rastrear si hubo cambios en documentos (subidas/eliminaciones)
+    const [documentosCambiados, setDocumentosCambiados] = useState(false);
 
     // --- AGENT SEARCH STATE --- (Updated)
     const [mostrarAgentes, setMostrarAgentes] = useState(false);
@@ -182,7 +187,8 @@ export default function EditarCliente() {
                 email: clienteData.email || '',
                 cedula: clienteData.cedula || '',
                 tipo_cliente: clienteData.tipo_cliente || '',
-                agenteId: clienteData.agenteId?.toString() || ''
+                agenteId: clienteData.agenteId?.toString() || '',
+                observaciones: clienteData.observaciones || ''
             });
 
             // Cargar documentos
@@ -197,6 +203,7 @@ export default function EditarCliente() {
             initialDatos.current.cedula = clienteData.cedula || '';
             initialDatos.current.tipo_cliente = clienteData.tipo_cliente || '';
             initialDatos.current.agenteId = clienteData.agenteId?.toString() || '';
+            initialDatos.current.observaciones = clienteData.observaciones || '';
         } catch (error) {
             console.error('Error al cargar cliente:', error);
             if (error.response?.status === 403) {
@@ -287,23 +294,26 @@ export default function EditarCliente() {
                 }
             }
 
-            // Validación de teléfono (Permitir + y espacios)
+            // Validación de teléfono: formato ecuatoriano 10 dígitos
             if (name === 'telefono' && value.trim() !== '') {
-                const telefonoRegex = /^[\d\s\-\+\(\)]+$/;
-                if (!telefonoRegex.test(value)) {
-                    nuevos.telefono = 'Formato de teléfono inválido (solo números, espacios, +, -)';
+                const soloDigitos = value.replace(/\s/g, '');
+                const telefonoRegex = /^(09\d{8}|0[2-7]\d{7})$/;
+                if (!/^[\d\s]+$/.test(value)) {
+                    nuevos.telefono = 'El teléfono solo debe contener números';
+                } else if (!telefonoRegex.test(soloDigitos)) {
+                    nuevos.telefono = 'Ingresa un número ecuatoriano válido de 10 dígitos (ej: 0991234567)';
                 } else {
                     delete nuevos.telefono;
                 }
             }
 
-            // Validación de Cédula/RUC (Solo números y max 13)
+            // Validación de Cédula: exactamente 10 dígitos (Ecuador)
             if (name === 'cedula' && value.trim() !== '') {
                 const cedulaRegex = /^\d+$/;
                 if (!cedulaRegex.test(value)) {
-                    nuevos.cedula = 'La cédula/RUC debe contener solo números';
-                } else if (value.length > 13) {
-                    nuevos.cedula = 'La cédula/RUC no debe superar los 13 dígitos';
+                    nuevos.cedula = 'La cédula debe contener solo números';
+                } else if (value.length !== 10) {
+                    nuevos.cedula = 'La cédula debe tener exactamente 10 dígitos';
                 } else {
                     delete nuevos.cedula;
                 }
@@ -333,18 +343,22 @@ export default function EditarCliente() {
             nuevosErrores.email = 'Formato de correo electrónico inválido';
         }
 
-        // Validación de Cédula
+        // Validación de Cédula: exactamente 10 dígitos
         if (datos.cedula.trim()) {
             if (!/^\d+$/.test(datos.cedula)) {
-                nuevosErrores.cedula = 'La cédula/RUC debe contener solo números';
-            } else if (datos.cedula.length > 13) {
-                nuevosErrores.cedula = 'Máximo 13 dígitos';
+                nuevosErrores.cedula = 'La cédula debe contener solo números';
+            } else if (datos.cedula.length !== 10) {
+                nuevosErrores.cedula = 'La cédula debe tener exactamente 10 dígitos';
             }
         }
 
-        // Validación de teléfono
-        if (datos.telefono.trim() && !/^[\d\s\-\+\(\)]+$/.test(datos.telefono)) {
-            nuevosErrores.telefono = 'Formato de teléfono inválido';
+        // Validación de teléfono: formato ecuatoriano 10 dígitos
+        if (datos.telefono.trim()) {
+            const soloDigitos = datos.telefono.replace(/\s/g, '');
+            const telefonoRegex = /^(09\d{8}|0[2-7]\d{7})$/;
+            if (!telefonoRegex.test(soloDigitos)) {
+                nuevosErrores.telefono = 'Ingresa un número ecuatoriano válido de 10 dígitos (ej: 0991234567)';
+            }
         }
 
         return nuevosErrores;
@@ -366,7 +380,7 @@ export default function EditarCliente() {
                     Authorization: `Bearer ${token}`
                 }
             });
-            return response.data.documentos; // Retorna array de docs creados
+            return response.data.documentos;
         };
 
         toast.promise(uploadPromise(), {
@@ -376,6 +390,7 @@ export default function EditarCliente() {
                     ...prev,
                     [key]: [...prev[key], ...newDocs]
                 }));
+                setDocumentosCambiados(true); // Marcar cambio de documentos
                 return 'Documentos subidos correctamente';
             },
             error: 'Error al subir documentos'
@@ -388,7 +403,7 @@ export default function EditarCliente() {
 
         const deletePromise = async () => {
             const token = localStorage.getItem('token');
-            await axios.delete(`${import.meta.env.VITE_BACKEND_URL}/api/documentos/cliente/${docToDelete.id}`, {
+            await axios.delete(`${import.meta.env.VITE_BACKEND_URL}/api/documentos/cliente/doc/${docToDelete.id}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
         };
@@ -400,6 +415,7 @@ export default function EditarCliente() {
                     ...prev,
                     [key]: prev[key].filter((_, i) => i !== index)
                 }));
+                setDocumentosCambiados(true); // Marcar cambio de documentos
                 return 'Documento eliminado';
             },
             error: 'Error al eliminar documento'
@@ -408,40 +424,66 @@ export default function EditarCliente() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-
         setErrores({});
-        const nuevosErrores = validarFormulario();
+        setSaving(true);
 
-        if (Object.keys(nuevosErrores).length > 0) {
-            setErrores(nuevosErrores);
+        // 1. Validación local (campos obligatorios y formatos)
+        const erroresLocales = validarFormulario();
+
+        // 2. Verificaciones asíncronas de duplicados (excluye al cliente actual)
+        const token = localStorage.getItem('token');
+        const baseUrl = import.meta.env.VITE_BACKEND_URL;
+        const headers = { Authorization: `Bearer ${token}` };
+        const checks = [];
+
+        const emailRegex = /^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$/;
+        if (datos.email?.trim() && emailRegex.test(datos.email.trim())) {
+            checks.push(
+                fetch(`${baseUrl}/api/clientes/verificar/email?email=${encodeURIComponent(datos.email.trim())}&clienteId=${id}`, { headers })
+                    .then(r => r.json())
+                    .then(d => !d.disponible ? { campo: 'email', mensaje: d.mensaje } : null)
+                    .catch(() => null)
+            );
+        }
+
+        if (datos.cedula?.trim() && /^\d{10}$/.test(datos.cedula.trim())) {
+            checks.push(
+                fetch(`${baseUrl}/api/clientes/verificar/cedula?cedula=${encodeURIComponent(datos.cedula.trim())}&clienteId=${id}`, { headers })
+                    .then(r => r.json())
+                    .then(d => !d.disponible ? { campo: 'cedula', mensaje: d.mensaje } : null)
+                    .catch(() => null)
+            );
+        }
+
+        const resultadosChecks = await Promise.all(checks);
+        const erroresDuplicados = {};
+        resultadosChecks.forEach(r => { if (r) erroresDuplicados[r.campo] = r.mensaje; });
+
+        // 3. Fusionar todos los errores
+        const todosLosErrores = { ...erroresLocales, ...erroresDuplicados };
+
+        if (Object.keys(todosLosErrores).length > 0) {
+            setErrores(todosLosErrores);
+            setSaving(false);
             toast.error('Por favor, corrige los errores en el formulario.', {
-                id: 'errores-validacion' // Evita duplicados
+                id: 'errores-validacion'
             });
-
-            // Scroll al primer error
             setTimeout(() => {
-                const primerCampoConError = Object.keys(nuevosErrores)[0];
-                if (primerCampoConError) {
-                    const selector = `[name="${primerCampoConError}"]`;
-                    // Intentar encontrar el input, textarea o select
+                const primerCampo = Object.keys(todosLosErrores)[0];
+                if (primerCampo) {
+                    const selector = `[name="${primerCampo}"]`;
                     const elemento = document.querySelector(selector) ||
                         document.querySelector(`${selector} select`) ||
                         document.querySelector(`${selector} input`) ||
                         document.querySelector(`${selector} textarea`);
-
                     if (elemento) {
-                        elemento.scrollIntoView({
-                            behavior: 'smooth',
-                            block: 'center'
-                        });
+                        elemento.scrollIntoView({ behavior: 'smooth', block: 'center' });
                         elemento.focus();
                     }
                 }
             }, 100);
             return;
         }
-
-        setSaving(true);
 
         try {
             const token = localStorage.getItem('token');
@@ -460,28 +502,29 @@ export default function EditarCliente() {
                 },
             });
 
-            toast.success('👤 Cliente actualizado correctamente', {
-                duration: 1000,
+            toast.success('Cliente actualizado correctamente', {
+                duration: 2000,
             });
 
-            // Actualizar referencia de datos iniciales para evitar el blocker
-            initialDatos.current = { ...datos };
-            // Aseguramos que no incluya campos extra si los hubiera
-            delete initialDatos.current.agenteId; // Si fuera necesario, pero mejor mantener consistencia
-            // Re-asignar agenteId si es relevante, pero simple spread debería bastar si la estructura es igual
+            // Actualizar referencia de datos iniciales y limpiar flag de documentos para evitar el blocker
             initialDatos.current = {
                 nombre: datos.nombre,
                 telefono: datos.telefono,
                 email: datos.email,
                 cedula: datos.cedula,
                 tipo_cliente: datos.tipo_cliente,
-                agenteId: datos.agenteId
+                agenteId: datos.agenteId,
+                observaciones: datos.observaciones
             };
-
+            setDocumentosCambiados(false);
+            
+            // Navegar automáticamente después de guardar
             setTimeout(() => {
-                navigate(
-                    usuario.rol === 'admin' ? '/admin/panel-clientes' : '/agente/panel-clientes'
-                );
+                if (usuario?.rol === 'admin') {
+                    navigate('/admin/panel-clientes');
+                } else {
+                    navigate('/agente/panel-clientes');
+                }
             }, 1000);
         } catch (error) {
             console.error('Error al actualizar cliente:', error);
@@ -547,10 +590,12 @@ export default function EditarCliente() {
     };
 
     const hayCambios = () => {
-        // Compara datos actuales con los iniciales
+        // Compara datos de formulario con los datos iniciales
         for (const key in initialDatos.current) {
             if (datos[key] !== initialDatos.current[key]) return true;
         }
+        // También detectar si se subieron/eliminaron documentos
+        if (documentosCambiados) return true;
         return false;
     };
 
@@ -605,7 +650,7 @@ export default function EditarCliente() {
                 </div>
 
                 <div className="p-8">
-                    <form onSubmit={handleSubmit} className="space-y-8">
+                    <form onSubmit={handleSubmit} noValidate className="space-y-8">
                         {/* ALERTA DE CONVERSIÓN DE PROSPECTO */}
                         {datos.tipo_cliente !== 'prospecto' && cliente?.tipo_cliente === 'prospecto' && (
                             <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r-lg mb-6">
@@ -655,7 +700,7 @@ export default function EditarCliente() {
                                         <input
                                             type="text"
                                             name="cedula"
-                                            maxLength="13"
+                                            maxLength="10"
                                             value={datos.cedula}
                                             onChange={(e) => {
                                                 const val = e.target.value;
@@ -733,17 +778,29 @@ export default function EditarCliente() {
 
                         {/* INFORMACIÓN ADICIONAL */}
                         <section>
+                            <h3 className="text-lg font-bold text-gray-800 mb-5 flex items-center gap-2 border-b pb-2">
+                                <AlignLeft className="w-5 h-5 text-orange-500" />
+                                Información Adicional
+                            </h3>
                             <div className="space-y-6">
-                                {/* AGENTE ASIGNADO - VISIBLE PARA ADMIN O SI ES PROSPECTO */}
-                                {(usuario?.rol === 'admin' || cliente?.tipo_cliente === 'prospecto') && (
+                                {/* OBSERVACIONES */}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Observaciones</label>
+                                    <textarea
+                                        name="observaciones"
+                                        value={datos.observaciones}
+                                        onChange={handleChange}
+                                        rows="4"
+                                        className={`w-full border rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-orange-500/20 bg-gray-50/50 transition-colors ${errores.observaciones ? 'border-red-400' : 'border-gray-300 focus:border-orange-500'}`}
+                                        placeholder="Agrega notas importantes, preferencias o detalles adicionales..."
+                                    ></textarea>
+                                </div>
+
+                                {/* AGENTE ASIGNADO - VISIBLE SOLO PARA ADMIN */}
+                                {usuario?.rol === 'admin' && (
                                     <div ref={agentRef}>
                                         <label className="block text-sm font-bold text-gray-800 mb-2">
                                             Agente Responsable
-                                            {cliente?.tipo_cliente === 'prospecto' && usuario?.rol !== 'admin' && (
-                                                <span className="ml-2 text-xs font-normal text-green-600 bg-green-50 px-2 py-0.5 rounded-full border border-green-100">
-                                                    Editable (Prospecto)
-                                                </span>
-                                            )}
                                         </label>
                                         <div className="relative">
                                             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -752,7 +809,7 @@ export default function EditarCliente() {
                                             <input
                                                 type="text"
                                                 className="w-full pl-10 pr-10 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-shadow"
-                                                placeholder="Buscar agente..."
+                                                placeholder="Buscar agente por nombre o correo..."
                                                 value={getAgenteInputValue()}
                                                 onChange={(e) => {
                                                     setBusquedaAgente(e.target.value);
@@ -810,19 +867,6 @@ export default function EditarCliente() {
                                     </div>
                                 )}
 
-                                {/* VISUALIZACIÓN DE SOLO LECTURA SI NO ES PROSPECTO Y NO ES ADMIN */}
-                                {usuario?.rol !== 'admin' && cliente?.tipo_cliente !== 'prospecto' && (
-                                    <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                                        <label className="block text-sm font-bold text-gray-700 mb-1">Agente Responsable</label>
-                                        <div className="flex items-center gap-2 text-gray-600">
-                                            <User className="w-4 h-4" />
-                                            <span>{getAgenteInputValue() || 'Sin asignar'}</span>
-                                        </div>
-                                        <p className="text-xs text-gray-400 mt-2">
-                                            Solo el administrador puede reasignar clientes consolidados.
-                                        </p>
-                                    </div>
-                                )}
 
                                 {/* INFORMACIÓN DE AUDITORÍA (solo si está inactivo) */}
                                 {!cliente.activo && (
@@ -850,10 +894,13 @@ export default function EditarCliente() {
 
                         {/* DOCUMENTACIÓN (Modo Cliente) */}
                         <section className="bg-orange-50 rounded-xl p-6 border border-orange-100">
-                            <h3 className="text-lg font-bold text-orange-800 mb-4 flex items-center gap-2">
+                            <h3 className="text-lg font-bold text-orange-800 mb-1 flex items-center gap-2">
                                 <FileText className="w-5 h-5" />
                                 Documentación del Cliente
                             </h3>
+                            <p className="text-xs text-orange-600 mb-4">
+                                Formatos aceptados: <strong>PDF, JPG, PNG</strong> · Peso máximo por archivo: <strong>10 MB</strong>
+                            </p>
                             <div className="w-full">
                                 <DocumentManager
                                     mode="cliente"

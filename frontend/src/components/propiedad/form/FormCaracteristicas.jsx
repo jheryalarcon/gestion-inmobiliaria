@@ -26,7 +26,7 @@ export default function FormCaracteristicas({ datos, handleChange, errores }) {
                 </div>
                 <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* ESTADO FÍSICO */}
-                    <div>
+                    <div data-field="estado_propiedad">
                         <label className="block text-base font-semibold text-gray-800 mb-1">Estado Físico <span className="text-red-500">*</span></label>
                         <select
                             name="estado_propiedad"
@@ -44,7 +44,7 @@ export default function FormCaracteristicas({ datos, handleChange, errores }) {
                         {errores.estado_propiedad && <p className="text-red-600 text-sm mt-1 font-medium">{errores.estado_propiedad}</p>}
                     </div>
                     {/* ÁREA TERRENO */}
-                    <div>
+                    <div data-field="area_terreno">
                         <label className="block text-base font-semibold text-gray-800 mb-1">Área terreno <span className="text-red-500">*</span></label>
                         <div className="flex gap-2">
                             <input
@@ -80,17 +80,25 @@ export default function FormCaracteristicas({ datos, handleChange, errores }) {
                                 className={`w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500 bg-white shadow-sm transition ${errores.area_construccion ? 'border-red-400' : 'border-gray-300'}`}
                                 placeholder="Ej: 150"
                             />
-                            <select
-                                name="unidad_area_construccion"
-                                value={datos.unidad_area_construccion}
-                                onChange={handleChange}
-                                className="border border-gray-300 rounded-lg px-2 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500 bg-white shadow-sm text-sm"
-                            >
-                                <option value="m2">m²</option>
-                                <option value="ha">Ha</option>
-                            </select>
+                            {/* Solo m² para construcción (no Ha) */}
+                            <span className="flex items-center px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-sm text-gray-600 font-medium">m²</span>
                         </div>
                         {errores.area_construccion && <p className="text-red-600 text-sm mt-1 font-medium">{errores.area_construccion}</p>}
+                    </div>
+                    {/* AÑO DE CONSTRUCCIÓN */}
+                    <div data-field="anio_construccion">
+                        <label className="block text-base font-semibold text-gray-800 mb-1">Año de construcción</label>
+                        <input
+                            type="number"
+                            name="anio_construccion"
+                            value={datos.anio_construccion}
+                            onChange={handleChange}
+                            min="1900"
+                            max={new Date().getFullYear()}
+                            className={`w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500 bg-white shadow-sm transition ${errores.anio_construccion ? 'border-red-400' : 'border-gray-300'}`}
+                            placeholder={`Ej: ${new Date().getFullYear() - 5}`}
+                        />
+                        {errores.anio_construccion && <p className="text-red-600 text-sm mt-1 font-medium">{errores.anio_construccion}</p>}
                     </div>
                     {/* HABITACIONES */}
                     <div>

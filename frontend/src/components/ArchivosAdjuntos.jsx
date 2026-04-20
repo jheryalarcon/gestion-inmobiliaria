@@ -56,9 +56,9 @@ const ArchivosAdjuntos = ({ negociacionId, esAgenteResponsable, esAdmin }) => {
                 return;
             }
 
-            // Validar tamaño (5MB)
-            if (archivo.size > 5 * 1024 * 1024) {
-                toast.error('El archivo no puede superar los 5MB');
+            // Validar tamaño (10MB)
+            if (archivo.size > 10 * 1024 * 1024) {
+                toast.error('El archivo no puede superar los 10MB');
                 return;
             }
 
@@ -203,6 +203,9 @@ const ArchivosAdjuntos = ({ negociacionId, esAgenteResponsable, esAdmin }) => {
                                 accept=".pdf,.jpg,.jpeg,.png"
                                 className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
                             />
+                            <p className="text-xs text-gray-400 mt-1">
+                                Formatos: <strong>PDF, JPG, PNG</strong> &nbsp;|&nbsp; Máx. <strong>10 MB</strong>
+                            </p>
                         </div>
 
                         <div>

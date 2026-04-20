@@ -33,12 +33,14 @@ const upload = multer({
         fileSize: 10 * 1024 * 1024, // ✅ 10MB por archivo
     },
     fileFilter: (req, file, cb) => {
-        const tiposPermitidos = /jpeg|jpg|png|webp|pdf|doc|docx/;
-        const extname = tiposPermitidos.test(path.extname(file.originalname).toLowerCase());
-        if (extname) {
+        const extPermitidas = /pdf|jpeg|jpg|png/;
+        const mimesPermitidos = /application\/pdf|image\/jpeg|image\/jpg|image\/png/;
+        const extname = extPermitidas.test(path.extname(file.originalname).toLowerCase());
+        const mimetype = mimesPermitidos.test(file.mimetype);
+        if (extname && mimetype) {
             return cb(null, true);
         }
-        cb(new Error('Formato de archivo no permitido. Se permiten imágenes, PDF y documentos Word.'));
+        cb(new Error('Formato de archivo no permitido. Solo se aceptan PDF, JPG y PNG (máx. 10 MB).'));
     },
 });
 
@@ -79,4 +81,20 @@ const uploadNegociacion = multer({
     },
 });
 
-export { upload as default, uploadNegociacion, uploadPropiedadImg };
+// ✅ memoryStorage para documentos de propiedad/cliente/agente → van a Cloudinary
+const uploadDocumento = multer({
+    storage: multer.memoryStorage(),
+    limits: {
+        fileSize: 10 * 1024 * 1024, // 10MB por archivo
+    },
+    fileFilter: (req, file, cb) => {
+        const tiposPermitidos = /pdf|jpeg|jpg|png/;
+        const extname = tiposPermitidos.test(path.extname(file.originalname).toLowerCase());
+        const mimetype = tiposPermitidos.test(file.mimetype);
+        if (extname && mimetype) return cb(null, true);
+        cb(new Error('Solo se permiten archivos PDF, JPG y PNG'));
+    },
+});
+
+export { upload as default, uploadNegociacion, uploadPropiedadImg, uploadDocumento };
+

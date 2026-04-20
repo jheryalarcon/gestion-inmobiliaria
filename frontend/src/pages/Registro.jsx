@@ -158,7 +158,7 @@ export default function Registro() {
                         <div className="relative">
                             <EnvelopeIcon className="w-5 h-5 text-gray-400 absolute left-3 top-3.5" />
                             <input
-                                type="email"
+                                type="text"
                                 placeholder="Correo electrónico"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}

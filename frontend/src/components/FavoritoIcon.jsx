@@ -2,11 +2,10 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'sonner';
-import Spinner from './Spinner';
 
 export default function FavoritoIcon({ propiedadId, isFavorito = false, onToggle }) {
     const [favorito, setFavorito] = useState(isFavorito);
-    const [cargando, setCargando] = useState(false);
+    const [pendiente, setPendiente] = useState(false); // evita doble-click, sin spinner
     const navigate = useNavigate();
 
     // Verificar si el usuario está autenticado
@@ -34,16 +33,21 @@ export default function FavoritoIcon({ propiedadId, isFavorito = false, onToggle
             return;
         }
 
-        setCargando(true);
+        if (pendiente) return; // evitar doble-click
+        setPendiente(true);
+
+        // Actualización optimista: cambiar estado inmediatamente
+        const nuevoEstado = !favorito;
+        setFavorito(nuevoEstado);
+        if (onToggle) onToggle(propiedadId, nuevoEstado);
 
         try {
-            if (favorito) {
+            if (!nuevoEstado) {
                 // Quitar de favoritos
                 await axios.delete(`${import.meta.env.VITE_BACKEND_URL}/api/favoritos`, {
                     headers: { Authorization: `Bearer ${token}` },
                     data: { propiedadId }
                 });
-                setFavorito(false);
                 toast.success('Propiedad removida de favoritos', { duration: 2000 });
             } else {
                 // Agregar a favoritos
@@ -51,25 +55,16 @@ export default function FavoritoIcon({ propiedadId, isFavorito = false, onToggle
                     { propiedadId },
                     { headers: { Authorization: `Bearer ${token}` } }
                 );
-                setFavorito(true);
                 toast.success('Propiedad agregada a favoritos', { duration: 2000 });
-            }
-
-            // Notificar al componente padre
-            if (onToggle) {
-                onToggle(propiedadId, !favorito);
             }
         } catch (error) {
             console.error('Error al manejar favorito:', error);
-
-            if (error.response?.status === 200 && error.response?.data?.message === 'Ya está en favoritos.') {
-                toast.info('Esta propiedad ya está en tus favoritos', { duration: 2000 });
-                setFavorito(true);
-            } else {
-                toast.error('Error al manejar favorito. Intenta de nuevo.', { duration: 4000 });
-            }
+            // Revertir el estado optimista si falló
+            setFavorito(!nuevoEstado);
+            if (onToggle) onToggle(propiedadId, !nuevoEstado);
+            toast.error('Error al manejar favorito. Intenta de nuevo.', { duration: 4000 });
         } finally {
-            setCargando(false);
+            setPendiente(false);
         }
     };
 
@@ -91,25 +86,20 @@ export default function FavoritoIcon({ propiedadId, isFavorito = false, onToggle
     return (
         <button
             onClick={toggleFavorito}
-            disabled={cargando}
-            className={`p-2 rounded-full shadow-md transition-all duration-200 z-10 ${favorito
-                ? 'bg-red-500 hover:bg-red-600'
-                : 'bg-white/80 backdrop-blur-sm hover:bg-white'
-                } ${cargando ? 'opacity-50 cursor-not-allowed' : ''} ${onToggle ? '' : 'absolute top-3 right-3'}`}
+            disabled={pendiente}
+            className={`p-2 rounded-full shadow-md transition-all duration-200 z-10 ${
+                favorito ? 'bg-red-500 hover:bg-red-600' : 'bg-white/80 backdrop-blur-sm hover:bg-white'
+            } ${pendiente ? 'scale-90' : 'scale-100'} ${onToggle ? '' : 'absolute top-3 right-3'}`}
             title={favorito ? 'Quitar de favoritos' : 'Agregar a favoritos'}
         >
-            {cargando ? (
-                <Spinner size="sm" color="red" />
-            ) : (
-                <svg
-                    className={`w-5 h-5 ${favorito ? 'text-white' : 'text-gray-600'}`}
-                    fill={favorito ? 'currentColor' : 'none'}
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                </svg>
-            )}
+            <svg
+                className={`w-5 h-5 transition-all duration-150 ${favorito ? 'text-white' : 'text-gray-600'}`}
+                fill={favorito ? 'currentColor' : 'none'}
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+            >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+            </svg>
         </button>
     );
 }

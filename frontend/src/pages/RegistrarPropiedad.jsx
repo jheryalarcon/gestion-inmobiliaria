@@ -83,6 +83,7 @@ const initialDatos = {
     tiene_gas_centralizado: false,
     tiene_lavanderia: false,
     tiene_cisterna: false,
+    mas_iva: false,
     amoblado: false
 };
 
@@ -98,12 +99,6 @@ export default function RegistrarPropiedad() {
 
     // --- WIZARD STATE ---
     const [currentStep, setCurrentStep] = useState(1);
-
-    // ... existing steps ...
-
-    // ... existing datos state ...
-
-    // ... existing other references ...
 
     useEffect(() => {
         const token = localStorage.getItem('token');
@@ -172,6 +167,7 @@ export default function RegistrarPropiedad() {
 
     const [errores, setErrores] = useState({});
     const [loading, setLoading] = useState(true);
+    const [submitting, setSubmitting] = useState(false);
     const [codigoPreview, setCodigoPreview] = useState('');
     const [mapCenter, setMapCenter] = useState(null);
     const cancelarRef = useRef(null);
@@ -403,12 +399,50 @@ export default function RegistrarPropiedad() {
             const nuevos = [...prev.propietarios];
             if (field === 'es_principal') {
                 if (value) nuevos.forEach((p, i) => p.es_principal = i === index);
-                // No permitimos desmarcar si es el único, pero el radio button lo maneja
+            } else if (field === 'porcentaje') {
+                // Permitir cualquier valor en el input; la validación se hace al enviar
+                nuevos[index][field] = value;
             } else {
                 nuevos[index][field] = value;
             }
             return { ...prev, propietarios: nuevos };
         });
+
+        // Limpiar error de propietarios al modificar
+        if (errores.propietarios) {
+            setErrores(prev => {
+                const nuevos = { ...prev };
+                delete nuevos.propietarios;
+                return nuevos;
+            });
+        }
+    };
+
+    // Scroll al primer campo con error
+    const scrollAlPrimerError = (nuevosErrores) => {
+        // Buscar elemento con data-field-error
+        const camposOrden = [
+            'tipo_propiedad', 'transaccion', 'uso_propiedad', // Paso 1
+            'provincia', 'ciudad', 'sector', 'direccion', 'latitud', 'longitud', // Paso 2
+            'estado_propiedad', 'area_terreno', 'anio_construccion', // Paso 3
+            'titulo', 'imagenes', // Paso 4
+            'precio', 'valor_garantia', 'comision', 'tipo_contrato', 'fecha_captacion', 'fecha_fin_contrato', 'agenteId', 'propietarios', 'documentos', // Paso 5
+        ];
+
+        for (const campo of camposOrden) {
+            if (nuevosErrores[campo]) {
+                const el = document.querySelector(`[data-field="${campo}"]`);
+                if (el) {
+                    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    // Intentar hacer focus si es un input/select
+                    const input = el.tagName === 'INPUT' || el.tagName === 'SELECT' ? el : el.querySelector('input, select');
+                    if (input) input.focus({ preventScroll: true });
+                    return;
+                }
+            }
+        }
+        // Fallback: scroll al top
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
     // --- WIZARD NAVIGATION & VALIDATION ---
@@ -426,6 +460,19 @@ export default function RegistrarPropiedad() {
             if (!datos.ciudad.trim()) nuevosErrores.ciudad = 'La ciudad es obligatoria';
             if (!datos.sector || !datos.sector.trim()) nuevosErrores.sector = 'El sector es obligatorio';
             if (!datos.direccion.trim()) nuevosErrores.direccion = 'La dirección es obligatoria';
+            // Validación lat/lng: solo si tienen valor, verificar que sean números válidos
+            if (datos.latitud !== '' && datos.latitud !== null) {
+                const lat = parseFloat(datos.latitud);
+                if (isNaN(lat) || lat < -90 || lat > 90) {
+                    nuevosErrores.latitud = 'Ingrese una latitud válida (entre -90 y 90)';
+                }
+            }
+            if (datos.longitud !== '' && datos.longitud !== null) {
+                const lng = parseFloat(datos.longitud);
+                if (isNaN(lng) || lng < -180 || lng > 180) {
+                    nuevosErrores.longitud = 'Ingrese una longitud válida (entre -180 y 180)';
+                }
+            }
         }
 
         if (step === 3) { // Características
@@ -454,39 +501,45 @@ export default function RegistrarPropiedad() {
                 }
             }
 
-            // Validación de Documentos Obligatorios (Regla #2)
-            if (datos.tipo_contrato === 'exclusividad') {
-                if (!documentos.contrato_exclusividad || documentos.contrato_exclusividad.length === 0) {
-                    // Usamos toast directos para documentos ya que no tienen inputs asociados con estado de error visual simple
-                    toast.error('Falta: Contrato de Exclusividad');
-                    nuevosErrores.documentos = 'Falta Contrato de Exclusividad';
-                }
-            } else {
-                if (!documentos.autorizacion_venta || documentos.autorizacion_venta.length === 0) {
-                    toast.error('Falta: Autorización de Venta');
-                    nuevosErrores.documentos = 'Falta Autorización de Venta';
+            // Validación de porcentajes de propietarios (negativos o >100)
+            if (datos.propietarios && datos.propietarios.length > 0) {
+                const hayPorcentajeInvalido = datos.propietarios.some(p => {
+                    const val = parseFloat(p.porcentaje);
+                    return isNaN(val) || val < 0 || val > 100;
+                });
+                if (hayPorcentajeInvalido) {
+                    nuevosErrores.propietarios = 'Hay porcentajes inválidos (deben ser entre 0 y 100)';
                 }
             }
 
-            // Validación de Propietarios
+            // Validación de Documentos Obligatorios (sin toast individual)
+            if (datos.tipo_contrato === 'exclusividad') {
+                if (!documentos.contrato_exclusividad || documentos.contrato_exclusividad.length === 0) {
+                    nuevosErrores.documentos = 'Falta: Contrato de Exclusividad';
+                }
+            } else if (datos.tipo_contrato) {
+                if (!documentos.autorizacion_venta || documentos.autorizacion_venta.length === 0) {
+                    nuevosErrores.documentos = 'Falta: Autorización de Venta';
+                }
+            }
+
+            // Validación de Propietarios (sin toast individual)
             if (!datos.propietarios || datos.propietarios.length === 0) {
                 nuevosErrores.propietarios = 'Debe agregar al menos un propietario';
-                toast.error('Debe agregar al menos un propietario');
-            } else {
+            } else if (!nuevosErrores.propietarios) {
+                // Solo validar suma si no hay error previo de porcentaje inválido
                 const sumaPorcentajes = datos.propietarios.reduce((acc, curr) => acc + parseFloat(curr.porcentaje || 0), 0);
-                if (Math.abs(sumaPorcentajes - 100) > 0.1) { // Tolerancia pequeña por decimales
-                    nuevosErrores.propietarios = `La suma de porcentajes debe ser 100% (Actual: ${sumaPorcentajes}%)`;
-                    toast.error(`La suma de porcentajes debe ser 100% (Actual: ${sumaPorcentajes}%)`);
+                if (Math.abs(sumaPorcentajes - 100) > 0.1) {
+                    nuevosErrores.propietarios = `La suma de porcentajes debe ser 100% (Actual: ${sumaPorcentajes.toFixed(2)}%)`;
                 }
                 if (!datos.propietarios.some(p => p.es_principal)) {
                     nuevosErrores.propietarios = 'Debe marcar un propietario como principal';
-                    toast.error('Debe marcar un propietario como principal');
                 }
             }
 
-            // Validación de Contrato
-            if (datos.tipo_contrato && !datos.fecha_fin_contrato) {
-                nuevosErrores.fecha_fin_contrato = 'La fecha fin es obligatoria para el contrato seleccionado';
+            // Validación de Contrato – siempre obligatorio
+            if (!datos.fecha_fin_contrato) {
+                nuevosErrores.fecha_fin_contrato = 'La fecha de vencimiento es obligatoria';
             }
         }
 
@@ -496,11 +549,45 @@ export default function RegistrarPropiedad() {
 
     const handleNext = (e) => {
         if (e) e.preventDefault();
-        if (validarPaso(currentStep)) {
+        const nuevosErrores = {};
+
+        // Re-calcular errores sin aplicarlos todavía para obtener el objeto
+        if (currentStep === 1) {
+            if (!datos.tipo_propiedad) nuevosErrores.tipo_propiedad = 'Seleccione un tipo de propiedad';
+            if (!datos.transaccion) nuevosErrores.transaccion = 'Seleccione el tipo de transacción';
+            if (!datos.uso_propiedad) nuevosErrores.uso_propiedad = 'Seleccione el uso de la propiedad';
+        }
+        if (currentStep === 2) {
+            if (!datos.provincia) nuevosErrores.provincia = 'Seleccione una provincia';
+            if (!datos.ciudad.trim()) nuevosErrores.ciudad = 'La ciudad es obligatoria';
+            if (!datos.sector || !datos.sector.trim()) nuevosErrores.sector = 'El sector es obligatorio';
+            if (!datos.direccion.trim()) nuevosErrores.direccion = 'La dirección es obligatoria';
+            if (datos.latitud !== '' && datos.latitud !== null) {
+                const lat = parseFloat(datos.latitud);
+                if (isNaN(lat) || lat < -90 || lat > 90) nuevosErrores.latitud = 'Ingrese una latitud válida (entre -90 y 90)';
+            }
+            if (datos.longitud !== '' && datos.longitud !== null) {
+                const lng = parseFloat(datos.longitud);
+                if (isNaN(lng) || lng < -180 || lng > 180) nuevosErrores.longitud = 'Ingrese una longitud válida (entre -180 y 180)';
+            }
+        }
+        if (currentStep === 3) {
+            if (!datos.estado_propiedad) nuevosErrores.estado_propiedad = 'Seleccione el estado de la propiedad';
+            if (!datos.area_terreno || isNaN(Number(datos.area_terreno)) || Number(datos.area_terreno) <= 0) nuevosErrores.area_terreno = 'Ingrese un área válida';
+        }
+        if (currentStep === 4) {
+            if (!datos.titulo.trim()) nuevosErrores.titulo = 'El título es obligatorio';
+            if (!imagenes.length) nuevosErrores.imagenes = 'Debe subir al menos una imagen';
+        }
+
+        if (Object.keys(nuevosErrores).length > 0) {
+            setErrores(nuevosErrores);
+            toast.error('Por favor completa todos los campos obligatorios del paso actual.');
+            setTimeout(() => scrollAlPrimerError(nuevosErrores), 100);
+        } else {
+            setErrores({});
             setCurrentStep(prev => prev + 1);
             window.scrollTo({ top: 0, behavior: 'smooth' });
-        } else {
-            toast.error('Por favor completa todos los campos obligatorios del paso actual.');
         }
     };
 
@@ -514,9 +601,11 @@ export default function RegistrarPropiedad() {
 
         if (!validarPaso(5)) {
             toast.error('Por favor, corrige los errores antes de registrar.');
+            setTimeout(() => scrollAlPrimerError(errores), 100);
             return;
         }
 
+        setSubmitting(true);
         try {
             const token = localStorage.getItem('token');
             const formData = new FormData();
@@ -536,57 +625,56 @@ export default function RegistrarPropiedad() {
 
             imagenes.forEach(img => formData.append('imagenes', img));
 
-            await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/propiedades`, formData, {
-                headers: { Authorization: `Bearer ${token}` }, // Axios sets Content-Type automatically with boundary
-            }).then(async (response) => {
-                const propiedadId = response.data.propiedad.id;
-                const uploadPromises = [];
-                const processUpload = (files, tipo, categoria) => {
-                    if (files.length === 0) return;
-                    const fd = new FormData();
-                    files.forEach(f => fd.append('documentos', f));
-                    fd.append('tipo', tipo);
-                    fd.append('categoria', categoria);
-                    uploadPromises.push(
-                        axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/documentos/propiedad/${propiedadId}`, fd, {
-                            headers: { Authorization: `Bearer ${token}` } // Axios sets Content-Type automatically with boundary
-                        })
-                    );
-                };
-
-                processUpload(documentos.escritura, 'ESCRITURA', 'LEGAL');
-                processUpload(documentos.gravamenes, 'CERTIFICADO_GRAVAMEN', 'LEGAL');
-                processUpload(documentos.predial, 'PAGO_PREDIAL', 'LEGAL');
-
-                // Subir solo el documento correspondiente al tipo de contrato seleccionado
-                if (datos.tipo_contrato === 'exclusividad') {
-                    processUpload(documentos.contrato_exclusividad, 'CONTRATO_EXCLUSIVIDAD', 'COMERCIAL');
-                } else {
-                    processUpload(documentos.autorizacion_venta, 'AUTORIZACION_VENTA', 'COMERCIAL');
-                }
-
-                processUpload(documentos.planos, 'PLANO', 'TECNICO');
-                processUpload(documentos.ficha_catastral, 'FICHA_CATASTRAL', 'TECNICO');
-                processUpload(documentos.uso_suelo, 'CERTIFICADO_USO_SUELO', 'TECNICO');
-                processUpload(documentos.reglamento_ph, 'REGLAMENTO_PH', 'PH');
-                processUpload(documentos.certificado_expensas, 'CERTIFICADO_EXPENSAS', 'PH'); // ADDED
-                processUpload(documentos.certificado_alicuota, 'CERTIFICADO_ALICUOTA', 'PH');
-                processUpload(documentos.planilla_luz, 'PLANILLA_LUZ', 'SERVICIOS');
-                processUpload(documentos.planilla_agua, 'PLANILLA_AGUA', 'SERVICIOS');
-                processUpload(documentos.planilla_alicuota, 'PLANILLA_ALICUOTA', 'SERVICIOS');
-                processUpload(documentos.otros, 'OTRO', 'OTROS');
-
-                if (uploadPromises.length > 0) {
-                    toast.info('Subiendo documentos...');
-                    await Promise.all(uploadPromises);
-                }
-
-                toast.success('Propiedad y documentos registrados correctamente', { duration: 2000 });
-                isSaved.current = true; // Marcar como guardado para permitir navegación
-                setTimeout(() => {
-                    navigate(usuario.rol === 'admin' ? '/admin/panel-propiedades' : '/agente/panel-propiedades');
-                }, 1500);
+            const response = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/propiedades`, formData, {
+                headers: { Authorization: `Bearer ${token}` },
             });
+
+            const propiedadId = response.data.propiedad.id;
+            const uploadPromises = [];
+            const processUpload = (files, tipo, categoria) => {
+                if (files.length === 0) return;
+                const fd = new FormData();
+                files.forEach(f => fd.append('documentos', f));
+                fd.append('tipo', tipo);
+                fd.append('categoria', categoria);
+                uploadPromises.push(
+                    axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/documentos/propiedad/${propiedadId}`, fd, {
+                        headers: { Authorization: `Bearer ${token}` }
+                    })
+                );
+            };
+
+            processUpload(documentos.escritura, 'ESCRITURA', 'LEGAL');
+            processUpload(documentos.gravamenes, 'CERTIFICADO_GRAVAMEN', 'LEGAL');
+            processUpload(documentos.predial, 'PAGO_PREDIAL', 'LEGAL');
+
+            if (datos.tipo_contrato === 'exclusividad') {
+                processUpload(documentos.contrato_exclusividad, 'CONTRATO_EXCLUSIVIDAD', 'COMERCIAL');
+            } else {
+                processUpload(documentos.autorizacion_venta, 'AUTORIZACION_VENTA', 'COMERCIAL');
+            }
+
+            processUpload(documentos.planos, 'PLANO', 'TECNICO');
+            processUpload(documentos.ficha_catastral, 'FICHA_CATASTRAL', 'TECNICO');
+            processUpload(documentos.uso_suelo, 'CERTIFICADO_USO_SUELO', 'TECNICO');
+            processUpload(documentos.reglamento_ph, 'REGLAMENTO_PH', 'PH');
+            processUpload(documentos.certificado_expensas, 'CERTIFICADO_EXPENSAS', 'PH');
+            processUpload(documentos.certificado_alicuota, 'CERTIFICADO_ALICUOTA', 'PH');
+            processUpload(documentos.planilla_luz, 'PLANILLA_LUZ', 'SERVICIOS');
+            processUpload(documentos.planilla_agua, 'PLANILLA_AGUA', 'SERVICIOS');
+            processUpload(documentos.planilla_alicuota, 'PLANILLA_ALICUOTA', 'SERVICIOS');
+            processUpload(documentos.otros, 'OTRO', 'OTROS');
+
+            if (uploadPromises.length > 0) {
+                toast.info('Subiendo documentos...');
+                await Promise.all(uploadPromises);
+            }
+
+            toast.success('Propiedad y documentos registrados correctamente', { duration: 2000 });
+            isSaved.current = true;
+            setTimeout(() => {
+                navigate(usuario.rol === 'admin' ? '/admin/panel-propiedades' : '/agente/panel-propiedades');
+            }, 1500);
 
         } catch (error) {
             console.error(error);
@@ -597,8 +685,11 @@ export default function RegistrarPropiedad() {
             } else {
                 toast.error('Ocurrió un error al registrar la propiedad.');
             }
+        } finally {
+            setSubmitting(false);
         }
     };
+
 
     const hayCambios = () => {
         for (const key in initialDatos) {
@@ -814,12 +905,29 @@ export default function RegistrarPropiedad() {
                     ) : (
                         <button
                             type="submit"
-                            className="bg-gray-900 hover:bg-black text-white font-bold px-8 py-3 rounded-lg shadow-md transition transform hover:scale-105 flex items-center gap-2"
+                            disabled={submitting}
+                            className={`font-bold px-8 py-3 rounded-lg shadow-md transition transform flex items-center gap-2 ${
+                                submitting
+                                    ? 'bg-gray-400 cursor-not-allowed text-white'
+                                    : 'bg-gray-900 hover:bg-black text-white hover:scale-105'
+                            }`}
                         >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                            </svg>
-                            Registrar Propiedad
+                            {submitting ? (
+                                <>
+                                    <svg className="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                                    </svg>
+                                    Registrando...
+                                </>
+                            ) : (
+                                <>
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                    </svg>
+                                    Registrar Propiedad
+                                </>
+                            )}
                         </button>
                     )}
                 </div>

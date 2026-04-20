@@ -11,30 +11,26 @@ import {
     eliminarDocumentoAgente
 } from '../controllers/documento.controller.js';
 import verificarToken from '../middlewares/verificarToken.js';
-import upload from '../config/multer.js'; // Asegúrate de que multer soporte .pdf, .doc
+import { uploadDocumento } from '../config/multer.js'; // memoryStorage → Cloudinary
 
 const router = express.Router();
 
 // --- PROPIEDADES ---
-// Subir documentos a una propiedad (ID Propiedad)
-// POST /api/documentos/propiedad/:id
-router.post('/propiedad/:id', verificarToken, upload.array('documentos', 10), subirDocumentosPropiedad);
-
-// Obtener documentos de una propiedad
+// POST  /api/documentos/propiedad/:propiedadId  → subir documentos a esa propiedad
+router.post('/propiedad/:id', verificarToken, uploadDocumento.array('documentos', 10), subirDocumentosPropiedad);
+// GET   /api/documentos/propiedad/:propiedadId  → obtener documentos de esa propiedad
 router.get('/propiedad/:id', verificarToken, obtenerDocumentosPropiedad);
-
-// Eliminar un documento de propiedad (ID Documento)
-router.delete('/propiedad/:id', verificarToken, eliminarDocumentoPropiedad);
-
+// DELETE /api/documentos/propiedad/doc/:docId   → eliminar un documento por su ID
+router.delete('/propiedad/doc/:id', verificarToken, eliminarDocumentoPropiedad);
 
 // --- CLIENTES ---
-router.post('/cliente/:id', verificarToken, upload.array('documentos', 10), subirDocumentosCliente);
+router.post('/cliente/:id', verificarToken, uploadDocumento.array('documentos', 10), subirDocumentosCliente);
 router.get('/cliente/:id', verificarToken, obtenerDocumentosCliente);
-router.delete('/cliente/:id', verificarToken, eliminarDocumentoCliente);
+router.delete('/cliente/doc/:id', verificarToken, eliminarDocumentoCliente);
 
 // --- AGENTES (RRHH) ---
-router.post('/agente/:id', verificarToken, upload.array('documentos', 10), subirDocumentosAgente);
+router.post('/agente/:id', verificarToken, uploadDocumento.array('documentos', 10), subirDocumentosAgente);
 router.get('/agente/:id', verificarToken, obtenerDocumentosAgente);
-router.delete('/agente/:id', verificarToken, eliminarDocumentoAgente);
+router.delete('/agente/doc/:id', verificarToken, eliminarDocumentoAgente);
 
 export default router;

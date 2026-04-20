@@ -16,20 +16,22 @@ export default function MisFavoritos() {
     const [ordenarPor, setOrdenarPor] = useState('fecha');
     const [orden, setOrden] = useState('desc');
 
-    // Verificar autenticación
+    // Verificar autenticación de forma síncrona (evita flash de contenido)
     const token = localStorage.getItem('token');
-    const usuario = token ? JSON.parse(localStorage.getItem('usuario')) : null;
+    const usuario = token ? (() => { try { return JSON.parse(localStorage.getItem('usuario')); } catch { return null; } })() : null;
+    const estaAutorizado = !!token && !!usuario && usuario.rol === 'cliente';
 
     useEffect(() => {
-        // Verificar autenticación
-        if (!token || !usuario || usuario.rol !== 'cliente') {
+        if (!estaAutorizado) {
             toast.error('Debes iniciar sesión para ver tus favoritos');
-            navigate('/login');
+            navigate('/login', { replace: true });
             return;
         }
-        // Cargar favoritos si está autenticado
         cargarFavoritos();
     }, []); // Solo ejecutar una vez al montar
+
+    // Si no está autorizado, no renderizar nada (evita flash)
+    if (!estaAutorizado) return null;
 
     const cargarFavoritos = async () => {
         try {
@@ -75,11 +77,16 @@ export default function MisFavoritos() {
                     break;
                 case 'fecha':
                 default:
-                    valorA = new Date(a.createdAt);
-                    valorB = new Date(b.createdAt);
+                    // Buscar la fecha en la que se agregó a favoritos, no cuando se creó la propiedad
+                    const favA = favoritos.find(f => f.propiedadId === a.id);
+                    const favB = favoritos.find(f => f.propiedadId === b.id);
+                    valorA = favA ? new Date(favA.createdAt || favA.fecha_agregado).getTime() : 0;
+                    valorB = favB ? new Date(favB.createdAt || favB.fecha_agregado).getTime() : 0;
                     break;
             }
 
+            if (valorA === valorB) return 0;
+            
             if (orden === 'asc') {
                 return valorA > valorB ? 1 : -1;
             } else {

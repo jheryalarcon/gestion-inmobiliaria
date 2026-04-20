@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import { cifrar, descifrar, estaCifrado } from '../utils/cifrado.js';
 const prisma = new PrismaClient();
 
 // ✅ OBTENER NOTAS INTERNAS DEL AGENTE RESPONSABLE (Vendedor o Captador)
@@ -42,10 +43,27 @@ const obtenerNotasInternas = async (req, res) => {
             orderBy: { fecha: 'desc' }
         });
 
+        // 🔓 Descifrar el contenido de cada nota
+        const notasDescifradas = notasInternas.map(nota => {
+            try {
+                return {
+                    ...nota,
+                    contenido: descifrar(nota.contenido)
+                };
+            } catch {
+                // Nota en texto plano (pre-migración) → devolver tal cual
+                return {
+                    ...nota,
+                    contenido: nota.contenido,
+                    migracion_pendiente: !estaCifrado(nota.contenido)
+                };
+            }
+        });
+
         res.json({
             mensaje: '✅ Notas internas obtenidas correctamente',
-            notasInternas,
-            total: notasInternas.length
+            notasInternas: notasDescifradas,
+            total: notasDescifradas.length
         });
 
     } catch (error) {
@@ -102,19 +120,26 @@ const crearNotaInterna = async (req, res) => {
         // ✅ REGLA: Verificar que el usuario sea agente (o admin actuando como agente)
         // Nota: Los admins no deberían crear notas personales aquí por diseño, pero si tienen rol, ok.
 
+        // 🔐 Cifrar el contenido antes de guardar en la BD
+        const contenidoCifrado = cifrar(contenido.trim());
+
         // Crear la nota interna
         const notaInterna = await prisma.notaInterna.create({
             data: {
                 negociacionId: parseInt(negociacionId),
                 agenteId,
-                contenido: contenido.trim(),
+                contenido: contenidoCifrado,
                 fecha: new Date()
             }
         });
 
+        // 🔓 Devolver al cliente con el contenido descifrado (no el cifrado)
         res.status(201).json({
             mensaje: '✅ Nota interna creada correctamente',
-            notaInterna
+            notaInterna: {
+                ...notaInterna,
+                contenido: contenido.trim() // texto original, ya validado y limpio
+            }
         });
 
     } catch (error) {

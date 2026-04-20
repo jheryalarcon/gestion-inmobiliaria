@@ -28,7 +28,7 @@ export const sendVerificationEmail = async (email, token) => {
         const isLocal = frontendUrl.includes('localhost') || frontendUrl.includes('127.0.0.1');
         const logoUrl = isLocal
             ? 'https://placehold.co/400x120/ffffff/0f172a?text=PropTech+Hub&font=lora' // Logo temporal visible en Gmail
-            : `${frontendUrl}/logo-rectangular.jpg`;
+            : `${frontendUrl}/logo-rectangular.png`;
 
         const info = await transporter.sendMail({
             from: '"PropTech Hub" <' + process.env.EMAIL_USER + '>',
@@ -43,7 +43,7 @@ export const sendVerificationEmail = async (email, token) => {
                     <div style="padding: 40px 32px;">
                         <h2 style="color: #0f172a; margin-top: 0; margin-bottom: 24px; font-size: 20px; font-weight: 600; text-align: center;">Bienvenido a PropTech Hub</h2>
                         <p style="color: #475569; font-size: 16px; line-height: 1.6; margin-bottom: 24px;">Estimado cliente,</p>
-                        <p style="color: #475569; font-size: 16px; line-height: 1.6; margin-bottom: 32px;">Gracias por crear su cuenta. Para completar el registro y acceder a nuestros servicios, por favor verifique su dirección de correo electrónico pulsando el siguiente botón:</p>
+                        <p style="color: #475569; font-size: 16px; line-height: 1.6; margin-bottom: 32px;">Gracias por crear su cuenta. Para completar el registro y acceder a la plataforma, por favor verifique su dirección de correo electrónico pulsando el siguiente botón:</p>
                         
                         <div style="text-align: center; margin: 32px 0;">
                             <a href="${verificationUrl}" style="background-color: #0f172a; color: #ffffff; padding: 14px 32px; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 15px; display: inline-block; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">Verificar Cuenta</a>
@@ -80,7 +80,7 @@ export const sendPasswordResetEmail = async (email, token) => {
         const isLocal = frontendUrl.includes('localhost') || frontendUrl.includes('127.0.0.1');
         const logoUrl = isLocal
             ? 'https://placehold.co/400x120/ffffff/0f172a?text=PropTech+Hub&font=lora' // Logo temporal visible en Gmail
-            : `${frontendUrl}/logo-rectangular.jpg`;
+            : `${frontendUrl}/logo-rectangular.png`;
 
         const info = await transporter.sendMail({
             from: '"PropTech Hub" <' + process.env.EMAIL_USER + '>',

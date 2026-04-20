@@ -1,8 +1,9 @@
 import React from 'react';
+import { toast } from 'sonner';
 import * as Accordion from '@radix-ui/react-accordion';
 import { ChevronDown, FileText, Upload, Trash2, CheckCircle, AlertCircle, IdCard, Scale, Handshake, ScrollText, Building2, Zap, Download } from 'lucide-react';
 
-const DocumentRow = ({ label, files, onUpload, onDelete, required = false, accept = ".pdf,.jpg,.png", error = false }) => {
+const DocumentRow = ({ label, files, onUpload, onDelete, required = false, accept = ".pdf,.jpg,.jpeg,.png", error = false }) => {
     const fileInputRef = React.useRef(null);
 
     const handleFileChange = (e) => {
@@ -48,7 +49,7 @@ const DocumentRow = ({ label, files, onUpload, onDelete, required = false, accep
                                 onClick={async () => {
                                     try {
                                         const file = files[0];
-                                        // Blob URL local (archivo recién seleccionado, no guardado aún)
+                                        // Blob URL local (archivo recén seleccionado, no guardado aún)
                                         if (file.url.startsWith('blob:')) {
                                             const a = document.createElement('a');
                                             a.href = file.url;
@@ -58,7 +59,19 @@ const DocumentRow = ({ label, files, onUpload, onDelete, required = false, accep
                                             document.body.removeChild(a);
                                             return;
                                         }
-                                        // URL de servidor → fetch con token
+                                        // URL externa completa (Cloudinary) → abrir directamente
+                                        if (file.url.startsWith('http://') || file.url.startsWith('https://')) {
+                                            const a = document.createElement('a');
+                                            a.href = file.url;
+                                            a.target = '_blank';
+                                            a.rel = 'noopener noreferrer';
+                                            a.download = file.name || 'documento';
+                                            document.body.appendChild(a);
+                                            a.click();
+                                            document.body.removeChild(a);
+                                            return;
+                                        }
+                                        // URL relativa del servidor (legacy) → fetch con token
                                         const token = localStorage.getItem('token');
                                         const url = `${import.meta.env.VITE_BACKEND_URL}${file.url}`;
                                         const response = await fetch(url, {
@@ -76,6 +89,7 @@ const DocumentRow = ({ label, files, onUpload, onDelete, required = false, accep
                                         document.body.removeChild(a);
                                     } catch (err) {
                                         console.error('Error al descargar documento:', err);
+                                        toast.error('No se pudo descargar el documento');
                                     }
                                 }}
                                 className="p-1.5 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-full transition-colors"
@@ -149,14 +163,14 @@ export default function DocumentManager({ documentos, onUpload, onDelete, tipoCo
                                     onUpload={(f) => handleUploadWrapper(f, 'cedula')}
                                     onDelete={(idx) => onDelete('cedula', idx)}
                                     required={false}
-                                    accept=".pdf,.jpg,.png"
+                                    accept=".pdf,.jpg,.jpeg,.png"
                                 />
                                 <DocumentRow
                                     label="Papeleta de Votación"
                                     files={documentos.papeleta_votacion}
                                     onUpload={(f) => handleUploadWrapper(f, 'papeleta_votacion')}
                                     onDelete={(idx) => onDelete('papeleta_votacion', idx)}
-                                    accept=".pdf,.jpg,.png"
+                                    accept=".pdf,.jpg,.jpeg,.png"
                                 />
                             </div>
                         </Accordion.Content>
@@ -180,14 +194,14 @@ export default function DocumentManager({ documentos, onUpload, onDelete, tipoCo
                                     files={documentos.poder}
                                     onUpload={(f) => handleUploadWrapper(f, 'poder')}
                                     onDelete={(idx) => onDelete('poder', idx)}
-                                    accept=".pdf,.doc,.docx"
+                                    accept=".pdf,.jpg,.jpeg,.png"
                                 />
                                 <DocumentRow
                                     label="Otros Documentos"
                                     files={documentos.otro}
                                     onUpload={(f) => handleUploadWrapper(f, 'otro')}
                                     onDelete={(idx) => onDelete('otro', idx)}
-                                    accept=".pdf,.jpg,.png,.doc,.docx"
+                                    accept=".pdf,.jpg,.jpeg,.png"
                                 />
                             </div>
                         </Accordion.Content>
@@ -200,6 +214,10 @@ export default function DocumentManager({ documentos, onUpload, onDelete, tipoCo
     if (mode === 'agente') {
         return (
             <div className="w-full max-w-2xl mx-auto space-y-4">
+                {/* Banner de restricciones */}
+                <div className="flex items-center gap-2 bg-blue-50 border border-blue-100 rounded-lg px-4 py-2 text-xs text-blue-700">
+                    <span>Formatos permitidos: <strong>PDF, JPG, PNG</strong> &nbsp;|&nbsp; Tamaño máximo por archivo: <strong>10 MB</strong></span>
+                </div>
                 <Accordion.Root type="multiple" defaultValue={['identidad', 'contractual', 'profesional']} className="space-y-4">
                     {/* 1. IDENTIDAD */}
                     <Accordion.Item value="identidad" className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
@@ -268,7 +286,7 @@ export default function DocumentManager({ documentos, onUpload, onDelete, tipoCo
                                     files={documentos.hoja_vida}
                                     onUpload={(f) => handleUploadWrapper(f, 'hoja_vida')}
                                     onDelete={(idx) => onDelete('hoja_vida', idx)}
-                                    accept=".pdf"
+                                    accept=".pdf,.jpg,.jpeg,.png"
                                 />
                                 <DocumentRow
                                     label="Certificados"
@@ -292,6 +310,10 @@ export default function DocumentManager({ documentos, onUpload, onDelete, tipoCo
 
     return (
         <div className="w-full max-w-2xl mx-auto space-y-4">
+            {/* Banner de restricciones */}
+            <div className="flex items-center gap-2 bg-orange-50 border border-orange-100 rounded-lg px-4 py-2 text-xs text-orange-700">
+                <span>Formatos permitidos: <strong>PDF, JPG, PNG</strong> &nbsp;|&nbsp; Tamaño máximo por archivo: <strong>10 MB</strong></span>
+            </div>
             <Accordion.Root type="multiple" defaultValue={['legales', 'comercializacion']} className="space-y-4">
 
                 {/* 1. DOCUMENTOS DE PROPIEDAD Y COMERCIALIZACIÓN */}
@@ -315,7 +337,7 @@ export default function DocumentManager({ documentos, onUpload, onDelete, tipoCo
                                     onUpload={(f) => handleUploadWrapper(f, 'contrato_exclusividad')}
                                     onDelete={(idx) => onDelete('contrato_exclusividad', idx)}
                                     required={true}
-                                    accept=".pdf,.doc,.docx"
+                                    accept=".pdf,.jpg,.jpeg,.png"
                                     error={!!errores?.documentos && (!documentos.contrato_exclusividad || documentos.contrato_exclusividad.length === 0)}
                                 />
                             ) : (
@@ -325,7 +347,7 @@ export default function DocumentManager({ documentos, onUpload, onDelete, tipoCo
                                     onUpload={(f) => handleUploadWrapper(f, 'autorizacion_venta')}
                                     onDelete={(idx) => onDelete('autorizacion_venta', idx)}
                                     required={true}
-                                    accept=".pdf,.doc,.docx"
+                                    accept=".pdf,.jpg,.jpeg,.png"
                                     error={!!errores?.documentos && (!documentos.autorizacion_venta || documentos.autorizacion_venta.length === 0)}
                                 />
                             )}
@@ -351,21 +373,21 @@ export default function DocumentManager({ documentos, onUpload, onDelete, tipoCo
                                 files={documentos.escritura}
                                 onUpload={(f) => handleUploadWrapper(f, 'escritura')}
                                 onDelete={(idx) => onDelete('escritura', idx)}
-                                accept=".pdf,.doc,.docx"
+                                accept=".pdf,.jpg,.jpeg,.png"
                             />
                             <DocumentRow
                                 label="Certificado de Gravámenes"
                                 files={documentos.gravamenes}
                                 onUpload={(f) => handleUploadWrapper(f, 'gravamenes')}
                                 onDelete={(idx) => onDelete('gravamenes', idx)}
-                                accept=".pdf"
+                                accept=".pdf,.jpg,.jpeg,.png"
                             />
                             <DocumentRow
                                 label="Pago Impuesto Predial"
                                 files={documentos.predial}
                                 onUpload={(f) => handleUploadWrapper(f, 'predial')}
                                 onDelete={(idx) => onDelete('predial', idx)}
-                                accept=".pdf,.jpg,.png"
+                                accept=".pdf,.jpg,.jpeg,.png"
                             />
                         </div>
                     </Accordion.Content>
@@ -385,25 +407,25 @@ export default function DocumentManager({ documentos, onUpload, onDelete, tipoCo
                     <Accordion.Content className="bg-white data-[state=open]:animate-slideDown data-[state=closed]:animate-slideUp overflow-hidden">
                         <div className="flex flex-col">
                             <DocumentRow
-                                label="Planos Arquitectónicos"
+                                label="Plano arquitectónico"
                                 files={documentos.planos}
                                 onUpload={(f) => handleUploadWrapper(f, 'planos')}
                                 onDelete={(idx) => onDelete('planos', idx)}
-                                accept=".pdf,.jpg,.png"
+                                accept=".pdf,.jpg,.jpeg,.png"
                             />
                             <DocumentRow
                                 label="Ficha Catastral"
                                 files={documentos.ficha_catastral}
                                 onUpload={(f) => handleUploadWrapper(f, 'ficha_catastral')}
                                 onDelete={(idx) => onDelete('ficha_catastral', idx)}
-                                accept=".pdf,.jpg,.png"
+                                accept=".pdf,.jpg,.jpeg,.png"
                             />
                             <DocumentRow
                                 label="Certificado de Uso de Suelo"
                                 files={documentos.uso_suelo}
                                 onUpload={(f) => handleUploadWrapper(f, 'uso_suelo')}
                                 onDelete={(idx) => onDelete('uso_suelo', idx)}
-                                accept=".pdf,.jpg,.png"
+                                accept=".pdf,.jpg,.jpeg,.png"
                             />
                         </div>
                     </Accordion.Content>
@@ -427,14 +449,14 @@ export default function DocumentManager({ documentos, onUpload, onDelete, tipoCo
                                 files={documentos.reglamento_ph}
                                 onUpload={(f) => handleUploadWrapper(f, 'reglamento_ph')}
                                 onDelete={(idx) => onDelete('reglamento_ph', idx)}
-                                accept=".pdf"
+                                accept=".pdf,.jpg,.jpeg,.png"
                             />
                             <DocumentRow
                                 label="Certificado de Expensas"
                                 files={documentos.certificado_expensas}
                                 onUpload={(f) => handleUploadWrapper(f, 'certificado_expensas')}
                                 onDelete={(idx) => onDelete('certificado_expensas', idx)}
-                                accept=".pdf"
+                                accept=".pdf,.jpg,.jpeg,.png"
                             />
                         </div>
                     </Accordion.Content>
@@ -458,21 +480,21 @@ export default function DocumentManager({ documentos, onUpload, onDelete, tipoCo
                                 files={documentos.planilla_luz}
                                 onUpload={(f) => handleUploadWrapper(f, 'planilla_luz')}
                                 onDelete={(idx) => onDelete('planilla_luz', idx)}
-                                accept=".pdf,.jpg,.png"
+                                accept=".pdf,.jpg,.jpeg,.png"
                             />
                             <DocumentRow
                                 label="Planilla de Agua"
                                 files={documentos.planilla_agua}
                                 onUpload={(f) => handleUploadWrapper(f, 'planilla_agua')}
                                 onDelete={(idx) => onDelete('planilla_agua', idx)}
-                                accept=".pdf,.jpg,.png"
+                                accept=".pdf,.jpg,.jpeg,.png"
                             />
                             <DocumentRow
                                 label="Planilla de Alícuota"
                                 files={documentos.planilla_alicuota}
                                 onUpload={(f) => handleUploadWrapper(f, 'planilla_alicuota')}
                                 onDelete={(idx) => onDelete('planilla_alicuota', idx)}
-                                accept=".pdf,.jpg,.png"
+                                accept=".pdf,.jpg,.jpeg,.png"
                             />
                         </div>
                     </Accordion.Content>

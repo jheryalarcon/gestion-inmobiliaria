@@ -174,7 +174,7 @@ export default function PanelClientes() {
                 headers: { Authorization: `Bearer ${token}` }
             });
 
-            toast.success('🔁 Cliente reactivado exitosamente', { id: 'reactivar-cliente' });
+            toast.success('Cliente reactivado exitosamente', { id: 'reactivar-cliente' });
             setShowReactivarModal(false);
             setClienteSeleccionado(null);
             cargarClientes();
@@ -203,8 +203,9 @@ export default function PanelClientes() {
             comprador: 'Comprador',
             arrendatario: 'Arrendatario',
             propietario: 'Propietario',
+            vendedor: 'Vendedor',
             inversionista: 'Inversionista',
-            consultor: 'Colega Inmobiliario',
+            colega_inmobiliario: 'Colega Inmobiliario',
             prospecto: 'Prospecto'
         };
         return tipos[tipo] || tipo;
@@ -254,7 +255,7 @@ export default function PanelClientes() {
                                 name="search"
                                 value={searchInput}
                                 onChange={(e) => setSearchInput(e.target.value)}
-                                placeholder="Nombre, ci, telf..."
+                                placeholder="Nombre, email, cédula, teléfono..."
                                 className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                             />
                             <Search className="w-4 h-4 text-gray-400 absolute left-3 top-2.5" />
@@ -285,7 +286,7 @@ export default function PanelClientes() {
                         >
                             <option value="activo">Activos</option>
                             <option value="inactivo">Inactivos</option>
-                            {usuario?.rol === 'admin' && <option value="todos">Todos</option>}
+                            <option value="todos">Todos</option>
                         </select>
                     </div>
 
@@ -580,7 +581,7 @@ export default function PanelClientes() {
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
                     <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md border border-gray-200 transition-all duration-300">
                         <h3 className="text-xl font-bold text-center text-orange-700 mb-4 flex items-center justify-center gap-2">
-                            <span className="text-2xl">⚠️</span> Desactivar Cliente
+                            Desactivar Cliente
                         </h3>
                         <div className="text-gray-700 text-center mb-6">
                             <p className="mb-3">
@@ -619,7 +620,7 @@ export default function PanelClientes() {
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
                     <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md border border-gray-200 transition-all duration-300">
                         <h3 className="text-xl font-bold text-center text-green-700 mb-4 flex items-center justify-center gap-2">
-                            <span className="text-2xl">🔁</span> Reactivar Cliente
+                            Reactivar Cliente
                         </h3>
                         <div className="text-gray-700 text-center mb-6">
                             <p className="mb-3">

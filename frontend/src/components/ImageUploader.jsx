@@ -8,7 +8,7 @@ export default function ImageUploader({
     onImagesChange,
     maxFiles = 15,
     maxSizeMB = 5,
-    accept = "image/*",
+    accept = "image/png,image/jpeg,image/webp",
     error
 }) {
     const fileInputRef = useRef(null);
@@ -54,8 +54,8 @@ export default function ImageUploader({
         try {
             for (const file of files) {
                 // Validar que solo sean imágenes
-                if (!file.type.startsWith('image/')) {
-                    toast.error(`El archivo "${file.name}" no es una imagen válida. Solo se permiten JPG, PNG, WEBP.`, { duration: 4000 });
+                if (!['image/png', 'image/jpeg', 'image/webp', 'image/jpg'].includes(file.type)) {
+                    toast.error(`El archivo "${file.name}" no es válido. Solo se permiten JPG, PNG, WEBP.`, { duration: 4000 });
                     continue; // Saltar este archivo
                 }
 

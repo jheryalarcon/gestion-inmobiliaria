@@ -17,14 +17,14 @@ export const crearCliente = async (req, res) => {
     // Validaciones obligatorias
     if (!nombre?.trim()) errores.push('El nombre es obligatorio');
 
-    // Validación de Teléfono (Permitir prefijos internacionales +)
+    // Validación de Teléfono: formato ecuatoriano 10 dígitos
     if (!telefono?.trim()) {
         errores.push('El teléfono es obligatorio');
     } else {
-        // Regex permite +, espacios, guiones, paréntesis y números
-        const phoneRegex = /^[\d\s\-\+\(\)]+$/;
-        if (!phoneRegex.test(telefono)) {
-            errores.push('El teléfono contiene caracteres inválidos');
+        const soloDigitos = telefono.trim().replace(/\s/g, '');
+        const telefonoRegex = /^(09\d{8}|0[2-7]\d{7})$/;
+        if (!telefonoRegex.test(soloDigitos)) {
+            errores.push('El teléfono debe ser un número ecuatoriano válido de 10 dígitos (ej: 0991234567 o 022345678)');
         }
     }
 
@@ -46,21 +46,25 @@ export const crearCliente = async (req, res) => {
         if (!/^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$/.test(email)) {
             errores.push('Formato de correo electrónico inválido');
         } else {
-            // 1. Verificar si el email pertenece a un usuario del sistema (agente/admin)
-            const esUsuarioSistema = await prisma.usuario.findUnique({
-                where: { email: email.trim() }
+            // 1. Verificar si el email pertenece a un agente o admin del sistema
+            // (NO bloquear si es un usuario con rol 'cliente' del portal)
+            const esAgenteOAdmin = await prisma.usuario.findFirst({
+                where: {
+                    email: email.trim(),
+                    rol: { in: ['agente', 'admin'] }
+                }
             });
 
-            if (esUsuarioSistema) {
-                errores.push('Este email pertenece a un usuario del sistema. Por favor, usa un email personal diferente.');
+            if (esAgenteOAdmin) {
+                errores.push('Este email pertenece a un agente o administrador del sistema y no puede usarse como cliente.');
             }
 
-            // 2. Unicidad - Solo validar si el email NO es null/vacío
+            // 2. Unicidad en tabla Cliente - Solo validar si el email NO es null/vacío
             const clienteExistente = await prisma.cliente.findFirst({
                 where: { email: email.trim() }
             });
             if (clienteExistente) {
-                errores.push('El correo electrónico ya está registrado');
+                errores.push('Este correo ya pertenece a un cliente registrado en el sistema. Si deseas hacer cambios, edita su ficha directamente.');
             }
         }
     }
@@ -74,16 +78,31 @@ export const crearCliente = async (req, res) => {
     }
 
     if (cedula && cedula.trim()) {
-        // 1. Longitud máxima (13)
-        if (cedula.trim().length > 13) {
-            errores.push('La cédula/RUC no puede tener más de 13 dígitos');
-        }
-        // 2. Unicidad - Solo validar si la cédula NO es null/vacía
-        const cedulaExistente = await prisma.cliente.findFirst({
-            where: { cedula: cedula.trim() }
-        });
-        if (cedulaExistente) {
-            errores.push('La cédula/RUC ya está registrada');
+        // 1. Solo dígitos
+        if (!/^\d+$/.test(cedula.trim())) {
+            errores.push('La cédula debe contener solo números');
+        } else if (cedula.trim().length !== 10) {
+            // 2. Exactamente 10 dígitos (cédula ecuatoriana)
+            errores.push('La cédula debe tener exactamente 10 dígitos');
+        } else {
+            // 4. Unicidad en tabla Cliente
+            const cedulaExistente = await prisma.cliente.findFirst({
+                where: { cedula: cedula.trim() }
+            });
+            if (cedulaExistente) {
+                errores.push('La cédula/RUC ya está registrada en otro cliente.');
+            }
+
+            // 5. Cross-check: ¿Pertenece a un Agente o Admin?
+            const esAgenteOAdmin = await prisma.usuario.findFirst({
+                where: {
+                    cedula: cedula.trim(),
+                    rol: { in: ['agente', 'admin'] }
+                }
+            });
+            if (esAgenteOAdmin) {
+                errores.push('Esta cédula pertenece a un agente o administrador del sistema y no puede usarse como cliente.');
+            }
         }
     }
 
@@ -356,7 +375,15 @@ export const actualizarCliente = async (req, res) => {
 
         // Validaciones obligatorias
         if (!nombre?.trim()) errores.push('El nombre es obligatorio');
-        if (!telefono?.trim()) errores.push('El teléfono es obligatorio');
+        if (!telefono?.trim()) {
+            errores.push('El teléfono es obligatorio');
+        } else {
+            const soloDigitosTel = telefono.trim().replace(/\s/g, '');
+            const telefonoRegexActual = /^(09\d{8}|0[2-7]\d{7})$/;
+            if (!telefonoRegexActual.test(soloDigitosTel)) {
+                errores.push('El teléfono debe ser un número ecuatoriano válido de 10 dígitos (ej: 0991234567 o 022345678)');
+            }
+        }
         if (!tipo_cliente) errores.push('El tipo de cliente es obligatorio');
 
         // VALIDACIÓN DE CONVERSIÓN DE PROSPECTO
@@ -378,13 +405,17 @@ export const actualizarCliente = async (req, res) => {
 
         // Validación de email único (Solo si se proporcionó y excluyendo el cliente actual)
         if (email?.trim()) {
-            // 1. Verificar si el email pertenece a un usuario del sistema (agente/admin)
-            const esUsuarioSistema = await prisma.usuario.findUnique({
-                where: { email: email.trim() }
+            // 1. Verificar si el email pertenece a un agente o admin del sistema
+            // (NO bloquear si es un usuario con rol 'cliente' del portal)
+            const esAgenteOAdmin = await prisma.usuario.findFirst({
+                where: {
+                    email: email.trim(),
+                    rol: { in: ['agente', 'admin'] }
+                }
             });
 
-            if (esUsuarioSistema) {
-                errores.push('Este email pertenece a un usuario del sistema. Por favor, usa un email personal diferente.');
+            if (esAgenteOAdmin) {
+                errores.push('Este email pertenece a un agente o administrador del sistema y no puede usarse como cliente.');
             }
 
             // 2. Unicidad con otros clientes
@@ -395,20 +426,37 @@ export const actualizarCliente = async (req, res) => {
                 }
             });
             if (emailDuplicado) {
-                errores.push('El correo electrónico ya está registrado por otro cliente');
+                errores.push('El correo electrónico ya está registrado por otro cliente.');
             }
         }
 
-        // Validación de cedula única (Solo si se proporcionó y excluyendo el cliente actual)
+        // Validación de cedula (Formato y unicidad excluyendo el cliente actual)
         if (cedula?.trim()) {
-            const cedulaDuplicada = await prisma.cliente.findFirst({
-                where: {
-                    cedula: cedula.trim(),
-                    id: { not: parseInt(id) }
+            if (!/^\d+$/.test(cedula.trim())) {
+                errores.push('La cédula debe contener solo números');
+            } else if (cedula.trim().length !== 10) {
+                errores.push('La cédula debe tener exactamente 10 dígitos');
+            } else {
+                const cedulaDuplicada = await prisma.cliente.findFirst({
+                    where: {
+                        cedula: cedula.trim(),
+                        id: { not: parseInt(id) }
+                    }
+                });
+                if (cedulaDuplicada) {
+                    errores.push('La cédula ya está registrada por otro cliente');
                 }
-            });
-            if (cedulaDuplicada) {
-                errores.push('La cédula/RUC ya está registrada por otro cliente');
+
+                // Cross-check: ¿Pertenece a un Agente o Admin?
+                const esAgenteOAdminCed = await prisma.usuario.findFirst({
+                    where: {
+                        cedula: cedula.trim(),
+                        rol: { in: ['agente', 'admin'] }
+                    }
+                });
+                if (esAgenteOAdminCed) {
+                    errores.push('Esta cédula pertenece a un agente o administrador del sistema y no puede usarse como cliente.');
+                }
             }
         }
 
@@ -740,6 +788,16 @@ export const registrarContactoPublico = async (req, res) => {
     if (!mensaje?.trim()) errores.push('El mensaje es obligatorio');
     if (!propiedadId) errores.push('ID de propiedad no válido');
 
+    // Teléfono obligatorio con formato Ecuador
+    if (!telefono?.trim()) {
+        errores.push('El teléfono es obligatorio');
+    } else {
+        const telefonoRegex = /^(09\d{8}|0[2-7]\d{7})$/;
+        if (!telefonoRegex.test(telefono.trim())) {
+            errores.push('El teléfono debe ser un número ecuatoriano válido (ej: 0991234567 o 022345678)');
+        }
+    }
+
     if (errores.length > 0) {
         return res.status(400).json({ mensaje: 'Datos incompletos', errores });
     }
@@ -748,25 +806,36 @@ export const registrarContactoPublico = async (req, res) => {
         // 1. Obtener la Propiedad y su Agente Responsable
         const propiedad = await prisma.propiedad.findUnique({
             where: { id: parseInt(propiedadId) },
-            select: { id: true, agenteId: true, titulo: true, codigo_interno: true }
+            select: { id: true, agenteId: true, titulo: true, codigo_interno: true, transaccion: true }
         });
 
         if (!propiedad) {
             return res.status(404).json({ mensaje: 'Propiedad no encontrada' });
         }
 
-        // 2. Buscar si el Cliente ya existe
+        // 2. Determinar agente responsable con fallback al primer admin activo
+        let agenteResponsableId = propiedad.agenteId;
+        if (!agenteResponsableId) {
+            const adminFallback = await prisma.usuario.findFirst({
+                where: { rol: 'admin', activo: true },
+                select: { id: true }
+            });
+            agenteResponsableId = adminFallback?.id ?? null;
+        }
+
+        // 3. Tipo de cliente: siempre 'prospecto' al captar un lead web
+        //    El agente lo calificará manualmente (comprador / arrendatario / etc.)
+        const tipoCliente = 'prospecto';
+
+        // 4. Buscar si el Cliente ya existe
         let cliente = await prisma.cliente.findFirst({
             where: { email: email.trim() }
         });
 
-        // Agente que gestionará este lead (Por defecto el de la propiedad)
-        let agenteResponsableId = propiedad.agenteId;
-
         if (cliente) {
             // El cliente YA EXISTE
 
-            // 2.1 Enriquecimiento de Datos: Actualizar teléfono si falta
+            // 4.1 Enriquecimiento de Datos: Actualizar teléfono si falta
             if (telefono && telefono.trim() && (!cliente.telefono || cliente.telefono === 'Sin teléfono')) {
                 try {
                     console.log(`Enriqueciendo datos del cliente ${cliente.email}: Actualizando teléfono.`);
@@ -776,11 +845,23 @@ export const registrarContactoPublico = async (req, res) => {
                     });
                 } catch (err) {
                     console.error('Error al actualizar teléfono del cliente:', err);
-                    // No bloqueamos el flujo principal si falla la actualización
                 }
             }
 
-            // 2.2 Reactivación Automática: Si el cliente estaba inactivo, se reactiva
+            // Sincronizar telefono con la cuenta de Usuario si existe
+            try {
+                const usuarioVinculado = await prisma.usuario.findUnique({ where: { email: email.trim() } });
+                if (usuarioVinculado && (!usuarioVinculado.telefono || usuarioVinculado.telefono === 'Sin teléfono')) {
+                    await prisma.usuario.update({
+                        where: { id: usuarioVinculado.id },
+                        data: { telefono: telefono.trim() }
+                    });
+                }
+            } catch (err) {
+                console.error('Error sincronizando teléfono con cuenta de usuario:', err);
+            }
+
+            // 4.2 Reactivación Automática: Si el cliente estaba inactivo, se reactiva
             if (!cliente.activo) {
                 try {
                     console.log(`Reactivando cliente ${cliente.email} por nueva interacción.`);
@@ -797,6 +878,19 @@ export const registrarContactoPublico = async (req, res) => {
                 }
             }
 
+            // 4.3 Asignación de Agente Definitivo (si el cliente era huérfano de portal)
+            if (!cliente.agenteId) {
+                try {
+                    console.log(`Asignando cliente huerfano ${cliente.email} al agente captador ${agenteResponsableId}.`);
+                    cliente = await prisma.cliente.update({
+                        where: { id: cliente.id },
+                        data: { agenteId: agenteResponsableId }
+                    });
+                } catch (err) {
+                    console.error('Error al asignar agente al cliente huérfano:', err);
+                }
+            }
+
             // Se respeta su agente asignado (Exclusividad)
             if (cliente.agenteId) {
                 agenteResponsableId = cliente.agenteId;
@@ -807,12 +901,17 @@ export const registrarContactoPublico = async (req, res) => {
                 data: {
                     nombre: nombre.trim(),
                     email: email.trim(),
-                    telefono: telefono?.trim() || 'Sin teléfono',
-                    tipo_cliente: 'comprador',
+                    telefono: telefono.trim(),
+                    tipo_cliente: tipoCliente,
                     agenteId: agenteResponsableId,
-                    observaciones: 'Cliente captado vía Web Pública'
+                    observaciones: `Cliente captado vía formulario web — Propiedad: ${propiedad.titulo}`
                 }
             });
+        }
+
+        // Se respeta su agente asignado (Exclusividad)
+        if (cliente.agenteId) {
+            agenteResponsableId = cliente.agenteId;
         }
 
         // 3. Verificar si ya existe una Negociación ACTIVA
@@ -900,5 +999,57 @@ export const registrarContactoPublico = async (req, res) => {
     } catch (error) {
         console.error('Error procesando lead público:', error);
         res.status(500).json({ mensaje: 'Error al procesar su solicitud' });
+    }
+};
+
+// Verificar disponibilidad de email (usado para validacion onBlur en formularios)
+export const verificarEmail = async (req, res) => {
+    const { email, clienteId } = req.query;
+    if (!email?.trim()) {
+        return res.status(400).json({ disponible: false, mensaje: 'Email requerido' });
+    }
+    try {
+        const esAgenteOAdmin = await prisma.usuario.findFirst({
+            where: { email: email.trim(), rol: { in: ['agente', 'admin'] } }
+        });
+        if (esAgenteOAdmin) {
+            return res.json({ disponible: false, mensaje: 'Este email pertenece a un agente o administrador del sistema.' });
+        }
+        const whereCliente = { email: email.trim() };
+        if (clienteId) whereCliente.id = { not: parseInt(clienteId) };
+        const existente = await prisma.cliente.findFirst({ where: whereCliente });
+        if (existente) {
+            return res.json({ disponible: false, mensaje: 'Este correo ya pertenece a un cliente registrado.' });
+        }
+        return res.json({ disponible: true });
+    } catch (error) {
+        console.error('Error verificando email:', error);
+        res.status(500).json({ disponible: true });
+    }
+};
+
+// Verificar disponibilidad de cedula (usado para validacion onBlur en formularios)
+export const verificarCedula = async (req, res) => {
+    const { cedula, clienteId } = req.query;
+    if (!cedula?.trim()) {
+        return res.status(400).json({ disponible: false, mensaje: 'Cedula requerida' });
+    }
+    try {
+        const esAgenteOAdmin = await prisma.usuario.findFirst({
+            where: { cedula: cedula.trim(), rol: { in: ['agente', 'admin'] } }
+        });
+        if (esAgenteOAdmin) {
+            return res.json({ disponible: false, mensaje: 'Esta cedula pertenece a un agente o administrador del sistema.' });
+        }
+        const whereCliente = { cedula: cedula.trim() };
+        if (clienteId) whereCliente.id = { not: parseInt(clienteId) };
+        const existente = await prisma.cliente.findFirst({ where: whereCliente });
+        if (existente) {
+            return res.json({ disponible: false, mensaje: 'Esta cedula ya esta registrada en otro cliente.' });
+        }
+        return res.json({ disponible: true });
+    } catch (error) {
+        console.error('Error verificando cedula:', error);
+        res.status(500).json({ disponible: true });
     }
 };

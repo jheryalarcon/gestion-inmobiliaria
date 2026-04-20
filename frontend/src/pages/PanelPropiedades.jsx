@@ -1,11 +1,74 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { jwtDecode } from 'jwt-decode';
 import FiltroPropiedadesAdmin from '../components/FiltroPropiedadesAdmin';
 import CardPropiedad from '../components/CardPropiedad';
 import ModalConfirmarEliminar from '../components/ModalConfirmarEliminar';
-import { SearchX, LayoutGrid, List } from 'lucide-react';
+import { SearchX, Globe2, UserCircle2, ChevronDown } from 'lucide-react';
+
+
+// ─── Selector de Agente con Iconos (reemplaza el <select> con emojis) ────────
+function AgenteSelectorDropdown({ agentes, selectedAgent, setSelectedAgent }) {
+    const [open, setOpen] = useState(false);
+    const ref = useRef(null);
+
+    useEffect(() => {
+        const handleClickOutside = (e) => {
+            if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    const selectedLabel = selectedAgent
+        ? agentes.find(a => String(a.id) === String(selectedAgent))?.name || 'Agente'
+        : 'Todas las propiedades';
+
+    return (
+        <div className="relative" ref={ref}>
+            <button
+                onClick={() => setOpen(prev => !prev)}
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-sm font-medium transition-all whitespace-nowrap min-w-[200px]
+                    ${selectedAgent
+                        ? 'bg-orange-50 border-orange-200 text-orange-700'
+                        : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
+                    }`}
+            >
+                {selectedAgent
+                    ? <UserCircle2 className="w-4 h-4 text-orange-500 shrink-0" />
+                    : <Globe2 className="w-4 h-4 text-gray-400 shrink-0" />
+                }
+                <span className="flex-1 text-left truncate">{selectedLabel}</span>
+                <ChevronDown className={`w-3.5 h-3.5 transition-transform shrink-0 ${open ? 'rotate-180' : ''} ${selectedAgent ? 'text-orange-400' : 'text-gray-400'}`} />
+            </button>
+
+            {open && (
+                <div className="absolute top-full mt-2 left-0 min-w-full w-56 bg-white rounded-xl shadow-xl border border-gray-100 p-2 z-[60] animate-in fade-in zoom-in-95 duration-200">
+                    <button
+                        onClick={() => { setSelectedAgent(''); setOpen(false); }}
+                        className={`w-full flex items-center gap-2 px-3 py-2 text-left text-sm rounded-lg transition-colors
+                            ${!selectedAgent ? 'bg-blue-50 text-blue-700 font-medium' : 'hover:bg-gray-50 text-gray-700'}`}
+                    >
+                        <Globe2 className="w-4 h-4 shrink-0" />
+                        Todas las propiedades
+                    </button>
+                    {agentes.map(agente => (
+                        <button
+                            key={agente.id}
+                            onClick={() => { setSelectedAgent(agente.id); setOpen(false); }}
+                            className={`w-full flex items-center gap-2 px-3 py-2 text-left text-sm rounded-lg transition-colors
+                                ${String(selectedAgent) === String(agente.id) ? 'bg-orange-50 text-orange-700 font-medium' : 'hover:bg-gray-50 text-gray-700'}`}
+                        >
+                            <UserCircle2 className="w-4 h-4 shrink-0" />
+                            {agente.name}
+                        </button>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+}
 
 export default function PanelPropiedades() {
     const navigate = useNavigate();
@@ -300,22 +363,13 @@ export default function PanelPropiedades() {
                             </div>
                         )}
 
-                        {/* UI para ADMIN: Dropdown Unificado */}
+                        {/* UI para ADMIN: Dropdown Personalizado con Iconos */}
                         {usuario?.rol === 'admin' && (
-                            <div className="flex items-center gap-2">
-                                <select
-                                    value={selectedAgent}
-                                    onChange={(e) => setSelectedAgent(e.target.value)}
-                                    className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent min-w-[200px]"
-                                >
-                                    <option value="">🌐 Todas las propiedades</option>
-                                    {agentes.map(agente => (
-                                        <option key={agente.id} value={agente.id}>
-                                            👤 {agente.name}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
+                            <AgenteSelectorDropdown
+                                agentes={agentes}
+                                selectedAgent={selectedAgent}
+                                setSelectedAgent={setSelectedAgent}
+                            />
                         )}
 
                         {/* SELECTOR DE ORDENAMIENTO (Movido desde Filtros) */}
