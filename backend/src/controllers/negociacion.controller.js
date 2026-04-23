@@ -141,7 +141,7 @@ export const crearNegociacion = async (req, res) => {
         });
 
         res.status(201).json({
-            mensaje: '✅ Negociación creada correctamente',
+            mensaje: 'Negociación creada correctamente',
             negociacion
         });
 
@@ -233,6 +233,16 @@ export const obtenerNegociaciones = async (req, res) => {
                     }
                 },
                 {
+                    cliente: {
+                        email: { contains: search, mode: 'insensitive' }
+                    }
+                },
+                {
+                    cliente: {
+                        cedula: { contains: search, mode: 'insensitive' }
+                    }
+                },
+                {
                     propiedad: {
                         titulo: { contains: search, mode: 'insensitive' }
                     }
@@ -270,7 +280,8 @@ export const obtenerNegociaciones = async (req, res) => {
                             nombre: true,
                             email: true,
                             telefono: true,
-                            tipo_cliente: true
+                            tipo_cliente: true,
+                            cedula: true
                         }
                     },
                     propiedad: {
@@ -281,6 +292,7 @@ export const obtenerNegociaciones = async (req, res) => {
                             direccion: true,
                             ciudad: true,
                             estado_publicacion: true,
+                            codigo_interno: true,
                             agenteId: true,
                             agente: { // 🆕 INCLUIR DATOS DEL CAPTADOR
                                 select: {

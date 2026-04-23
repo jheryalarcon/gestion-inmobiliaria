@@ -47,7 +47,7 @@ const CrearNegociacion = ({ isOpen, onClose, onSuccess, usuario }) => {
 
             // Cargar clientes del agente
             const clientesResponse = await axios.get(
-                `${import.meta.env.VITE_BACKEND_URL}/api/clientes?estado=activo`,
+                `${import.meta.env.VITE_BACKEND_URL}/api/clientes?estado=activo&limit=1000`,
                 { headers }
             );
 
@@ -205,7 +205,7 @@ const CrearNegociacion = ({ isOpen, onClose, onSuccess, usuario }) => {
     const propiedadesFiltradas = propiedadesCompletas.filter(propiedad => {
         // 1. Filtro de Texto
         const term = busquedaPropiedad.toLowerCase();
-        const textoComp = `${propiedad.titulo} ${propiedad.ciudad} ${propiedad.tipo_propiedad}`.toLowerCase();
+        const textoComp = `${propiedad.titulo} ${propiedad.ciudad} ${propiedad.tipo_propiedad} ${propiedad.codigo_interno || ''}`.toLowerCase();
         const coincideBusqueda = term === '' || textoComp.includes(term);
 
         // 2. Filtro de "Solo mis propiedades"
@@ -402,7 +402,7 @@ const CrearNegociacion = ({ isOpen, onClose, onSuccess, usuario }) => {
                                     <div className="relative">
                                         <input
                                             type="text"
-                                            placeholder="🔍 Buscar propiedad por título, ciudad o tipo..."
+                                            placeholder="🔍 Buscar propiedad por código, título, ciudad o tipo..."
                                             value={busquedaPropiedad}
                                             onChange={(e) => {
                                                 setBusquedaPropiedad(e.target.value);
@@ -465,6 +465,12 @@ const CrearNegociacion = ({ isOpen, onClose, onSuccess, usuario }) => {
                                                                     <p className="text-xs text-gray-500 mt-1 flex items-center gap-2">
                                                                         <span className="font-medium text-orange-600">${propiedad.precio}</span>
                                                                         <span className="text-gray-300">|</span>
+                                                                        {propiedad.codigo_interno && (
+                                                                            <>
+                                                                                <span className="font-mono bg-gray-100 px-1 rounded text-[10px]">Cód: {propiedad.codigo_interno}</span>
+                                                                                <span className="text-gray-300">|</span>
+                                                                            </>
+                                                                        )}
                                                                         <span>{propiedad.ciudad}</span>
                                                                         <span className="text-gray-300">|</span>
                                                                         <span className="capitalize">{propiedad.tipo_propiedad?.replace('_', ' ')}</span>
@@ -507,7 +513,7 @@ const CrearNegociacion = ({ isOpen, onClose, onSuccess, usuario }) => {
                                     <div className="relative">
                                         <input
                                             type="text"
-                                            placeholder="🔍 Buscar agente para asignar..."
+                                            placeholder="🔍 Buscar agente por nombre o correo..."
                                             value={busquedaAgente}
                                             onChange={(e) => {
                                                 setBusquedaAgente(e.target.value);

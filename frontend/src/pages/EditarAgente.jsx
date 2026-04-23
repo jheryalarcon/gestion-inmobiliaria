@@ -150,8 +150,21 @@ export default function EditarAgente() {
         const files = Array.from(e.target.files);
         if (files.length === 0) return;
 
+        const MAX_MB = 10;
+        const MAX_BYTES = MAX_MB * 1024 * 1024;
+
+        const archivosValidos = files.filter(file => {
+            if (file.size > MAX_BYTES) {
+                toast.error(`El archivo "${file.name}" supera los ${MAX_MB} MB permitidos`);
+                return false;
+            }
+            return true;
+        });
+
+        if (archivosValidos.length === 0) return;
+
         const formData = new FormData();
-        files.forEach(file => formData.append('documentos', file));
+        archivosValidos.forEach(file => formData.append('documentos', file));
 
         let tipoBackend = 'OTRO';
         if (tipo === 'identificacion') tipoBackend = 'IDENTIFICACION';
@@ -165,9 +178,7 @@ export default function EditarAgente() {
             const token = localStorage.getItem('token');
             const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/documentos/agente/${id}`, {
                 method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                },
+                headers: { 'Authorization': `Bearer ${token}` },
                 body: formData
             });
 
@@ -179,11 +190,14 @@ export default function EditarAgente() {
                     url: doc.url,
                     type: 'application/pdf'
                 }));
-
                 setDocumentos(prev => ({
                     ...prev,
                     [tipo]: [...prev[tipo], ...newDocs]
                 }));
+                // Limpiar error de identificación si se sube ese documento
+                if (tipo === 'identificacion') {
+                    setErrores(prev => { const e = { ...prev }; delete e.identificacion; return e; });
+                }
                 toast.success('Documentos subidos correctamente');
             } else {
                 toast.error('Error al subir documentos');
@@ -200,7 +214,7 @@ export default function EditarAgente() {
 
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/documentos/agente/${docToDelete.id}`, {
+            const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/documentos/agente/doc/${docToDelete.id}`, {
                 method: 'DELETE',
                 headers: {
                     'Authorization': `Bearer ${token}`
@@ -306,8 +320,13 @@ export default function EditarAgente() {
         // Validar Cédula (Obligatoria)
         if (!datos.cedula.trim()) {
             nuevosErrores.cedula = 'La cédula es obligatoria';
-        } else if (!/^\d{10,13}$/.test(datos.cedula)) {
-            nuevosErrores.cedula = 'La cédula debe tener 10-13 dígitos numéricos';
+        } else if (!/^\d{10}$/.test(datos.cedula)) {
+            nuevosErrores.cedula = 'La cédula debe tener exactamente 10 dígitos numéricos';
+        }
+
+        // Validar que exista documento de identificación
+        if (!documentos.identificacion || documentos.identificacion.length === 0) {
+            nuevosErrores.identificacion = 'El documento de Cédula / Pasaporte es obligatorio';
         }
 
         return nuevosErrores;
@@ -316,50 +335,73 @@ export default function EditarAgente() {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        const nuevosErrores = validarFormulario();
-        setErrores(nuevosErrores);
+        // 1. Validación local (campos obligatorios, formatos)
+        const erroresLocales = validarFormulario();
 
-        if (Object.keys(nuevosErrores).length > 0) {
-            toast.error('Por favor, corrige los errores del formulario');
-            // Auto-focus en el primer campo con error
-            const primerCampo = Object.keys(nuevosErrores)[0];
-            const elemento = document.querySelector(`[name="${primerCampo}"]`);
-            if (elemento) {
-                elemento.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                elemento.focus();
-            }
+        // 2. Verificaciones asíncronas de duplicados en paralelo (excluyendo el agente actual)
+        const token = localStorage.getItem('token');
+        const baseUrl = import.meta.env.VITE_BACKEND_URL;
+        const headers = { Authorization: `Bearer ${token}` };
+
+        const checks = [];
+
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (datos.email?.trim() && emailRegex.test(datos.email.trim())) {
+            checks.push(
+                fetch(`${baseUrl}/api/agentes/verificar/email?email=${encodeURIComponent(datos.email.trim())}&agenteId=${id}`, { headers })
+                    .then(r => r.json())
+                    .then(d => !d.disponible ? { campo: 'email', mensaje: d.mensaje } : null)
+                    .catch(() => null)
+            );
+        }
+
+        if (datos.cedula?.trim() && /^\d{10}$/.test(datos.cedula.trim())) {
+            checks.push(
+                fetch(`${baseUrl}/api/agentes/verificar/cedula?cedula=${encodeURIComponent(datos.cedula.trim())}&agenteId=${id}`, { headers })
+                    .then(r => r.json())
+                    .then(d => !d.disponible ? { campo: 'cedula', mensaje: d.mensaje } : null)
+                    .catch(() => null)
+            );
+        }
+
+        const resultadosChecks = await Promise.all(checks);
+        const erroresDuplicados = {};
+        resultadosChecks.forEach(r => {
+            if (r) erroresDuplicados[r.campo] = r.mensaje;
+        });
+
+        // 3. Fusionar todos los errores
+        const todosLosErrores = { ...erroresLocales, ...erroresDuplicados };
+
+        if (Object.keys(todosLosErrores).length > 0) {
+            setErrores(todosLosErrores);
+            toast.error('Por favor, corrige los errores del formulario.', { duration: 3000, id: 'errores-validacion' });
+            setTimeout(() => {
+                const primerCampo = Object.keys(todosLosErrores)[0];
+                const elemento = document.querySelector(`[name="${primerCampo}"]`);
+                if (elemento) {
+                    elemento.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    elemento.focus();
+                }
+            }, 100);
             return;
         }
 
         setSubmitting(true);
         try {
-            const token = localStorage.getItem('token');
-            const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/agentes/${id}`, {
+            const response = await fetch(`${baseUrl}/api/agentes/${id}`, {
                 method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                 body: JSON.stringify(datos)
             });
 
             if (response.ok) {
                 const data = await response.json();
-                guardadoExitoso.current = true; // Marcar como guardado exitoso
+                guardadoExitoso.current = true;
                 toast.success(data.mensaje);
                 navigate('/admin/panel-agentes');
             } else {
                 const errorData = await response.json();
-
-                // Manejo de errores de duplicados para mostrar en los inputs
-                if (errorData.error) {
-                    if (errorData.error.includes('email')) {
-                        setErrores(prev => ({ ...prev, email: errorData.error }));
-                    } else if (errorData.error.includes('cédula')) {
-                        setErrores(prev => ({ ...prev, cedula: errorData.error }));
-                    }
-                }
-
                 toast.error(errorData.error || 'Error al actualizar el agente');
             }
         } catch (error) {
@@ -410,7 +452,7 @@ export default function EditarAgente() {
                 </div>
 
                 <div className="p-8">
-                    <form onSubmit={handleSubmit} className="space-y-8">
+                    <form onSubmit={handleSubmit} noValidate className="space-y-8">
                         {/* SECCIÓN 1: DATOS PERSONALES */}
                         <section>
                             <h3 className="text-lg font-bold text-gray-800 mb-5 flex items-center gap-2 border-b pb-2">
@@ -442,7 +484,7 @@ export default function EditarAgente() {
                                         <input
                                             type="text"
                                             name="cedula"
-                                            maxLength="13"
+                                            maxLength="10"
                                             value={datos.cedula}
                                             onChange={(e) => {
                                                 if (/^\d*$/.test(e.target.value)) handleInputChange(e);
@@ -486,10 +528,12 @@ export default function EditarAgente() {
                                             <Mail className="w-4 h-4" />
                                         </div>
                                         <input
-                                            type="email"
+                                            type="text"
                                             name="email"
                                             value={datos.email}
                                             onChange={handleInputChange}
+                                            autoComplete="email"
+                                            inputMode="email"
                                             className={`w-full pl-10 border rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500/20 bg-gray-50/50 transition-colors ${errores.email ? 'border-red-400 focus:border-red-400' : 'border-gray-300 focus:border-blue-500'}`}
                                             placeholder="Ej: laura.martinez@email.com"
                                         />
@@ -530,6 +574,7 @@ export default function EditarAgente() {
                                 documentos={documentos}
                                 onUpload={handleUploadDocumento}
                                 onDelete={eliminarDocumento}
+                                errores={errores}
                             />
                         </section>
 

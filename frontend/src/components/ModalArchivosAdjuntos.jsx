@@ -212,6 +212,11 @@ const ModalArchivosAdjuntos = ({
                         </h3>
                         <p className="text-xs text-gray-500 mt-1 pl-9">
                             {negociacion?.cliente?.nombre} • {negociacion?.propiedad?.titulo}
+                            {negociacion?.propiedad?.codigo_interno && (
+                                <span className="ml-1.5 text-[10px] font-semibold bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded uppercase tracking-wide">
+                                    {negociacion.propiedad.codigo_interno}
+                                </span>
+                            )}
                         </p>
                     </div>
                     <button onClick={onClose} className="text-gray-400 hover:text-gray-600 p-1 hover:bg-gray-100 rounded-lg transition-colors">

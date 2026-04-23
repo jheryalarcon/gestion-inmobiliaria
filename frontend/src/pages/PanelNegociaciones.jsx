@@ -224,13 +224,9 @@ const PanelNegociaciones = () => {
         }
     };
 
-    const handleEtapaActualizada = (negociacionActualizada) => {
-        // Actualizar la negociación en el estado local
-        setNegociaciones(prev =>
-            prev.map(n =>
-                n.id === negociacionActualizada.id ? negociacionActualizada : n
-            )
-        );
+    const handleEtapaActualizada = () => {
+        // Recargamos desde el backend para que los datos (privacidad, estado propiedad) sean correctos
+        cargarNegociaciones();
         setShowActualizarEtapaModal(false);
         setNegociacionSeleccionada(null);
         toast.success('Etapa de negociación actualizada correctamente', { id: 'etapa-actualizada' });
@@ -318,7 +314,7 @@ const PanelNegociaciones = () => {
                                     name="search"
                                     value={searchInput}
                                     onChange={(e) => setSearchInput(e.target.value)}
-                                    placeholder="Cliente, propiedad o código..."
+                                    placeholder="Nombre, correo, cédula, código o título..."
                                     className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                                 />
                                 <Search className="w-4 h-4 text-gray-400 absolute left-3 top-2.5" />
@@ -460,6 +456,23 @@ const PanelNegociaciones = () => {
                                 {negociaciones.map((negociacion) => {
                                     const esInactiva = negociacion.propiedad.estado_publicacion === 'inactiva';
                                     const esEliminada = !negociacion.activo;
+                                    const estadoProp = negociacion.propiedad.estado_publicacion;
+                                    const etapaNeg = negociacion.etapa;
+
+                                    // La negociación que provocó el cambio de estado de la propiedad
+                                    const esNegGanadora =
+                                        (estadoProp === 'reservada' && etapaNeg === 'cierre') ||
+                                        ((estadoProp === 'vendida' || estadoProp === 'arrendada') && etapaNeg === 'finalizada');
+
+                                    // Botón activo si:
+                                    // 1. Propiedad disponible (operación normal para todos)
+                                    // 2. Es la negociación ganadora (todos pueden actuar sobre ella)
+                                    // 3. Es Admin (puede intervenir siempre: limpiar perdedoras, revertir, etc.)
+                                    // Las negociaciones perdedoras con propiedad bloqueada solo son accesibles por Admin
+                                    const botonActivo =
+                                        estadoProp === 'disponible' ||
+                                        esNegGanadora ||
+                                        usuario?.rol === 'admin';
                                     return (
                                         <tr
                                             key={negociacion.id}
@@ -478,8 +491,8 @@ const PanelNegociaciones = () => {
                                                     <div className="text-sm text-gray-500">
                                                         {negociacion.cliente.email}
                                                     </div>
-                                                    <div className="text-xs text-gray-400">
-                                                        {negociacion.cliente.tipo_cliente}
+                                                    <div className="text-xs text-gray-400 font-mono">
+                                                        C.I: {negociacion.cliente.cedula || 'N/A'}
                                                     </div>
                                                 </div>
                                             </td>
@@ -497,7 +510,7 @@ const PanelNegociaciones = () => {
                                                         {formatearPrecio(negociacion.propiedad.precio)}
                                                     </div>
                                                     <div className="text-xs text-gray-400">
-                                                        {negociacion.propiedad.ciudad}
+                                                        Cód: {negociacion.propiedad.codigo_interno || 'S/N'} | {negociacion.propiedad.ciudad}
                                                     </div>
                                                 </div>
                                             </td>
@@ -582,16 +595,13 @@ const PanelNegociaciones = () => {
                                                                 </>
                                                             )}
 
-                                                            {/* ACTUALIZAR ETAPA: Visible para Dueño, Admin Y Captador (Incluso confidencial) */}
-                                                            {/* Verificamos disponibilidad o permiso especial de backend */}
+                                                            {/* ACTUALIZAR ETAPA */}
                                                             {
-                                                                negociacion.propiedad.estado_publicacion === 'disponible' ||
-                                                                    (negociacion.propiedad.estado_publicacion === 'reservada' && negociacion.etapa === 'cierre') ||
-                                                                    usuario?.rol === 'admin' ? (
+                                                                botonActivo ? (
                                                                     <button
                                                                         onClick={() => handleActualizarEtapa(negociacion)}
                                                                         className={`p-1.5 rounded-lg transition-all ${negociacion.esConfidencial
-                                                                            ? 'text-orange-500 bg-orange-50 hover:bg-orange-100 ring-1 ring-orange-200' // Resaltado para captador
+                                                                            ? 'text-orange-500 bg-orange-50 hover:bg-orange-100 ring-1 ring-orange-200'
                                                                             : 'text-gray-400 hover:text-blue-600 hover:bg-blue-50'
                                                                             }`}
                                                                         title={negociacion.esConfidencial ? "Gestionar Etapa (Captador)" : "Actualizar etapa"}
@@ -599,14 +609,17 @@ const PanelNegociaciones = () => {
                                                                         <RefreshCw className="w-4 h-4" />
                                                                     </button>
                                                                 ) : (
-                                                                    <div className="p-1.5 cursor-not-allowed opacity-50" title={`Propiedad no disponible (${negociacion.propiedad.estado_publicacion})`}>
+                                                                    <div
+                                                                        className="p-1.5 cursor-not-allowed opacity-30"
+                                                                        title={`Propiedad ${estadoProp} por otra negociación. Cuando vuelva a estar disponible podrás gestionar esta negociación.`}
+                                                                    >
                                                                         <RefreshCw className="w-4 h-4 text-gray-300" />
                                                                     </div>
                                                                 )
                                                             }
 
-                                                            {/* ELIMINAR/DESACTIVAR: Solo dueño (No confidencial) o Admin */}
-                                                            {!negociacion.esConfidencial && (
+                                                            {/* ELIMINAR/DESACTIVAR: No visible en etapas bloqueadas por el backend (cierre/finalizada) */}
+                                                            {!negociacion.esConfidencial && etapaNeg !== 'cierre' && etapaNeg !== 'finalizada' && (
                                                                 <button
                                                                     onClick={() => handleDesactivar(negociacion)}
                                                                     className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
@@ -836,6 +849,11 @@ const PanelNegociaciones = () => {
                                 </h3>
                                 <p className="text-xs text-gray-500 mt-1 pl-9">
                                     {negociacionSeleccionada.cliente?.nombre} • {negociacionSeleccionada.propiedad?.titulo}
+                                    {negociacionSeleccionada.propiedad?.codigo_interno && (
+                                        <span className="ml-1.5 text-[10px] font-semibold bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded uppercase tracking-wide">
+                                            {negociacionSeleccionada.propiedad.codigo_interno}
+                                        </span>
+                                    )}
                                 </p>
                             </div>
                             <button
@@ -909,7 +927,7 @@ const PanelNegociaciones = () => {
                                     <div>
                                         <h4 className="font-bold text-gray-900 mb-1">Interés</h4>
                                         <p className="text-sm text-gray-600 mb-2 leading-relaxed">
-                                            El cliente muestra interés inicial. Se crea el expediente y se recopilan datos básicos.
+                                            El cliente ha mostrado interés inicial en la propiedad. Estamos en fase de visitas, consultas preliminares y perfilamiento del prospecto. Aún no existe una oferta formal.
                                         </p>
                                         <div className="flex flex-wrap gap-2 text-xs">
                                             <span className="px-2 py-1 bg-gray-100 text-gray-600 rounded-md font-medium">Registro de cliente</span>
@@ -926,7 +944,7 @@ const PanelNegociaciones = () => {
                                     <div>
                                         <h4 className="font-bold text-gray-900 mb-1">Negociación</h4>
                                         <p className="text-sm text-gray-600 mb-2 leading-relaxed">
-                                            Hay propuestas sobre la mesa. Se discuten precios, formas de pago y condiciones.
+                                            Comenzó el diálogo comercial. El cliente ha enviado una oferta y nos encontramos debatiendo términos, montos y formas de pago. Fase crítica de seguimiento.
                                         </p>
                                         <div className="flex flex-wrap gap-2 text-xs">
                                             <span className="px-2 py-1 bg-gray-100 text-gray-600 rounded-md font-medium">Visitas</span>
@@ -941,9 +959,9 @@ const PanelNegociaciones = () => {
                                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-file-signature"><path d="M20 19.5v.5a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8.5L20 7.5V20l-2-2h-3.5" /><polyline points="14 2 14 8 20 8" /><path d="M18.42 9.61a2.1 2.1 0 1 1 2.97 2.97L7.95 21 4 22l.99-3.95 13.43-13.44Z" /></svg>
                                     </div>
                                     <div>
-                                        <h4 className="font-bold text-gray-900 mb-1">Cierre</h4>
+                                        <h4 className="font-bold text-gray-900 mb-1">Cierre / Trámites</h4>
                                         <p className="text-sm text-gray-600 mb-2 leading-relaxed">
-                                            Acuerdo verbal alcanzado. Se procede con trámites legales y redacción de contratos.
+                                            ¡Hay un acuerdo de palabra o promesa firmada! La propiedad se encuentra reservada. Nos encontramos cursando papeleos, gestión notarial o revisión de créditos hipotecarios.
                                         </p>
                                         <div className="flex flex-wrap gap-2 text-xs">
                                             <span className="px-2 py-1 bg-gray-100 text-gray-600 rounded-md font-medium">Promesa de compraventa</span>
@@ -960,7 +978,7 @@ const PanelNegociaciones = () => {
                                     <div>
                                         <h4 className="font-bold text-gray-900 mb-1">Finalizada</h4>
                                         <p className="text-sm text-gray-600 mb-2 leading-relaxed">
-                                            Operación exitosa. Escrituras firmadas y llaves entregadas.
+                                            ¡Operación exitosa! Los contratos definitivos han sido firmados, los fondos liquidados y las llaves entregadas a su nuevo dueño/arrendatario.
                                         </p>
                                         <div className="flex flex-wrap gap-2 text-xs">
                                             <span className="px-2 py-1 bg-gray-100 text-gray-600 rounded-md font-medium">Cobro de comisión</span>
@@ -977,7 +995,7 @@ const PanelNegociaciones = () => {
                                     <div>
                                         <h4 className="font-bold text-gray-900 mb-1">Cancelada</h4>
                                         <p className="text-sm text-gray-600 mb-2 leading-relaxed">
-                                            La operación no se concretó por decisión de alguna de las partes.
+                                            La gestión no prosperó. Vínculo finalizado debido a falta de financiamiento, desacuerdos comerciales o desistimiento del cliente. La propiedad vuelve a estar disponible.
                                         </p>
                                         <div className="flex flex-wrap gap-2 text-xs">
                                             <span className="px-2 py-1 bg-gray-100 text-gray-600 rounded-md font-medium">Cierre administrativo</span>

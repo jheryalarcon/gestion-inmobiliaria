@@ -101,10 +101,27 @@ export default function RegistrarAgente() {
 
     const handleUpload = (e, categoria) => {
         const files = Array.from(e.target.files);
-        setDocumentos(prev => ({
-            ...prev,
-            [categoria]: [...prev[categoria], ...files]
-        }));
+        const MAX_MB = 10;
+        const MAX_BYTES = MAX_MB * 1024 * 1024;
+
+        const archivosValidos = files.filter(file => {
+            if (file.size > MAX_BYTES) {
+                toast.error(`El archivo "${file.name}" supera los ${MAX_MB} MB permitidos`);
+                return false;
+            }
+            return true;
+        });
+
+        if (archivosValidos.length > 0) {
+            setDocumentos(prev => ({
+                ...prev,
+                [categoria]: [...prev[categoria], ...archivosValidos]
+            }));
+            // Limpiar error de identificación si se sube ese documento
+            if (categoria === 'identificacion') {
+                setErrores(prev => { const e = { ...prev }; delete e.identificacion; return e; });
+            }
+        }
     };
 
     const handleDelete = (categoria, index) => {
@@ -135,8 +152,8 @@ export default function RegistrarAgente() {
         // Validación Cédula (Obligatoria)
         if (!datos.cedula.trim()) {
             nuevosErrores.cedula = 'La cédula es obligatoria';
-        } else if (!/^\d{10,13}$/.test(datos.cedula)) {
-            nuevosErrores.cedula = 'La cédula debe tener 10-13 dígitos numéricos';
+        } else if (!/^\d{10}$/.test(datos.cedula)) {
+            nuevosErrores.cedula = 'La cédula debe tener exactamente 10 dígitos numéricos';
         }
 
         if (!datos.password) {
@@ -159,34 +176,66 @@ export default function RegistrarAgente() {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        const nuevosErrores = validarFormulario();
-        setErrores(nuevosErrores);
+        // 1. Validación local (campos obligatorios, formatos)
+        const erroresLocales = validarFormulario();
 
-        if (Object.keys(nuevosErrores).length > 0) {
-            toast.error('Por favor, corrige los errores del formulario');
+        // 2. Verificaciones asíncronas de duplicados en paralelo
+        const token = localStorage.getItem('token');
+        const baseUrl = import.meta.env.VITE_BACKEND_URL;
+        const headers = { Authorization: `Bearer ${token}` };
 
-            // UX: Enfocar el primer error
-            const primerCampo = Object.keys(nuevosErrores)[0];
-            const elemento = document.querySelector(`[name="${primerCampo}"]`);
-            if (elemento) {
-                elemento.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                elemento.focus();
-            }
+        const checks = [];
+
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (datos.email?.trim() && emailRegex.test(datos.email.trim())) {
+            checks.push(
+                fetch(`${baseUrl}/api/agentes/verificar/email?email=${encodeURIComponent(datos.email.trim())}`, { headers })
+                    .then(r => r.json())
+                    .then(d => !d.disponible ? { campo: 'email', mensaje: d.mensaje } : null)
+                    .catch(() => null)
+            );
+        }
+
+        if (datos.cedula?.trim() && /^\d{10}$/.test(datos.cedula.trim())) {
+            checks.push(
+                fetch(`${baseUrl}/api/agentes/verificar/cedula?cedula=${encodeURIComponent(datos.cedula.trim())}`, { headers })
+                    .then(r => r.json())
+                    .then(d => !d.disponible ? { campo: 'cedula', mensaje: d.mensaje } : null)
+                    .catch(() => null)
+            );
+        }
+
+        const resultadosChecks = await Promise.all(checks);
+        const erroresDuplicados = {};
+        resultadosChecks.forEach(r => {
+            if (r) erroresDuplicados[r.campo] = r.mensaje;
+        });
+
+        // 3. Fusionar todos los errores
+        const todosLosErrores = { ...erroresLocales, ...erroresDuplicados };
+
+        if (Object.keys(todosLosErrores).length > 0) {
+            setErrores(todosLosErrores);
+            toast.error('Por favor, corrige los errores del formulario.', { duration: 3000, id: 'errores-validacion' });
+
+            setTimeout(() => {
+                const primerCampo = Object.keys(todosLosErrores)[0];
+                const elemento = document.querySelector(`[name="${primerCampo}"]`);
+                if (elemento) {
+                    elemento.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    elemento.focus();
+                }
+            }, 100);
             return;
         }
 
         setSubmitting(true);
 
         try {
-            const token = localStorage.getItem('token');
-
-            // 1. Crear Agente
-            const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/agentes/crear`, {
+            // 4. Crear Agente
+            const response = await fetch(`${baseUrl}/api/agentes/crear`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                 body: JSON.stringify({
                     name: datos.name.trim(),
                     email: datos.email.trim().toLowerCase(),
@@ -202,7 +251,7 @@ export default function RegistrarAgente() {
             if (response.ok) {
                 const agenteId = data.agente.id;
 
-                // 2. Subir Documentos
+                // 5. Subir Documentos
                 const uploadPromises = [];
                 for (const [key, files] of Object.entries(documentos)) {
                     if (files.length > 0) {
@@ -212,12 +261,10 @@ export default function RegistrarAgente() {
                         if (key === 'contrato') tipoBackend = 'CONTRATO';
                         if (key === 'hoja_vida') tipoBackend = 'HOJA_VIDA';
                         if (key === 'certificado') tipoBackend = 'CERTIFICADO';
-
                         formData.append('tipo', tipoBackend);
                         files.forEach(file => formData.append('documentos', file));
-
                         uploadPromises.push(
-                            fetch(`${import.meta.env.VITE_BACKEND_URL}/api/documentos/agente/${agenteId}`, {
+                            fetch(`${baseUrl}/api/documentos/agente/${agenteId}`, {
                                 method: 'POST',
                                 headers: { 'Authorization': `Bearer ${token}` },
                                 body: formData
@@ -243,19 +290,11 @@ export default function RegistrarAgente() {
                     }
                 });
 
-                // Reset y Redirección
                 setDatos(initialDatos);
                 setDocumentos({ identificacion: [], contrato: [], hoja_vida: [], certificado: [], otro: [] });
-
                 setTimeout(() => navigate('/admin/panel-agentes'), 2000);
 
             } else {
-                // Manejo de errores de duplicados
-                if (data.error && data.error.includes('email')) {
-                    setErrores(prev => ({ ...prev, email: data.error }));
-                } else if (data.error && data.error.includes('cédula')) {
-                    setErrores(prev => ({ ...prev, cedula: data.error }));
-                }
                 toast.error(data.error || 'Error al crear el agente');
             }
 
@@ -309,7 +348,7 @@ export default function RegistrarAgente() {
                 </div>
 
                 <div className="p-8">
-                    <form onSubmit={handleSubmit} className="space-y-8">
+        <form onSubmit={handleSubmit} noValidate className="space-y-8">
 
                         {/* SECCIÓN 1: DATOS PERSONALES */}
                         <section>
@@ -342,7 +381,7 @@ export default function RegistrarAgente() {
                                         <input
                                             type="text"
                                             name="cedula"
-                                            maxLength="13"
+                                            maxLength="10"
                                             value={datos.cedula}
                                             onChange={(e) => {
                                                 if (/^\d*$/.test(e.target.value)) handleChange(e);
@@ -384,10 +423,12 @@ export default function RegistrarAgente() {
                                             <Mail className="w-4 h-4" />
                                         </div>
                                         <input
-                                            type="email"
+                                            type="text"
                                             name="email"
                                             value={datos.email}
                                             onChange={handleChange}
+                                            autoComplete="email"
+                                            inputMode="email"
                                             className={`w-full pl-10 border rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500/20 bg-gray-50/50 transition-colors ${errores.email ? 'border-red-400 focus:border-red-400' : 'border-gray-300 focus:border-blue-500'}`}
                                             placeholder="Ej: laura.martinez@email.com"
                                         />
@@ -491,11 +532,7 @@ export default function RegistrarAgente() {
                                     errores={errores}
                                 />
                             </div>
-                            {errores.identificacion && (
-                                <p className="text-red-500 text-xs mt-2 font-medium flex items-center gap-1">
-                                    ⚠️ {errores.identificacion}
-                                </p>
-                            )}
+
                         </section>
 
                         {/* BOTONES DE ACCIÓN */}

@@ -1,5 +1,5 @@
 import express from 'express';
-import { crearAgente, obtenerAgentes, obtenerAgentePorId, actualizarEstadoAgente, actualizarAgente, obtenerEstadisticasAgentes, cambiarPasswordAgente } from '../controllers/agentes.controller.js';
+import { crearAgente, obtenerAgentes, obtenerAgentePorId, actualizarEstadoAgente, actualizarAgente, obtenerEstadisticasAgentes, cambiarPasswordAgente, verificarEmailAgente, verificarCedulaAgente } from '../controllers/agentes.controller.js';
 import verificarToken from '../middlewares/verificarToken.js';
 import esAdmin from '../middlewares/esAdmin.js';
 
@@ -16,6 +16,10 @@ router.post('/crear', crearAgente);
 
 // Obtener lista de agentes con paginación y búsqueda
 router.get('/', obtenerAgentes);
+
+// Verificar disponibilidad de email y cédula (deben ir ANTES de /:id para evitar conflictos)
+router.get('/verificar/email', verificarEmailAgente);
+router.get('/verificar/cedula', verificarCedulaAgente);
 
 // Obtener agente por ID
 router.get('/:id', obtenerAgentePorId);

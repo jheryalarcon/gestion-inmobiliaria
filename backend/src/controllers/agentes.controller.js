@@ -24,9 +24,9 @@ export const crearAgente = async (req, res) => {
         }
 
         // Validar cédula
-        if (!/^\d{10,13}$/.test(cedula)) {
+        if (!/^\d{10}$/.test(cedula)) {
             return res.status(400).json({
-                error: 'La cédula debe contener solo números (10-13 dígitos)'
+                error: 'La cédula debe contener exactamente 10 dígitos numéricos'
             });
         }
 
@@ -38,11 +38,11 @@ export const crearAgente = async (req, res) => {
             });
         }
 
-        // Validar formato de teléfono (solo números, mínimo 7 dígitos)
-        const telefonoRegex = /^[0-9]{7,15}$/;
-        if (!telefonoRegex.test(telefono)) {
+        // Validar formato de teléfono (solo números, 10 dígitos exactos)
+        const telefonoRegex = /^[0-9]{10}$/;
+        if (!telefonoRegex.test(telefono.replace(/\s/g, ''))) {
             return res.status(400).json({
-                error: 'El teléfono debe contener solo números y tener entre 7 y 15 dígitos'
+                error: 'El teléfono debe contener exactamente 10 dígitos'
             });
         }
 
@@ -62,6 +62,16 @@ export const crearAgente = async (req, res) => {
         if (usuarioExistente) {
             return res.status(400).json({
                 error: 'Ya existe un usuario con este email'
+            });
+        }
+
+        // Verificar que el email no esté registrado como cliente
+        const clienteConEmail = await prisma.cliente.findFirst({
+            where: { email }
+        });
+        if (clienteConEmail) {
+            return res.status(400).json({
+                error: 'Este email ya está registrado como cliente en el sistema'
             });
         }
 
@@ -167,9 +177,23 @@ export const obtenerAgentes = async (req, res) => {
                     createdAt: true,
                     _count: {
                         select: {
-                            propiedades: true,
-                            clientes: true,
-                            negociaciones: true
+                            propiedades: {
+                                where: {
+                                    estado_publicacion: { in: ['disponible', 'reservada'] }
+                                }
+                            },
+                            clientes: {
+                                where: { activo: true }
+                            },
+                            negociaciones: {
+                                where: {
+                                    activo: true,
+                                    etapa: { notIn: ['cancelada', 'finalizada'] },
+                                    propiedad: {
+                                        estado_publicacion: { not: 'inactiva' }
+                                    }
+                                }
+                            }
                         }
                     }
                 },
@@ -328,7 +352,14 @@ export const actualizarEstadoAgente = async (req, res) => {
         const [clientesActivos, propiedadesActivas, negociacionesActivas] = await Promise.all([
             prisma.cliente.count({ where: { agenteId: parseInt(id), activo: true } }),
             prisma.propiedad.count({ where: { agenteId: parseInt(id), estado_publicacion: { in: ['disponible', 'reservada'] } } }),
-            prisma.negociacion.count({ where: { agenteId: parseInt(id), activo: true } })
+            prisma.negociacion.count({
+                where: {
+                    agenteId: parseInt(id),
+                    activo: true,
+                    etapa: { notIn: ['cancelada', 'finalizada'] },
+                    propiedad: { estado_publicacion: { not: 'inactiva' } }
+                }
+            })
         ]);
 
         const totalPendientes = clientesActivos + propiedadesActivas + negociacionesActivas;
@@ -379,9 +410,16 @@ export const actualizarAgente = async (req, res) => {
         }
 
         // Validaciones
-        if (!name || !email || !telefono) {
+        if (!name || !email || !telefono || !cedula) {
             return res.status(400).json({
-                error: 'El nombre, email y teléfono son obligatorios'
+                error: 'El nombre, email, teléfono y cédula son obligatorios'
+            });
+        }
+
+        // Validar cédula
+        if (!/^\d{10}$/.test(cedula)) {
+            return res.status(400).json({
+                error: 'La cédula debe contener exactamente 10 dígitos numéricos'
             });
         }
 
@@ -393,11 +431,11 @@ export const actualizarAgente = async (req, res) => {
             });
         }
 
-        // Validar formato de teléfono (solo números, mínimo 7 dígitos)
-        const telefonoRegex = /^[0-9]{7,15}$/;
-        if (!telefonoRegex.test(telefono)) {
+        // Validar formato de teléfono (solo números, 10 dígitos exactos)
+        const telefonoRegex = /^[0-9]{10}$/;
+        if (!telefonoRegex.test(telefono.replace(/\s/g, ''))) {
             return res.status(400).json({
-                error: 'El teléfono debe contener solo números y tener entre 7 y 15 dígitos'
+                error: 'El teléfono debe contener exactamente 10 dígitos'
             });
         }
 
@@ -426,6 +464,16 @@ export const actualizarAgente = async (req, res) => {
         if (emailDuplicado) {
             return res.status(400).json({
                 error: 'Ya existe un usuario con este email'
+            });
+        }
+
+        // Verificar que el email no esté registrado como cliente
+        const clienteConEmail = await prisma.cliente.findFirst({
+            where: { email }
+        });
+        if (clienteConEmail) {
+            return res.status(400).json({
+                error: 'Este email ya está registrado como cliente en el sistema'
             });
         }
 
@@ -579,5 +627,55 @@ export const cambiarPasswordAgente = async (req, res) => {
         res.status(500).json({
             error: 'Error interno del servidor al cambiar la contraseña'
         });
+    }
+};
+
+// Verificar disponibilidad de email para agente (registro/edición)
+export const verificarEmailAgente = async (req, res) => {
+    const { email, agenteId } = req.query;
+    if (!email?.trim()) {
+        return res.status(400).json({ disponible: false, mensaje: 'Email requerido' });
+    }
+    try {
+        const whereUsuario = { email: email.trim() };
+        if (agenteId) whereUsuario.id = { not: parseInt(agenteId) };
+        const usuarioExistente = await prisma.usuario.findFirst({ where: whereUsuario });
+        if (usuarioExistente) {
+            const rolLabel = usuarioExistente.rol === 'admin' ? 'administrador' : 'agente';
+            return res.json({ disponible: false, mensaje: `Este correo ya está registrado como ${rolLabel} en el sistema.` });
+        }
+        const clienteExistente = await prisma.cliente.findFirst({ where: { email: email.trim() } });
+        if (clienteExistente) {
+            return res.json({ disponible: false, mensaje: 'Este correo ya está registrado como cliente en el sistema.' });
+        }
+        return res.json({ disponible: true });
+    } catch (error) {
+        console.error('Error verificando email agente:', error);
+        res.status(500).json({ disponible: true });
+    }
+};
+
+// Verificar disponibilidad de cédula para agente (registro/edición)
+export const verificarCedulaAgente = async (req, res) => {
+    const { cedula, agenteId } = req.query;
+    if (!cedula?.trim()) {
+        return res.status(400).json({ disponible: false, mensaje: 'Cédula requerida' });
+    }
+    try {
+        const whereUsuario = { cedula: cedula.trim() };
+        if (agenteId) whereUsuario.id = { not: parseInt(agenteId) };
+        const usuarioExistente = await prisma.usuario.findFirst({ where: whereUsuario });
+        if (usuarioExistente) {
+            const rolLabel = usuarioExistente.rol === 'admin' ? 'administrador' : 'agente';
+            return res.json({ disponible: false, mensaje: `Esta cédula ya está registrada como ${rolLabel} en el sistema.` });
+        }
+        const clienteExistente = await prisma.cliente.findFirst({ where: { cedula: cedula.trim() } });
+        if (clienteExistente) {
+            return res.json({ disponible: false, mensaje: 'Esta cédula ya está registrada como cliente en el sistema.' });
+        }
+        return res.json({ disponible: true });
+    } catch (error) {
+        console.error('Error verificando cédula agente:', error);
+        res.status(500).json({ disponible: true });
     }
 };
